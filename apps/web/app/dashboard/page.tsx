@@ -1,0 +1,138 @@
+// app/dashboard/page.tsx - Main dashboard page
+
+'use client';
+
+import { useEffect } from 'react';
+import { useStore } from '../lib/store';
+import StatsCard from '../components/StatsCard';
+import ProjectCard from '../components/ProjectCard';
+import BudgetChart from '../components/charts/BudgetChart';
+import DonutChart from '../components/charts/DonutChart';
+import { Film, Users, DollarSign, TrendingUp, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+
+export default function DashboardPage() {
+  const { projects, investors, stats, loading, fetchProjects, fetchInvestors, fetchPhases } = useStore();
+
+  useEffect(() => {
+    fetchProjects();
+    fetchInvestors();
+    fetchPhases();
+  }, [fetchProjects, fetchInvestors, fetchPhases]);
+
+  // Prepare chart data
+  const budgetData = projects.slice(0, 5).map(p => ({
+    name: p.title.substring(0, 15),
+    budget: p.financingSources?.reduce((sum, f) => sum + f.amount, 0) || 0,
+    spent: (p.financingSources?.reduce((sum, f) => sum + f.amount, 0) || 0) * 0.6, // Mock spent
+  }));
+
+  const phaseData = stats?.projectsByPhase ? Object.entries(stats.projectsByPhase).map(([name, value]) => ({
+    name,
+    value: value as number,
+    color: {
+      DEVELOPMENT: '#3b82f6',
+      PRODUCTION: '#10b981',
+      POST: '#f59e0b',
+      PUBLICITY: '#8b5cf6',
+    }[name] || '#6b7280',
+  })) : [];
+
+  if (loading && projects.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+        <p className="text-gray-600">Welcome back! Here's what's happening with your projects.</p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <StatsCard
+          title="Total Projects"
+          value={stats?.totalProjects || 0}
+          change={12}
+          icon={Film}
+          iconColor="text-blue-600"
+          iconBg="bg-blue-100"
+        />
+        <StatsCard
+          title="Active Projects"
+          value={stats?.activeProjects || 0}
+          change={8}
+          icon={TrendingUp}
+          iconColor="text-green-600"
+          iconBg="bg-green-100"
+        />
+        <StatsCard
+          title="Total Budget"
+          value={`${((stats?.totalBudget || 0) / 1000000).toFixed(1)}M`}
+          change={15}
+          icon={DollarSign}
+          iconColor="text-purple-600"
+          iconBg="bg-purple-100"
+        />
+        <StatsCard
+          title="Investors"
+          value={stats?.totalInvestors || 0}
+          change={5}
+          icon={Users}
+          iconColor="text-orange-600"
+          iconBg="bg-orange-100"
+        />
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="lg:col-span-2">
+          <BudgetChart data={budgetData} />
+        </div>
+        <div>
+          <DonutChart data={phaseData} title="Projects by Phase" />
+        </div>
+      </div>
+
+      {/* Recent Projects */}
+      <div className="bg-white rounded-xl p-6 border border-gray-200">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-bold text-gray-900">Recent Projects</h3>
+          <Link 
+            href="/projects"
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
+          >
+            View All
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+        
+        {projects.length === 0 ? (
+          <div className="text-center py-12">
+            <Film className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-600 mb-4">No projects yet</p>
+            <Link
+              href="/projects"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Film className="w-4 h-4" />
+              Create First Project
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {projects.slice(0, 6).map((project) => (
+              <ProjectCard key={project.id} project={project} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

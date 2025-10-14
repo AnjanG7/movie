@@ -1,0 +1,345 @@
+// -------------------------------------------------------
+//  Prisma Schema — Film Finance Planning App
+// -------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Phase {
+  DEVELOPMENT
+  PRODUCTION
+  POST
+  PUBLICITY
+}
+
+// ---------------------- Core Models ---------------------
+
+model User {
+  id        String     @id @default(uuid())
+  name      String
+  email     String     @unique
+  password  String
+  status    String     @default("active")
+  roles     UserRole[]
+  auditLogs AuditLog[]
+  createdAt DateTime   @default(now())
+}
+
+model Role {
+  id    String     @id @default(uuid())
+  name  String     @unique
+  users UserRole[]
+}
+
+model UserRole {
+  id     String @id @default(uuid())
+  userId String
+  roleId String
+  user   User   @relation(fields: [userId], references: [id])
+  role   Role   @relation(fields: [roleId], references: [id])
+}
+
+model AuditLog {9
+  id         String   @id @default(uuid())
+  entity     String
+  action     String
+  recordId   String?
+  beforeData Json?
+  afterData  Json?
+  userId     String?
+  timestamp  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+}
+
+// ---------------------- Projects -----------------------
+
+model Project {
+  id                   String                @id @default(uuid())
+  title                String
+  baseCurrency         String
+  timezone             String?               @default("Asia/Kathmandu")
+  status               String?               @default("planning")
+  ownerId              String?
+  createdAt            DateTime              @default(now())
+  budgetVersions       BudgetVersion[]
+  phases               PhaseEntity[]
+  financingSources     FinancingSource[]
+  distributionDeals    DistributionDeal[]
+  waterfallDefinitions WaterfallDefinition[]
+  purchaseOrders       PurchaseOrder[]
+  cashflowForecasts    CashflowForecast[]
+  postTasks            PostTask[]
+  pAndATasks           PAndATask[]
+}
+
+model PhaseEntity {
+  id        String  @id @default(uuid())
+  name      Phase
+  orderNo   Int?
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+}
+
+// ---------------------- Budgeting -----------------------
+
+model BudgetVersion {
+  id           String           @id @default(uuid())
+  projectId    String
+  version      String // e.g. "v1", "baseline"
+  type         String // "QUOTE" | "BASELINE" | "WORKING"
+  createdBy    String?
+  lockedAt     DateTime?
+  createdAt    DateTime         @default(now())
+  lines        BudgetLineItem[]
+  project      Project          @relation(fields: [projectId], references: [id])
+  changeOrders ChangeOrder[]
+}
+
+model BudgetLineItem {
+  id              String        @id @default(uuid())
+  budgetVersionId String
+  phase           Phase
+  department      String?
+  name            String
+  qty             Int           @default(1)
+  rate            Float
+  taxPercent      Float?        @default(0)
+  vendor          String?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  budgetVersion   BudgetVersion @relation(fields: [budgetVersionId], references: [id])
+}
+
+model ChangeOrder {
+  id        String        @id @default(uuid())
+  versionId String
+  reason    String?
+  oldValue  Json?
+  newValue  Json?
+  createdBy String?
+  createdAt DateTime      @default(now())
+  version   BudgetVersion @relation(fields: [versionId], references: [id])
+}
+
+// ---------------------- Vendors & Costs -----------------
+
+model Vendor {
+  id                String             @id @default(uuid())
+  name              String
+  currency          String
+  bankInfo          Json?
+  purchaseOrders    PurchaseOrder[]
+  invoices          Invoice[]
+  scheduledPayments ScheduledPayment[] // opposite relation
+}
+
+model PurchaseOrder {
+  id         String    @id @default(uuid())
+  vendorId   String
+  projectId  String
+  poNo       String    @unique
+  amount     Float
+  status     String    @default("Pending")
+  approvedBy String?
+  approvedAt DateTime?
+  vendor     Vendor    @relation(fields: [vendorId], references: [id])
+  project    Project   @relation(fields: [projectId], references: [id])
+  invoices   Invoice[]
+}
+
+model Invoice {
+  id          String         @id @default(uuid())
+  vendorId    String
+  poId        String?
+  docNo       String
+  date        DateTime
+  amount      Float
+  status      String         @default("Pending")
+  attachments Json?
+  vendor      Vendor         @relation(fields: [vendorId], references: [id])
+  po          PurchaseOrder? @relation(fields: [poId], references: [id])
+  payments    Payment[]
+}
+
+model Payment {
+  id        String    @id @default(uuid())
+  invoiceId String
+  amount    Float
+  paidOn    DateTime?
+  method    String?
+  status    String    @default("Paid")
+  invoice   Invoice   @relation(fields: [invoiceId], references: [id])
+}
+
+model ScheduledPayment {
+  id           String        @id @default(uuid())
+  payeeId      String
+  total        Float
+  status       String        @default("Scheduled")
+  installments Installment[]
+  allocations  Allocation[]
+  payee        Vendor        @relation(fields: [payeeId], references: [id])
+}
+
+model Installment {
+  id                 String           @id @default(uuid())
+  scheduledPaymentId String
+  dueDate            DateTime
+  amount             Float
+  status             String           @default("Pending")
+  scheduledPayment   ScheduledPayment @relation(fields: [scheduledPaymentId], references: [id])
+}
+
+model Allocation {
+  id                 String           @id @default(uuid())
+  scheduledPaymentId String
+  phase              Phase
+  lineRefId          String?
+  amount             Float
+  scheduledPayment   ScheduledPayment @relation(fields: [scheduledPaymentId], references: [id])
+}
+
+// ---------------------- Financing & Cashflow ------------
+
+model FinancingSource {
+  id        String     @id @default(uuid())
+  projectId String
+  type      String // Equity, Loan, Grant, Incentive
+  amount    Float
+  rate      Float?
+  fees      Float?
+  schedule  Json?
+  project   Project    @relation(fields: [projectId], references: [id])
+  drawdowns Drawdown[]
+}
+
+model Drawdown {
+  id       String          @id @default(uuid())
+  sourceId String
+  date     DateTime
+  amount   Float
+  source   FinancingSource @relation(fields: [sourceId], references: [id])
+}
+
+model CashflowForecast {
+  id         String   @id @default(uuid())
+  projectId  String
+  weekStart  DateTime
+  inflows    Float
+  outflows   Float
+  cumulative Float
+  project    Project  @relation(fields: [projectId], references: [id])
+}
+
+// ---------------------- Post & P&A ----------------------
+
+model PostTask {
+  id           String    @id @default(uuid())
+  projectId    String
+  name         String
+  costEstimate Float
+  dueDate      DateTime?
+  status       String    @default("Planned")
+  project      Project   @relation(fields: [projectId], references: [id])
+}
+
+model PAndATask {
+  id           String    @id @default(uuid())
+  projectId    String
+  name         String
+  costEstimate Float
+  actualSpent  Float?
+  campaignDate DateTime?
+  project      Project   @relation(fields: [projectId], references: [id])
+}
+
+// ---------------------- Distribution --------------------
+
+model DistributionDeal {
+  id                String             @id @default(uuid())
+  projectId         String
+  territory         String
+  window            String
+  feePercent        Float?
+  expensesCap       Float?
+  minimumGuarantee  Float?
+  project           Project            @relation(fields: [projectId], references: [id])
+  revenueStatements RevenueStatement[]
+}
+
+model RevenueStatement {
+  id          String           @id @default(uuid())
+  dealId      String
+  periodStart DateTime
+  periodEnd   DateTime
+  gross       Float
+  fee         Float
+  expenses    Float
+  net         Float
+  deal        DistributionDeal @relation(fields: [dealId], references: [id])
+}
+
+// ---------------------- Waterfall & Investors ------------
+
+model WaterfallDefinition {
+  id           String          @id @default(uuid())
+  projectId    String
+  createdAt    DateTime        @default(now())
+  project      Project         @relation(fields: [projectId], references: [id])
+  tiers        WaterfallTier[]
+  participants Participant[]
+}
+
+model WaterfallTier {
+  id          String              @id @default(uuid())
+  waterfallId String
+  tierOrder   Int
+  cap         Float?
+  pctSplit    Float?
+  description String?
+  waterfall   WaterfallDefinition @relation(fields: [waterfallId], references: [id])
+}
+
+model Participant {
+  id          String              @id @default(uuid())
+  waterfallId String
+  name        String
+  role        String
+  pctShare    Float?
+  waterfall   WaterfallDefinition @relation(fields: [waterfallId], references: [id])
+  payouts     WaterfallPayout[]
+}
+
+model WaterfallPayout {
+  id            String      @id @default(uuid())
+  participantId String
+  periodStart   DateTime
+  periodEnd     DateTime
+  amount        Float
+  participant   Participant @relation(fields: [participantId], references: [id])
+}
+
+// ---------------------- Reference Tables -----------------
+
+model CurrencyRate {
+  id           String   @id @default(uuid())
+  month        DateTime
+  fromCurrency String
+  toCurrency   String
+  rate         Float
+}
+
+model Attachment {
+  id         String   @id @default(uuid())
+  entityType String
+  entityId   String
+  fileUrl    String
+  uploadedBy String?
+  uploadedAt DateTime @default(now())
+}
