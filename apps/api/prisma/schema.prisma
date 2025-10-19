@@ -45,7 +45,7 @@ model UserRole {
   role   Role   @relation(fields: [roleId], references: [id])
 }
 
-model AuditLog {9
+model AuditLog {
   id         String   @id @default(uuid())
   entity     String
   action     String

@@ -1,5 +1,5 @@
 // prisma/seed.js
-import { PrismaClient } from '@prisma/client';
+/*import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
@@ -241,3 +241,22 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+*/
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
+
+async function main() {
+  const roles = ["Admin", "Producer", "Investor"];
+  for (const name of roles) {
+    await prisma.role.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+  }
+  console.log("✅ Roles seeded");
+}
+
+main()
+  .catch(console.error)
+  .finally(() => prisma.$disconnect());

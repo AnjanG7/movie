@@ -1,4 +1,4 @@
-import express from "express";
+/*import express from "express";
 import prisma from "../prismaClient.js";
 
 const router = express.Router();
@@ -47,3 +47,4 @@ router.get("/project/:projectId", async (req, res) => {
 });
 
 export default router;
+*/
