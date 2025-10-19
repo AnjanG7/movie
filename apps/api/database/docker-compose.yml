@@ -1,0 +1,17 @@
+services:
+  film_finance_db:
+    image: postgres:16
+    container_name: film_finance_db
+    restart: unless-stopped
+    env_file:
+      - ../.env              
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ./financedata:/var/lib/postgresql/data
+    networks:
+      - film_network
+
+networks:
+  film_network:
+    driver: bridge
