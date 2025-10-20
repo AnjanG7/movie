@@ -246,7 +246,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  const roles = ["Admin", "Producer", "Investor"];
+  const roles = ["Admin", "Producer", "Investor","Line Producer"];
   for (const name of roles) {
     await prisma.role.upsert({
       where: { name },
