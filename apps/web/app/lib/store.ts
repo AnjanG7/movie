@@ -2,14 +2,19 @@
 
 import { create } from 'zustand';
 import { Project, Participant, PhaseEntity, DashboardStats } from './types';
-import { projectsApi, investorsApi, phasesApi } from './api';
+import { projectsApi, investorsApi, phasesApi, userApi } from './api';
+import { User,AuditLog, Role, UserRole } from '../../../../packages/types';
+
 
 interface AppState {
-  // Data
+  // Data Types
+  user: User | null;
+  token: string | null;
   projects: Project[];
-  investors: Participant[];
+  investors: Participant[]; 
   phases: PhaseEntity[];
   stats: DashboardStats | null;
+  
   
   // Loading states
   loading: boolean;
@@ -17,20 +22,31 @@ interface AppState {
   
   // Actions
   fetchProjects: () => Promise<void>;
+  setUser: (user: User | null) => void;
+  setToken: (token: string | null) => void;
+  logout:() => void;
   fetchInvestors: () => Promise<void>;
   fetchPhases: () => Promise<void>;
   calculateStats: () => void;
   setError: (error: string | null) => void;
+
 }
 
 export const useStore = create<AppState>((set, get) => ({
   // Initial state
+  user: null,
+  token:null,
   projects: [],
   investors: [],
   phases: [],
   stats: null,
   loading: false,
   error: null,
+
+  //Set User
+  setUser: (user) => set({ user }),
+  setToken: (token) => set({ token }),
+  logout: () => set({ user: null, token: null }),
 
   // Fetch projects
   fetchProjects: async () => {

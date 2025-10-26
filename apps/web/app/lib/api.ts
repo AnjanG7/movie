@@ -2,6 +2,7 @@
 
 import axios from 'axios';
 import { Project, Participant, PhaseEntity } from './types';
+import { User } from '../../../../packages/types';
 
 const api = axios.create({
   baseURL: 'http://localhost:8800/api',
@@ -9,6 +10,12 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Projects API
+export const userApi = {
+  login: (data: Partial<User>) => api.post<User>('/auth/login', data),
+  create: (data: Partial<User>) => api.post<User>('/auth/signup', data),
+};
 
 // Projects API
 export const projectsApi = {

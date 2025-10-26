@@ -1,4 +1,4 @@
-// lib/types.ts - TypeScript types matching Prisma schema
+// lib/types.ts - Types matching Prisma schema exactly
 
 export enum Phase {
   DEVELOPMENT = 'DEVELOPMENT',
@@ -7,6 +7,55 @@ export enum Phase {
   PUBLICITY = 'PUBLICITY'
 }
 
+// User & Auth Types (from Prisma schema)
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  status: string;
+  createdAt: string;
+  roles?: UserRole[];
+  auditLogs?: AuditLog[];
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  users?: UserRole[];
+}
+
+export interface UserRole {
+  id: string;
+  userId: string;
+  roleId: string;
+  user?: User;
+  role?: Role;
+}
+
+export interface AuditLog {
+  id: string;
+  entity: string;
+  action: string;
+  recordId?: string;
+  beforeData?: any;
+  afterData?: any;
+  userId?: string;
+  timestamp: string;
+  user?: User;
+}
+
+// Notification type (UI only - not in DB yet)
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  read: boolean;
+  createdAt: string;
+}
+
+// Existing types...
 export interface Project {
   id: string;
   title: string;
