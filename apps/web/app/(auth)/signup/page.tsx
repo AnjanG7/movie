@@ -4,7 +4,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useStore } from "../lib/store";
+import { useStore } from "../../(app)/lib/store";
 import { Film, Mail, Lock, User, ArrowRight, Briefcase } from "lucide-react";
 import Link from "next/link";
 

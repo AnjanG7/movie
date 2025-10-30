@@ -1,5 +1,5 @@
 // app/signup/layout.tsx
-export default function SignupLayout({
+export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;

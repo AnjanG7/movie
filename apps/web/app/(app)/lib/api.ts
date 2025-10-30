@@ -2,14 +2,52 @@
 
 import axios from 'axios';
 import { Project, Participant, PhaseEntity } from './types';
-import { User } from '../../../../packages/types';
+import { User } from '../../../../../packages/types';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8800/api',
+  baseURL: 'http://localhost:4000/api',
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+// Add request interceptor to include token
+api.interceptors.request.use(
+  (config) => {
+    // Get token from localStorage (Zustand persist storage)
+    const storedData = localStorage.getItem('film-finance-storage');
+    if (storedData) {
+      try {
+        const parsed = JSON.parse(storedData);
+        const token = parsed.state?.token;
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch (error) {
+        console.error('Error parsing stored data:', error);
+      }
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor to handle token expiration
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid, clear storage and redirect to login
+      localStorage.removeItem('film-finance-storage');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Projects API
 export const userApi = {

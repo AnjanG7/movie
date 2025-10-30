@@ -4,10 +4,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useStore } from "../lib/store";
+import { useStore } from "../../(app)/lib/store";
 import { Film, Mail, Lock, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { userApi } from "../lib/api";
+import { userApi } from "../../(app)/lib/api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -39,20 +39,20 @@ export default function LoginPage() {
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Invalid credentials");
+      } else {
+        // Parse the successful response
+        const data = await response.json();
+
+        // Your backend returns: { statusCode, data: { token, user }, message }
+        const { token, user } = data.data;
+
+        // Store token and user in Zustand store
+        setToken(token);
+        setUser(user);
+
+        // Redirect to dashboard
+        router.push("/dashboard");
       }
-
-      // Parse the successful response
-      const data = await response.json();
-
-      // Your backend returns: { statusCode, data: { token, user }, message }
-      const { token, user } = data.data;
-
-      // Store token and user in Zustand store
-      setToken(token);
-      setUser(user);
-
-      // Redirect to dashboard
-      router.push("/dashboard");
     } catch (err: any) {
       setError(err.message || "Invalid credentials");
     } finally {
