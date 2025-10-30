@@ -26,24 +26,18 @@ model User {
   email     String     @unique
   password  String
   status    String     @default("active")
-  roles     UserRole[]
+  roleId    String?
+  role      Role?      @relation(fields: [roleId], references: [id])
   auditLogs AuditLog[]
   createdAt DateTime   @default(now())
 }
 
 model Role {
-  id    String     @id @default(uuid())
-  name  String     @unique
-  users UserRole[]
+  id    String   @id @default(uuid())
+  name  String   @unique
+  users User[]
 }
 
-model UserRole {
-  id     String @id @default(uuid())
-  userId String
-  roleId String
-  user   User   @relation(fields: [userId], references: [id])
-  role   Role   @relation(fields: [roleId], references: [id])
-}
 
 model AuditLog {
   id         String   @id @default(uuid())

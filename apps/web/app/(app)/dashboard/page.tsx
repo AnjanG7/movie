@@ -133,6 +133,38 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+       {/* Features Grid */}
+        {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
+              <DollarSign className="w-7 h-7 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Budget Management</h3>
+            <p className="text-gray-600">
+              Track expenses, manage financing sources, and monitor project budgets in real-time.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
+              <Users className="w-7 h-7 text-purple-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Investor Portal</h3>
+            <p className="text-gray-600">
+              Manage investors, track equity shares, and handle waterfall distributions.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mb-4">
+              <TrendingUp className="w-7 h-7 text-green-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Analytics & Reports</h3>
+            <p className="text-gray-600">
+              Visualize project data with charts, forecasts, and comprehensive reporting.
+            </p>
+          </div>
+        </div> */}
     </div>
   );
 }

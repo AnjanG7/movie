@@ -1,6 +1,5 @@
-import './globals.css';
-
-export default function RootLayout({
+// app/signup/layout.tsx
+export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
