@@ -4,5 +4,4 @@ import { Prisma } from '@prisma/client';
 // Export only the types you need
 export type User = Prisma.UserGetPayload<{}>;
 export type Role = Prisma.RoleGetPayload<{}>;
-export type UserRole = Prisma.UserRoleGetPayload<{}>;
 export type AuditLog = Prisma.AuditLogGetPayload<{}>;

@@ -71,7 +71,6 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Welcome Back
           </h1>
-          <p className="text-gray-600">Sign in to manage your film projects</p>
         </div>
 
         {/* Login Form */}
@@ -215,18 +214,9 @@ export default function LoginPage() {
               href="/signup"
               className="text-blue-600 hover:text-blue-700 font-medium"
             >
-              Sign up for free
+              Sign up
             </Link>
           </p>
-        </div>
-
-        {/* Demo Credentials */}
-        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-xs text-blue-800 font-medium mb-1">
-            Demo Credentials:
-          </p>
-          <p className="text-xs text-blue-700">Email: demo@filmfinance.com</p>
-          <p className="text-xs text-blue-700">Password: demo123</p>
         </div>
       </div>
     </div>

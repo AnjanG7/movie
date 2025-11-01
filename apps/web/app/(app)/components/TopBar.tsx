@@ -112,7 +112,7 @@ export default function TopBar() {
           >
             <div className="text-right">
               <p className="text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
-              <p className="text-xs text-gray-500">{user?.email || 'Admin '}</p>
+              <p className="text-xs text-gray-500">{user?.role || 'Admin '}</p>
             </div>
             <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
               {user ? getInitials(user.name) : 'U'}

@@ -1,18 +1,26 @@
 // app/dashboard/page.tsx - Main dashboard page
 
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useStore } from '../lib/store';
-import StatsCard from '../components/StatsCard';
-import ProjectCard from '../components/ProjectCard';
-import BudgetChart from '../components/charts/BudgetChart';
-import DonutChart from '../components/charts/DonutChart';
-import { Film, Users, DollarSign, TrendingUp, ArrowRight } from 'lucide-react';
-import Link from 'next/link';
+import { useEffect } from "react";
+import { useStore } from "../lib/store";
+import StatsCard from "../components/StatsCard";
+import ProjectCard from "../components/ProjectCard";
+import BudgetChart from "../components/charts/BudgetChart";
+import DonutChart from "../components/charts/DonutChart";
+import { Film, Users, DollarSign, TrendingUp, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 export default function DashboardPage() {
-  const { projects, investors, stats, loading, fetchProjects, fetchInvestors, fetchPhases } = useStore();
+  const {
+    projects,
+    investors,
+    stats,
+    loading,
+    fetchProjects,
+    fetchInvestors,
+    fetchPhases,
+  } = useStore();
 
   useEffect(() => {
     fetchProjects();
@@ -21,22 +29,26 @@ export default function DashboardPage() {
   }, [fetchProjects, fetchInvestors, fetchPhases]);
 
   // Prepare chart data
-  const budgetData = projects.slice(0, 5).map(p => ({
+  const budgetData = projects.slice(0, 5).map((p) => ({
     name: p.title.substring(0, 15),
     budget: p.financingSources?.reduce((sum, f) => sum + f.amount, 0) || 0,
-    spent: (p.financingSources?.reduce((sum, f) => sum + f.amount, 0) || 0) * 0.6, // Mock spent
+    spent:
+      (p.financingSources?.reduce((sum, f) => sum + f.amount, 0) || 0) * 0.6, // Mock spent
   }));
 
-  const phaseData = stats?.projectsByPhase ? Object.entries(stats.projectsByPhase).map(([name, value]) => ({
-    name,
-    value: value as number,
-    color: {
-      DEVELOPMENT: '#3b82f6',
-      PRODUCTION: '#10b981',
-      POST: '#f59e0b',
-      PUBLICITY: '#8b5cf6',
-    }[name] || '#6b7280',
-  })) : [];
+  const phaseData = stats?.projectsByPhase
+    ? Object.entries(stats.projectsByPhase).map(([name, value]) => ({
+        name,
+        value: value as number,
+        color:
+          {
+            DEVELOPMENT: "#3b82f6",
+            PRODUCTION: "#10b981",
+            POST: "#f59e0b",
+            PUBLICITY: "#8b5cf6",
+          }[name] || "#6b7280",
+      }))
+    : [];
 
   if (loading && projects.length === 0) {
     return (
@@ -49,9 +61,8 @@ export default function DashboardPage() {
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-        <p className="text-gray-600">Welcome back! Here's what's happening with your projects.</p>
       </div>
 
       {/* Stats Grid */}
@@ -104,7 +115,7 @@ export default function DashboardPage() {
       <div className="bg-white rounded-xl p-6 border border-gray-200">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold text-gray-900">Recent Projects</h3>
-          <Link 
+          <Link
             href="/projects"
             className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
           >
@@ -112,7 +123,7 @@ export default function DashboardPage() {
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
-        
+
         {projects.length === 0 ? (
           <div className="text-center py-12">
             <Film className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -133,8 +144,8 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-       {/* Features Grid */}
-        {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+      {/* Features Grid */}
+      {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
             <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
               <DollarSign className="w-7 h-7 text-blue-600" />
