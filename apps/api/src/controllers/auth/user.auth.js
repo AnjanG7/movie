@@ -6,12 +6,12 @@ import { ApiResponse } from "../../utils/ApiResponse.js";
 const authService = new AuthService();
 
 export const signup = asyncHandler(async (req, res) => {
-  const { email, password, fullName, roleName } = req.body;
+  const { email, password, name, roleName } = req.body;
 
   const user = await authService.signup({
     email,
     password,
-    fullName,
+    name,
     roleName,
   });
 
@@ -22,8 +22,8 @@ export const signup = asyncHandler(async (req, res) => {
         user: {
           id: user.id,
           email: user.email,
-          fullName: user.name,
-          roles: user.roles.map((r) => r.role.name),
+          name: user.name,
+          role: user.role ? user.role.name : null,
         },
       },
       "User registered successfully"
@@ -52,7 +52,7 @@ export const logout = asyncHandler(async (req, res) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
-    path: "/", 
+    path: "/",
   });
 
   res

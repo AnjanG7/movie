@@ -4,7 +4,9 @@ import { create } from "zustand";
 import { persist,  createJSONStorage } from "zustand/middleware";
 import { Project, Participant, PhaseEntity, DashboardStats } from "./types";
 import { projectsApi, investorsApi, phasesApi, userApi } from "./api";
-import { User, AuditLog, Role, UserRole } from "../../../../../packages/types";
+// import { User, AuditLog, Role, UserRole } from "../../../../../packages/types";
+import { User } from "./types";
+
 
 interface AppState {
   // Data Types
@@ -59,7 +61,7 @@ export const useStore = create<AppState>()(
           set({ error: error.message, loading: false });
         }
       },
-
+      
       // Fetch investors
       fetchInvestors: async () => {
         set({ loading: true, error: null });
