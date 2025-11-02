@@ -6,14 +6,9 @@ import { ApiResponse } from "../../utils/ApiResponse.js";
 const authService = new AuthService();
 
 export const signup = asyncHandler(async (req, res) => {
-  const { email, password, name, roleName } = req.body;
+ const { email, password, name, role } = req.body;
+const user = await authService.signup({ email, password, name, role });
 
-  const user = await authService.signup({
-    email,
-    password,
-    name,
-    roleName,
-  });
 
   res.status(StatusCodes.CREATED).json(
     new ApiResponse(
@@ -33,13 +28,14 @@ export const signup = asyncHandler(async (req, res) => {
 
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
+
   const { token, user } = await authService.login({ email, password });
 
   res.cookie("accessToken", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
-    maxAge: 1000 * 60 * 60 * 24,
+    maxAge: 1000 * 60 * 60 * 24, // 1 day
   });
 
   res

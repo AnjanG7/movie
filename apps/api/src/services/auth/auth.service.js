@@ -5,70 +5,58 @@ import { StatusCodes } from "http-status-codes";
 import { signToken } from "../../utils/helper.js";
 
 export class AuthService {
-  async signup(data) {
-    const { email, password, name, roleName } = data;
-
+  async signup({ email, password, name, role: roleName }) { // rename argument to roleName
     const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, "Email already registered");
-    }
+    if (existingUser) throw new ApiError(StatusCodes.BAD_REQUEST, "Email already registered");
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+ let roleRecord = null;
+if (roleName) {
+  roleRecord = await prisma.role.findUnique({ where: { name: roleName } });
+  if (!roleRecord) throw new ApiError(StatusCodes.BAD_REQUEST, "Role not found");
+}
 
-    let role;
-    if (roleName) {
-      role = await prisma.role.findUnique({ where: { name: roleName } });
-      if (!role) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, "Role not found");
-      }
-    }
-
-
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role: role ? { connect: { id: role.id } } : undefined, // updated
-      },
-      include: {
-        role: true, // updated include
-      },
-    });
-
+const user = await prisma.user.create({
+  data: {
+    name,                  
+    email,
+    password: hashedPassword,
+    role: roleRecord ? { connect: { id: roleRecord.id } } : undefined,
+  },
+  include: { role: true },
+});
 
     return user;
   }
 
-  async login(data) {
-  const { email, password } = data;
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-    include: { role: true }, //changed from "roles" to singular "role"
-  });
 
-  if (!user) {
-    throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid email or password");
+  async login({ email, password }) {
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { role: true },
+    });
+
+    if (!user) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid email or password");
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid email or password");
+    }
+
+    const token = signToken({ id: user.id, email: user.email });
+
+    return {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role ? user.role.name : null,
+      },
+    };
   }
-
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    throw new ApiError(StatusCodes.UNAUTHORIZED, "Invalid email or password");
-  }
-
-  const token = signToken({ id: user.id, email: user.email });
-
-  return {
-    token,
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role ? user.role.name : null, //simplified for new structure
-    },
-  };
-}
-
 }
