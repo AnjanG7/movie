@@ -11,9 +11,9 @@ const menuItems = [
   { icon: Film, label: 'Projects', href: '/projects' },
   { icon: Users, label: 'Investors', href: '/investors' },
   { icon: Layers, label: 'Phases', href: '/phases' },
-  { icon: DollarSign, label: 'Budget', href: '/budget', disabled: true },
-  { icon: FileText, label: 'Vendors', href: '/vendors', disabled: true },
-  { icon: TrendingUp, label: 'Cashflow', href: '/cashflow', disabled: true },
+  { icon: DollarSign, label: 'Budget', href: '/budget' },
+  { icon: FileText, label: 'Vendors', href: '/vendors' },
+  { icon: TrendingUp, label: 'Cashflow', href: '/cashflow' },
 ];
 
 export default function Sidebar() {
@@ -34,25 +34,23 @@ export default function Sidebar() {
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
-          const isDisabled = item.disabled;
+          
 
           return (
             <Link
               key={item.href}
-              href={isDisabled ? '#' : item.href}
+              href={item.href}
               className={`
                 flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all
                 ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : ''}
-                ${!isActive && !isDisabled ? 'hover:bg-gray-800 text-gray-300' : ''}
-                ${isDisabled ? 'opacity-40 cursor-not-allowed text-gray-500' : 'cursor-pointer'}
+                ${!isActive  ? 'hover:bg-gray-800 text-gray-300' : ''}
+                
               `}
-              onClick={(e) => isDisabled && e.preventDefault()}
+              
             >
               <Icon className="w-5 h-5" />
               <span className="font-medium">{item.label}</span>
-              {isDisabled && (
-                <span className="ml-auto text-xs bg-gray-800 px-2 py-0.5 rounded">Soon</span>
-              )}
+              
             </Link>
           );
         })}

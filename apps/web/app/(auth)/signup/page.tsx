@@ -48,7 +48,7 @@ export default function SignupPage() {
           email,
           password,
           name: name,
-          roleName: selectedRole,
+          role: selectedRole,
         }),
       });
 
