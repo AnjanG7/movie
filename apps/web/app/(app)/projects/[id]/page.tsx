@@ -25,8 +25,10 @@ export default function ProjectDetailPage() {
           projectsApi.getById(params.id as string),
           phasesApi.getByProject(params.id as string),
         ]);
-        setProject(projectRes.data);
-        setPhases(phasesRes.data);
+        if (projectRes.data.success && projectRes.data.data) {
+          setProject(projectRes.data.data);
+        }
+        setPhases(phasesRes.data || []);
       } catch (error) {
         console.error('Error fetching project:', error);
       } finally {

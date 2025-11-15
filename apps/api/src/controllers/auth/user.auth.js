@@ -34,7 +34,8 @@ export const login = asyncHandler(async (req, res) => {
   res.cookie("accessToken", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    path: "/",
     maxAge: 1000 * 60 * 60 * 24, // 1 day
   });
 
@@ -47,7 +48,7 @@ export const logout = asyncHandler(async (req, res) => {
   res.clearCookie("accessToken", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     path: "/",
   });
 

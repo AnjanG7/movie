@@ -7,11 +7,14 @@ import { useStore } from '../lib/store';
 import { Users, Plus, DollarSign, TrendingUp } from 'lucide-react';
 
 export default function InvestorsPage() {
-  const { investors, loading, fetchInvestors } = useStore();
+  const { investors, loading, fetchInvestors, projects } = useStore();
 
   useEffect(() => {
     fetchInvestors();
   }, [fetchInvestors]);
+
+  // Note: Investors API is not yet implemented in backend
+  // When available, investors will be fetched from /api/investors endpoint
 
   if (loading && investors.length === 0) {
     return (
@@ -67,11 +70,17 @@ export default function InvestorsPage() {
         <div className="bg-white rounded-xl p-12 border border-gray-200 text-center">
           <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No investors yet</h3>
-          <p className="text-gray-600 mb-6">Start adding investors to track their participation</p>
-          <button className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <Plus className="w-5 h-5" />
-            Add First Investor
-          </button>
+          <p className="text-gray-600 mb-6">
+            {loading 
+              ? 'Loading investors...' 
+              : 'Investor management API is not yet available. Please check back later or contact support.'}
+          </p>
+          {!loading && (
+            <button className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              <Plus className="w-5 h-5" />
+              Add First Investor
+            </button>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
