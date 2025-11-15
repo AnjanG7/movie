@@ -17,7 +17,7 @@ export default function LoginPage() {
 
   const router = useRouter();
   const setUser = useStore((state) => state.setUser);
-  const setToken = useStore((state) => state.setToken);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,10 +44,9 @@ export default function LoginPage() {
         const data = await response.json();
 
         // Your backend returns: { statusCode, data: { token, user }, message }
-        const { token, user } = data.data;
+        const { user } = data.data;
 
-        // Store token and user in Zustand store
-        setToken(token);
+        // Store user in Zustand store (token is in httpOnly cookie)
         setUser(user);
 
         // Redirect to dashboard

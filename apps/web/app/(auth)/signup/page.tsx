@@ -1,5 +1,3 @@
-// app/signup/page.tsx - Signup page with role selection
-
 "use client";
 
 import { useState } from "react";

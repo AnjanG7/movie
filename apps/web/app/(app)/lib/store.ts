@@ -11,7 +11,7 @@ import { User } from "./types";
 interface AppState {
   // Data Types
   user: User | null;
-  token: string | null;
+  
   projects: Project[];
   investors: Participant[];
   phases: PhaseEntity[];
@@ -24,7 +24,7 @@ interface AppState {
   // Actions
   fetchProjects: () => Promise<void>;
   setUser: (user: User | null) => void;
-  setToken: (token: string | null) => void;
+  
   logout: () => void;
   fetchInvestors: () => Promise<void>;
   fetchPhases: () => Promise<void>;
@@ -37,7 +37,7 @@ export const useStore = create<AppState>()(
     (set, get) => ({
       // Initial state
       user: null,
-      token: null,
+      
       projects: [],
       investors: [],
       phases: [],
@@ -47,18 +47,22 @@ export const useStore = create<AppState>()(
 
       // Set User
       setUser: (user) => set({ user }),
-      setToken: (token) => set({ token }),
-      logout: () => set({ user: null, token: null }),
+      
+      logout: () => set({ user: null }),
 
       // Fetch projects
       fetchProjects: async () => {
         set({ loading: true, error: null });
         try {
           const response = await projectsApi.getAll();
-          set({ projects: response.data, loading: false });
-          get().calculateStats();
+          if (response.data.success && response.data.data) {
+            set({ projects: response.data.data.projects || [], loading: false });
+            get().calculateStats();
+          } else {
+            set({ error: 'Failed to fetch projects', loading: false });
+          }
         } catch (error: any) {
-          set({ error: error.message, loading: false });
+          set({ error: error.message || 'Failed to fetch projects', loading: false });
         }
       },
       
@@ -67,9 +71,12 @@ export const useStore = create<AppState>()(
         set({ loading: true, error: null });
         try {
           const response = await investorsApi.getAll();
-          set({ investors: response.data, loading: false });
+          // Backend route is commented out, so this will fail gracefully
+          set({ investors: Array.isArray(response.data) ? response.data : [], loading: false });
         } catch (error: any) {
-          set({ error: error.message, loading: false });
+          // Silently fail since backend route is not implemented yet
+          console.warn('Investors API not available:', error.message);
+          set({ investors: [], loading: false });
         }
       },
 
@@ -78,7 +85,7 @@ export const useStore = create<AppState>()(
         set({ loading: true, error: null });
         try {
           const response = await phasesApi.getAll();
-          set({ phases: response.data, loading: false });
+          set({ phases: Array.isArray(response.data) ? response.data : [], loading: false });
         } catch (error: any) {
           set({ error: error.message, loading: false });
         }
@@ -121,7 +128,6 @@ export const useStore = create<AppState>()(
       name: "app-storage", // 👈 unique key in localStorage
       partialize: (state) => ({
         user: state.user,
-        token: state.token,
       }), // 👈 only persist auth data
       storage: createJSONStorage(() =>
         typeof window !== "undefined"
