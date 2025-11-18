@@ -1,45 +1,110 @@
-// app/projects/[id]/page.tsx - Individual project detail page
+"use client";
 
-'use client';
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  Calendar,
+  DollarSign,
+  Clock,
+  Film,
+  Edit,
+  MoreVertical,
+  AlertCircle,
+} from "lucide-react";
+import { Project } from "../../lib/types";
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { projectsApi, phasesApi } from '../../lib/api';
-import { Project, PhaseEntity } from '../../lib/types';
-import { ArrowLeft, Calendar, DollarSign, MapPin, Settings, Layers } from 'lucide-react';
-import Link from 'next/link';
-import { format } from 'date-fns';
+const API_BASE_URL = "http://localhost:4000/api";
 
-export default function ProjectDetailPage() {
+export default function ProjectProfilePage() {
   const params = useParams();
   const router = useRouter();
+  const projectId = params.id as string;
+
   const [project, setProject] = useState<Project | null>(null);
-  const [phases, setPhases] = useState<PhaseEntity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Fetch project details
+  const fetchProject = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        const projectData: Project = {
+          id: result.data.id,
+          title: result.data.title,
+          baseCurrency: result.data.baseCurrency,
+          timezone: result.data.timezone,
+          status: result.data.status,
+          ownerId: result.data.ownerId,
+          createdAt: result.data.createdAt,
+
+          // these exist in your type
+          phases: result.data.phases || [],
+          financingSources: result.data.financingSources || [],
+
+          // REMOVE budgetVersions because NOT in your Project type
+        };
+        setProject(projectData);
+      } else {
+        throw new Error(result.message || "Failed to fetch project");
+      }
+    } catch (error) {
+      console.error("Error fetching project:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to load project"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [projectRes, phasesRes] = await Promise.all([
-          projectsApi.getById(params.id as string),
-          phasesApi.getByProject(params.id as string),
-        ]);
-        if (projectRes.data.success && projectRes.data.data) {
-          setProject(projectRes.data.data);
-        }
-        setPhases(phasesRes.data || []);
-      } catch (error) {
-        console.error('Error fetching project:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (params.id) {
-      fetchData();
+    if (projectId) {
+      fetchProject();
     }
-  }, [params.id]);
+  }, [projectId]);
+
+  // Get status color
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "planning":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "active":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "completed":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "paused":
+        return "bg-gray-100 text-gray-800 border-gray-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  // Format date
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
 
   if (loading) {
     return (
@@ -49,150 +114,184 @@ export default function ProjectDetailPage() {
     );
   }
 
-  if (!project) {
+  if (error || !project) {
     return (
       <div className="p-8">
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Project not found</h2>
-          <Link href="/projects" className="text-blue-600 hover:text-blue-700">
-            Return to projects
-          </Link>
+        <button
+          onClick={() => router.push("/projects")}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Back to Projects
+        </button>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-red-900 mb-2">
+            Error Loading Project
+          </h3>
+          <p className="text-red-700">{error || "Project not found"}</p>
         </div>
       </div>
     );
   }
 
-  const totalBudget = project.financingSources?.reduce((sum, f) => sum + f.amount, 0) || 0;
-
   return (
-    <div className="p-8">
+    <div className="p-8 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <Link 
-          href="/projects"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
+      <div className="mb-6">
+        <button
+          onClick={() => router.push("/projects")}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-5 h-5" />
           Back to Projects
-        </Link>
-        
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{project.title}</h1>
-            <div className="flex items-center gap-4 text-sm text-gray-600">
-              <div className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                <span>Created {format(new Date(project.createdAt), 'MMM dd, yyyy')}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                <span>{project.timezone}</span>
-              </div>
-            </div>
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors">
-            <Settings className="w-4 h-4" />
-            Settings
-          </button>
-        </div>
+        </button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-green-100 rounded-lg">
-              <DollarSign className="w-6 h-6 text-green-600" />
-            </div>
-            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
-              {project.status}
-            </span>
-          </div>
-          <p className="text-sm text-gray-600 mb-1">Total Budget</p>
-          <p className="text-2xl font-bold text-gray-900">
-            {project.baseCurrency} {totalBudget.toLocaleString()}
-          </p>
-        </div>
-
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
+      {/* Project Header Card */}
+      <div className="bg-white rounded-xl border border-gray-200 p-8 mb-6">
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex items-start gap-4">
             <div className="p-3 bg-blue-100 rounded-lg">
-              <Layers className="w-6 h-6 text-blue-600" />
+              <Film className="w-8 h-8 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {project.title}
+              </h1>
+              <div className="flex items-center gap-3">
+                <span
+                  className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(project.status || "")}`}
+                >
+                  {(project.status || "").charAt(0).toUpperCase() +
+                    (project.status || "").slice(1)}
+                </span>
+              </div>
             </div>
           </div>
-          <p className="text-sm text-gray-600 mb-1">Active Phases</p>
-          <p className="text-2xl font-bold text-gray-900">{phases.length}</p>
+
+          <div className="flex items-center gap-2">
+            <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+              <Edit className="w-5 h-5" />
+            </button>
+            <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+              <MoreVertical className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <DollarSign className="w-6 h-6 text-purple-600" />
+        {/* Key Information Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <DollarSign className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Base Currency</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {project.baseCurrency}
+              </p>
             </div>
           </div>
-          <p className="text-sm text-gray-600 mb-1">Financing Sources</p>
-          <p className="text-2xl font-bold text-gray-900">
-            {project.financingSources?.length || 0}
-          </p>
+
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <Clock className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Timezone</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {project.timezone}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Calendar className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Created</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {formatDate(project.createdAt)}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Financing Sources */}
-      {project.financingSources && project.financingSources.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 mb-8 overflow-hidden">
-          <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-bold text-gray-900">Financing Sources</h2>
-          </div>
-          <div className="p-6">
-            <div className="space-y-4">
-              {project.financingSources.map((source) => (
-                <div key={source.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-semibold text-gray-900">{source.type}</p>
-                    <p className="text-sm text-gray-600">
-                      {source.rate && `Rate: ${source.rate}%`}
-                      {source.fees && ` • Fees: ${project.baseCurrency} ${source.fees}`}
-                    </p>
-                  </div>
-                  <p className="text-xl font-bold text-green-600">
-                    {project.baseCurrency} {source.amount.toLocaleString()}
+      {/* Additional Information Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* Phases */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
+            Production Phases
+          </h2>
+          {project.phases && project.phases.length > 0 ? (
+            <div className="space-y-2">
+              {project.phases.map((phase, index) => (
+                <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                  <p className="font-medium text-gray-900">{phase.name}</p>
+                  
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-600 text-center py-8">
+              No phases added yet
+            </p>
+          )}
+        </div>
+
+        {/* Budget Versions */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
+            Budget Versions
+          </h2>
+          {/* {project.budgetVersions && project.budgetVersions.length > 0 ? (
+            <div className="space-y-2">
+              {project.budgetVersions.map((version, index) => (
+                <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                  <p className="font-medium text-gray-900">{version.name}</p>
+                  <p className="text-sm text-gray-600">
+                    Version {version.version}
                   </p>
                 </div>
               ))}
             </div>
-          </div>
+          ) : ( */}
+            <p className="text-gray-600 text-center py-8">
+              No budget versions yet
+            </p>
+          {/* )} */}
         </div>
-      )}
+      </div>
 
-      {/* Phases */}
-      {phases.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-bold text-gray-900">Production Phases</h2>
+      {/* Financing Sources */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">
+          Financing Sources
+        </h2>
+        {project.financingSources && project.financingSources.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {project.financingSources.map((source, index) => (
+              <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                
+                <p className="text-sm text-gray-600">{source.type}</p>
+              </div>
+            ))}
           </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {phases.map((phase) => (
-                <div key={phase.id} className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-2xl">
-                      {phase.name === 'DEVELOPMENT' && '📝'}
-                      {phase.name === 'PRODUCTION' && '🎬'}
-                      {phase.name === 'POST' && '✂️'}
-                      {phase.name === 'PUBLICITY' && '📢'}
-                    </span>
-                    {phase.orderNo && (
-                      <span className="text-blue-700 text-xs font-semibold">#{phase.orderNo}</span>
-                    )}
-                  </div>
-                  <h4 className="font-bold text-blue-900 mb-1">{phase.name}</h4>
-                  <p className="text-xs text-blue-700">Active phase</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-gray-600 text-center py-8">
+            No financing sources added yet
+          </p>
+        )}
+      </div>
+
+      {/* Last Updated */}
+      <div className="mt-6 text-center text-sm text-gray-500">
+        Last updated {formatDate(project.createdAt)}
+      </div>
     </div>
   );
 }
