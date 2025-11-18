@@ -131,4 +131,27 @@ async getAllProjects(query) {
     projects,
   };
 }
+// Fetch single project by ID
+async fetchProject(projectId) {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: {
+      phases: true,
+      budgetVersions: {
+        include: {
+          lines: true, // optional if you want budget line items too
+        },
+      },
+    },
+  });
+
+  if (!project) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+  }
+
+  return project;
 }
+
+}
+
+

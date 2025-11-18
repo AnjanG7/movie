@@ -20,6 +20,20 @@ export const createProject = asyncHandler(async (req, res) => {
     );
 });
 
+// Fetch Single Project
+export const fetchProject = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+
+  const project = await projectService.fetchProject(projectId);
+
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(StatusCodes.OK, project, "Project fetched successfully")
+    );
+});
+
+
 // Assign Project Owner hai
 export const assignProject = asyncHandler(async (req, res) => {
   const { projectId, ownerId } = req.body;

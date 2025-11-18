@@ -3,6 +3,7 @@ import {
   createProject,
   assignProject,
   getAllProjects,
+  fetchProject,
 } from "../controllers/project/project.controller.js";
 import { authMiddleware } from "../middlewares/authmiddleware.js";
 import { authorizeRoles } from "../middlewares/rolemiddleware.js";
@@ -30,5 +31,13 @@ router.get(
   authorizeRoles("Admin", "Producer"),
   getAllProjects
 );
+
+router.get(
+  "/:projectId",
+  authMiddleware,
+  authorizeRoles("Admin", "Producer"),
+  fetchProject   // <-- Add this controller
+);
+
 
 export default router;
