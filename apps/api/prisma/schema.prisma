@@ -1,5 +1,5 @@
 // -------------------------------------------------------
-//  Prisma Schema — Film Finance Planning App
+//  Prisma Schema — Film Finance Planning App (UPDATED)
 // -------------------------------------------------------
 
 generator client {
@@ -18,6 +18,47 @@ enum Phase {
   PUBLICITY
 }
 
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum BudgetType {
+  QUOTE
+  BASELINE
+  WORKING
+}
+
+enum QuoteStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum FinancingType {
+  EQUITY
+  LOAN
+  GRANT
+  INCENTIVE
+  MG          // Minimum Guarantee
+}
+
+enum PostTaskType {
+  EDITING
+  COLOR
+  AUDIO
+  MUSIC
+  VFX
+  QC
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
 // ---------------------- Core Models ---------------------
 
 model User {
@@ -25,11 +66,12 @@ model User {
   name      String
   email     String     @unique
   password  String
-  status    String     @default("active")
+  status    UserStatus @default(ACTIVE)
   roleId    String?
   role      Role?      @relation(fields: [roleId], references: [id])
   auditLogs AuditLog[]
   createdAt DateTime   @default(now())
+  updatedAt DateTime?  @updatedAt
 }
 
 model Role {
@@ -37,7 +79,6 @@ model Role {
   name  String   @unique
   users User[]
 }
-
 
 model AuditLog {
   id         String   @id @default(uuid())
@@ -49,6 +90,11 @@ model AuditLog {
   userId     String?
   timestamp  DateTime @default(now())
   user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([entity])
+  @@index([recordId])
+  @@index([userId])
+  @@index([timestamp])
 }
 
 // ---------------------- Projects -----------------------
@@ -61,6 +107,8 @@ model Project {
   status               String?               @default("planning")
   ownerId              String?
   createdAt            DateTime              @default(now())
+  updatedAt            DateTime?             @updatedAt
+
   budgetVersions       BudgetVersion[]
   phases               PhaseEntity[]
   financingSources     FinancingSource[]
@@ -72,6 +120,7 @@ model Project {
   pAndATasks           PAndATask[]
 }
 
+// Phase entity per project
 model PhaseEntity {
   id        String  @id @default(uuid())
   name      Phase
@@ -80,16 +129,21 @@ model PhaseEntity {
   project   Project @relation(fields: [projectId], references: [id])
 }
 
-// ---------------------- Budgeting -----------------------
+// ---------------------- Budgeting / Quotation -----------------------
 
 model BudgetVersion {
   id           String           @id @default(uuid())
   projectId    String
-  version      String // e.g. "v1", "baseline"
-  type         String // "QUOTE" | "BASELINE" | "WORKING"
+  version      String           // e.g. "v1", "baseline"
+  type         BudgetType       // QUOTE | BASELINE | WORKING
   createdBy    String?
   lockedAt     DateTime?
+  acceptedAt   DateTime?        // when a quote was accepted/converted
+  sentTo       Json?            // optional: list of recipients (investors / emails)
+  grandTotal   Float?           // cached total for quick read
   createdAt    DateTime         @default(now())
+  updatedAt    DateTime?        @updatedAt
+
   lines        BudgetLineItem[]
   project      Project          @relation(fields: [projectId], references: [id])
   changeOrders ChangeOrder[]
@@ -107,6 +161,8 @@ model BudgetLineItem {
   vendor          String?
   notes           String?
   createdAt       DateTime      @default(now())
+  updatedAt       DateTime?     @updatedAt
+
   budgetVersion   BudgetVersion @relation(fields: [budgetVersionId], references: [id])
 }
 
@@ -128,9 +184,12 @@ model Vendor {
   name              String
   currency          String
   bankInfo          Json?
+  contactInfo       Json?              // optional phone/email/address
   purchaseOrders    PurchaseOrder[]
   invoices          Invoice[]
   scheduledPayments ScheduledPayment[] // opposite relation
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime?          @updatedAt
 }
 
 model PurchaseOrder {
@@ -139,9 +198,12 @@ model PurchaseOrder {
   projectId  String
   poNo       String    @unique
   amount     Float
-  status     String    @default("Pending")
+  status     String    @default("Pending") // consider enum later
   approvedBy String?
   approvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime? @updatedAt
+
   vendor     Vendor    @relation(fields: [vendorId], references: [id])
   project    Project   @relation(fields: [projectId], references: [id])
   invoices   Invoice[]
@@ -156,6 +218,9 @@ model Invoice {
   amount      Float
   status      String         @default("Pending")
   attachments Json?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime?      @updatedAt
+
   vendor      Vendor         @relation(fields: [vendorId], references: [id])
   po          PurchaseOrder? @relation(fields: [poId], references: [id])
   payments    Payment[]
@@ -168,6 +233,8 @@ model Payment {
   paidOn    DateTime?
   method    String?
   status    String    @default("Paid")
+  createdAt DateTime  @default(now())
+
   invoice   Invoice   @relation(fields: [invoiceId], references: [id])
 }
 
@@ -179,6 +246,8 @@ model ScheduledPayment {
   installments Installment[]
   allocations  Allocation[]
   payee        Vendor        @relation(fields: [payeeId], references: [id])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime?     @updatedAt
 }
 
 model Installment {
@@ -202,15 +271,19 @@ model Allocation {
 // ---------------------- Financing & Cashflow ------------
 
 model FinancingSource {
-  id        String     @id @default(uuid())
+  id        String       @id @default(uuid())
   projectId String
-  type      String // Equity, Loan, Grant, Incentive
+  type      FinancingType
   amount    Float
   rate      Float?
   fees      Float?
   schedule  Json?
-  project   Project    @relation(fields: [projectId], references: [id])
+  createdAt DateTime     @default(now())
+  updatedAt DateTime?    @updatedAt
+
+  project   Project      @relation(fields: [projectId], references: [id])
   drawdowns Drawdown[]
+  participants Participant[] // optional link to waterfall participants if this source maps to an investor
 }
 
 model Drawdown {
@@ -237,19 +310,36 @@ model PostTask {
   id           String    @id @default(uuid())
   projectId    String
   name         String
+  type         PostTaskType?
+  assigneeId   String?       // user assigned
+  vendorId     String?       // vendor for the work
   costEstimate Float
+  actualCost   Float?
   dueDate      DateTime?
-  status       String    @default("Planned")
-  project      Project   @relation(fields: [projectId], references: [id])
+  status       TaskStatus    @default(PENDING)
+  notes        String?
+  attachments  Json?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime?     @updatedAt
+
+  project      Project       @relation(fields: [projectId], references: [id])
 }
 
 model PAndATask {
   id           String    @id @default(uuid())
   projectId    String
   name         String
+  campaignType String?
+  region       String?
+  vendorId     String?
   costEstimate Float
   actualSpent  Float?
   campaignDate DateTime?
+  notes        String?
+  attachments  Json?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime? @updatedAt
+
   project      Project   @relation(fields: [projectId], references: [id])
 }
 
@@ -263,8 +353,14 @@ model DistributionDeal {
   feePercent        Float?
   expensesCap       Float?
   minimumGuarantee  Float?
+  waterfallId       String?            // link so revenue can flow into a waterfall
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime?          @updatedAt
+
   project           Project            @relation(fields: [projectId], references: [id])
   revenueStatements RevenueStatement[]
+
+  waterfall    WaterfallDefinition? @relation(fields: [waterfallId], references: [id])
 }
 
 model RevenueStatement {
@@ -276,6 +372,11 @@ model RevenueStatement {
   fee         Float
   expenses    Float
   net         Float
+  carryForward Float?           // leftover to carry to next period
+  allocated   Json?             // allocation map: { participantId: amount, ... }
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime?        @updatedAt
+
   deal        DistributionDeal @relation(fields: [dealId], references: [id])
 }
 
@@ -285,9 +386,14 @@ model WaterfallDefinition {
   id           String          @id @default(uuid())
   projectId    String
   createdAt    DateTime        @default(now())
+  updatedAt    DateTime?       @updatedAt
+
   project      Project         @relation(fields: [projectId], references: [id])
   tiers        WaterfallTier[]
   participants Participant[]
+  periods      WaterfallPeriod[]
+    distributionDeals DistributionDeal[]   // ← Add this line
+
 }
 
 model WaterfallTier {
@@ -301,13 +407,24 @@ model WaterfallTier {
 }
 
 model Participant {
-  id          String              @id @default(uuid())
-  waterfallId String
-  name        String
-  role        String
-  pctShare    Float?
-  waterfall   WaterfallDefinition @relation(fields: [waterfallId], references: [id])
-  payouts     WaterfallPayout[]
+  id                 String              @id @default(uuid())
+  waterfallId        String
+  name               String
+  role               String
+  pctShare           Float?
+  investmentAmount   Float?              // how much the participant invested
+  recoupedAmount     Float?              @default(0) // amount recouped so far
+  preferredReturn    Float?              // preferred interest/premium (if any)
+  capAmount          Float?              // cap on returns (optional)
+  type               FinancingType?      // EQUITY | LOAN | MG etc.
+  orderNo            Int?                // priority/order in the waterfall
+  financingSourceId  String?             // optional link to FinancingSource
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime?           @updatedAt
+
+  waterfall          WaterfallDefinition @relation(fields: [waterfallId], references: [id])
+  payouts            WaterfallPayout[]
+  financingSource    FinancingSource?    @relation(fields: [financingSourceId], references: [id])
 }
 
 model WaterfallPayout {
@@ -316,7 +433,21 @@ model WaterfallPayout {
   periodStart   DateTime
   periodEnd     DateTime
   amount        Float
+  createdAt     DateTime    @default(now())
+
   participant   Participant @relation(fields: [participantId], references: [id])
+}
+
+// Waterfall revenue periods (a pool to run distribution against)
+model WaterfallPeriod {
+  id          String   @id @default(uuid())
+  waterfallId String
+  periodStart DateTime
+  periodEnd   DateTime
+  netRevenue  Float
+  createdAt   DateTime @default(now())
+
+  waterfall   WaterfallDefinition @relation(fields: [waterfallId], references: [id])
 }
 
 // ---------------------- Reference Tables -----------------

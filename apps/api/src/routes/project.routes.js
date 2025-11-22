@@ -21,7 +21,7 @@ router.post(
 router.put(
   "/assign",
   authMiddleware,
-  authorizeRoles("Admin"),
+  authorizeRoles("Admin","Producer"),
   assignProject
 );
 

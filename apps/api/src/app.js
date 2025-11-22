@@ -22,8 +22,12 @@ app.use(cookieParser());
 import authRouter from "./routes/auth.routes.js";
 import projectRouter from "./routes/project.routes.js";
 import budgetRouter from "./routes/budgetversion.routes.js";
+import quotationRouter from "./routes/quotation.routes.js"
+import waterfallRouter from "./routes/waterfall.routes.js"
 app.use("/api/auth", authRouter);
 app.use("/api/projects", projectRouter);
 app.use("/api/projects/:projectId/budget", budgetRouter);
+app.use("/api/projects/:projectId/quotations", quotationRouter);
+app.use("/api/projects/:projectId/waterfalls", waterfallRouter);
 app.use(errorHandler);
 export default app;

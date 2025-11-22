@@ -1,7 +1,23 @@
--- AlterTable
-ALTER TABLE "Project" ADD COLUMN     "ownerId" TEXT,
-ADD COLUMN     "status" TEXT DEFAULT 'planning',
-ADD COLUMN     "timezone" TEXT DEFAULT 'Asia/Kathmandu';
+-- CreateEnum
+CREATE TYPE "Phase" AS ENUM ('DEVELOPMENT', 'PRODUCTION', 'POST', 'PUBLICITY');
+
+-- CreateEnum
+CREATE TYPE "UserStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'SUSPENDED');
+
+-- CreateEnum
+CREATE TYPE "BudgetType" AS ENUM ('QUOTE', 'BASELINE', 'WORKING');
+
+-- CreateEnum
+CREATE TYPE "QuoteStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+
+-- CreateEnum
+CREATE TYPE "FinancingType" AS ENUM ('EQUITY', 'LOAN', 'GRANT', 'INCENTIVE', 'MG');
+
+-- CreateEnum
+CREATE TYPE "PostTaskType" AS ENUM ('EDITING', 'COLOR', 'AUDIO', 'MUSIC', 'VFX', 'QC');
+
+-- CreateEnum
+CREATE TYPE "TaskStatus" AS ENUM ('PENDING', 'IN_PROGRESS', 'COMPLETED');
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -9,8 +25,10 @@ CREATE TABLE "User" (
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'active',
+    "status" "UserStatus" NOT NULL DEFAULT 'ACTIVE',
+    "roleId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -21,15 +39,6 @@ CREATE TABLE "Role" (
     "name" TEXT NOT NULL,
 
     CONSTRAINT "Role_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "UserRole" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "roleId" TEXT NOT NULL,
-
-    CONSTRAINT "UserRole_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -47,6 +56,20 @@ CREATE TABLE "AuditLog" (
 );
 
 -- CreateTable
+CREATE TABLE "Project" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "baseCurrency" TEXT NOT NULL,
+    "timezone" TEXT DEFAULT 'Asia/Kathmandu',
+    "status" TEXT DEFAULT 'planning',
+    "ownerId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
+
+    CONSTRAINT "Project_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "PhaseEntity" (
     "id" TEXT NOT NULL,
     "name" "Phase" NOT NULL,
@@ -54,6 +77,41 @@ CREATE TABLE "PhaseEntity" (
     "projectId" TEXT NOT NULL,
 
     CONSTRAINT "PhaseEntity_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "BudgetVersion" (
+    "id" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
+    "version" TEXT NOT NULL,
+    "type" "BudgetType" NOT NULL,
+    "createdBy" TEXT,
+    "lockedAt" TIMESTAMP(3),
+    "acceptedAt" TIMESTAMP(3),
+    "sentTo" JSONB,
+    "grandTotal" DOUBLE PRECISION,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
+
+    CONSTRAINT "BudgetVersion_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "BudgetLineItem" (
+    "id" TEXT NOT NULL,
+    "budgetVersionId" TEXT NOT NULL,
+    "phase" "Phase" NOT NULL,
+    "department" TEXT,
+    "name" TEXT NOT NULL,
+    "qty" INTEGER NOT NULL DEFAULT 1,
+    "rate" DOUBLE PRECISION NOT NULL,
+    "taxPercent" DOUBLE PRECISION DEFAULT 0,
+    "vendor" TEXT,
+    "notes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
+
+    CONSTRAINT "BudgetLineItem_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -75,6 +133,9 @@ CREATE TABLE "Vendor" (
     "name" TEXT NOT NULL,
     "currency" TEXT NOT NULL,
     "bankInfo" JSONB,
+    "contactInfo" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
 
     CONSTRAINT "Vendor_pkey" PRIMARY KEY ("id")
 );
@@ -89,6 +150,8 @@ CREATE TABLE "PurchaseOrder" (
     "status" TEXT NOT NULL DEFAULT 'Pending',
     "approvedBy" TEXT,
     "approvedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
 
     CONSTRAINT "PurchaseOrder_pkey" PRIMARY KEY ("id")
 );
@@ -103,6 +166,8 @@ CREATE TABLE "Invoice" (
     "amount" DOUBLE PRECISION NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'Pending',
     "attachments" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
 
     CONSTRAINT "Invoice_pkey" PRIMARY KEY ("id")
 );
@@ -115,6 +180,7 @@ CREATE TABLE "Payment" (
     "paidOn" TIMESTAMP(3),
     "method" TEXT,
     "status" TEXT NOT NULL DEFAULT 'Paid',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Payment_pkey" PRIMARY KEY ("id")
 );
@@ -125,6 +191,8 @@ CREATE TABLE "ScheduledPayment" (
     "payeeId" TEXT NOT NULL,
     "total" DOUBLE PRECISION NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'Scheduled',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
 
     CONSTRAINT "ScheduledPayment_pkey" PRIMARY KEY ("id")
 );
@@ -155,11 +223,13 @@ CREATE TABLE "Allocation" (
 CREATE TABLE "FinancingSource" (
     "id" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
-    "type" TEXT NOT NULL,
+    "type" "FinancingType" NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
     "rate" DOUBLE PRECISION,
     "fees" DOUBLE PRECISION,
     "schedule" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
 
     CONSTRAINT "FinancingSource_pkey" PRIMARY KEY ("id")
 );
@@ -191,9 +261,17 @@ CREATE TABLE "PostTask" (
     "id" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "type" "PostTaskType",
+    "assigneeId" TEXT,
+    "vendorId" TEXT,
     "costEstimate" DOUBLE PRECISION NOT NULL,
+    "actualCost" DOUBLE PRECISION,
     "dueDate" TIMESTAMP(3),
-    "status" TEXT NOT NULL DEFAULT 'Planned',
+    "status" "TaskStatus" NOT NULL DEFAULT 'PENDING',
+    "notes" TEXT,
+    "attachments" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
 
     CONSTRAINT "PostTask_pkey" PRIMARY KEY ("id")
 );
@@ -203,9 +281,16 @@ CREATE TABLE "PAndATask" (
     "id" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "campaignType" TEXT,
+    "region" TEXT,
+    "vendorId" TEXT,
     "costEstimate" DOUBLE PRECISION NOT NULL,
     "actualSpent" DOUBLE PRECISION,
     "campaignDate" TIMESTAMP(3),
+    "notes" TEXT,
+    "attachments" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
 
     CONSTRAINT "PAndATask_pkey" PRIMARY KEY ("id")
 );
@@ -219,6 +304,9 @@ CREATE TABLE "DistributionDeal" (
     "feePercent" DOUBLE PRECISION,
     "expensesCap" DOUBLE PRECISION,
     "minimumGuarantee" DOUBLE PRECISION,
+    "waterfallId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
 
     CONSTRAINT "DistributionDeal_pkey" PRIMARY KEY ("id")
 );
@@ -233,6 +321,10 @@ CREATE TABLE "RevenueStatement" (
     "fee" DOUBLE PRECISION NOT NULL,
     "expenses" DOUBLE PRECISION NOT NULL,
     "net" DOUBLE PRECISION NOT NULL,
+    "carryForward" DOUBLE PRECISION,
+    "allocated" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
 
     CONSTRAINT "RevenueStatement_pkey" PRIMARY KEY ("id")
 );
@@ -242,6 +334,7 @@ CREATE TABLE "WaterfallDefinition" (
     "id" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
 
     CONSTRAINT "WaterfallDefinition_pkey" PRIMARY KEY ("id")
 );
@@ -265,6 +358,15 @@ CREATE TABLE "Participant" (
     "name" TEXT NOT NULL,
     "role" TEXT NOT NULL,
     "pctShare" DOUBLE PRECISION,
+    "investmentAmount" DOUBLE PRECISION,
+    "recoupedAmount" DOUBLE PRECISION DEFAULT 0,
+    "preferredReturn" DOUBLE PRECISION,
+    "capAmount" DOUBLE PRECISION,
+    "type" "FinancingType",
+    "orderNo" INTEGER,
+    "financingSourceId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
 
     CONSTRAINT "Participant_pkey" PRIMARY KEY ("id")
 );
@@ -276,8 +378,21 @@ CREATE TABLE "WaterfallPayout" (
     "periodStart" TIMESTAMP(3) NOT NULL,
     "periodEnd" TIMESTAMP(3) NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "WaterfallPayout_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "WaterfallPeriod" (
+    "id" TEXT NOT NULL,
+    "waterfallId" TEXT NOT NULL,
+    "periodStart" TIMESTAMP(3) NOT NULL,
+    "periodEnd" TIMESTAMP(3) NOT NULL,
+    "netRevenue" DOUBLE PRECISION NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "WaterfallPeriod_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -310,19 +425,34 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX "Role_name_key" ON "Role"("name");
 
 -- CreateIndex
+CREATE INDEX "AuditLog_entity_idx" ON "AuditLog"("entity");
+
+-- CreateIndex
+CREATE INDEX "AuditLog_recordId_idx" ON "AuditLog"("recordId");
+
+-- CreateIndex
+CREATE INDEX "AuditLog_userId_idx" ON "AuditLog"("userId");
+
+-- CreateIndex
+CREATE INDEX "AuditLog_timestamp_idx" ON "AuditLog"("timestamp");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "PurchaseOrder_poNo_key" ON "PurchaseOrder"("poNo");
 
 -- AddForeignKey
-ALTER TABLE "UserRole" ADD CONSTRAINT "UserRole_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "UserRole" ADD CONSTRAINT "UserRole_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "User" ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "PhaseEntity" ADD CONSTRAINT "PhaseEntity_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "BudgetVersion" ADD CONSTRAINT "BudgetVersion_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "BudgetLineItem" ADD CONSTRAINT "BudgetLineItem_budgetVersionId_fkey" FOREIGN KEY ("budgetVersionId") REFERENCES "BudgetVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ChangeOrder" ADD CONSTRAINT "ChangeOrder_versionId_fkey" FOREIGN KEY ("versionId") REFERENCES "BudgetVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -370,6 +500,9 @@ ALTER TABLE "PAndATask" ADD CONSTRAINT "PAndATask_projectId_fkey" FOREIGN KEY ("
 ALTER TABLE "DistributionDeal" ADD CONSTRAINT "DistributionDeal_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "DistributionDeal" ADD CONSTRAINT "DistributionDeal_waterfallId_fkey" FOREIGN KEY ("waterfallId") REFERENCES "WaterfallDefinition"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "RevenueStatement" ADD CONSTRAINT "RevenueStatement_dealId_fkey" FOREIGN KEY ("dealId") REFERENCES "DistributionDeal"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -382,4 +515,10 @@ ALTER TABLE "WaterfallTier" ADD CONSTRAINT "WaterfallTier_waterfallId_fkey" FORE
 ALTER TABLE "Participant" ADD CONSTRAINT "Participant_waterfallId_fkey" FOREIGN KEY ("waterfallId") REFERENCES "WaterfallDefinition"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Participant" ADD CONSTRAINT "Participant_financingSourceId_fkey" FOREIGN KEY ("financingSourceId") REFERENCES "FinancingSource"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "WaterfallPayout" ADD CONSTRAINT "WaterfallPayout_participantId_fkey" FOREIGN KEY ("participantId") REFERENCES "Participant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WaterfallPeriod" ADD CONSTRAINT "WaterfallPeriod_waterfallId_fkey" FOREIGN KEY ("waterfallId") REFERENCES "WaterfallDefinition"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
