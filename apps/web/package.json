@@ -11,16 +11,19 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@repo/types": "*",
     "@repo/ui": "*",
     "axios": "^1.12.2",
     "date-fns": "^4.1.0",
+    "jspdf": "^3.0.4",
+    "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.545.0",
     "next": "^15.5.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "recharts": "^3.2.1",
-    "zustand": "^5.0.8",
-    "@repo/types": "*"
+    "xlsx": "^0.18.5",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
