@@ -1,63 +1,120 @@
-import asyncHandler from "express-async-handler";
-import { QuotationService } from "../../services/quotation/quotation.service.js";
-import { ApiResponse } from "../../utils/ApiResponse.js";
-import { StatusCodes } from "http-status-codes";
+import asyncHandler from 'express-async-handler';
+import { QuotationService } from '../../services/quotation/quotation.service.js';
+import { ApiResponse } from '../../utils/ApiResponse.js';
+import { StatusCodes } from 'http-status-codes';
 
 const quotationService = new QuotationService();
 
-// Create a new quotation version
 export const createQuotation = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
   const quotation = await quotationService.createQuotation(
-    req.params.projectId,
+    projectId,
     req.body,
     req.user.id
   );
-  res.status(StatusCodes.CREATED).json(new ApiResponse(
-    StatusCodes.CREATED,
-    quotation,
-    "Quotation created successfully"
-  ));
+  res
+    .status(StatusCodes.CREATED)
+    .json(
+      new ApiResponse(
+        StatusCodes.CREATED,
+        quotation,
+        'Quotation created successfully'
+      )
+    );
 });
 
-// Get all quotations for a project
 export const getQuotations = asyncHandler(async (req, res) => {
-  const result = await quotationService.getQuotations(req.params.projectId);
-  res.status(StatusCodes.OK).json(new ApiResponse(
-    StatusCodes.OK,
-    result,
-    "Quotations fetched successfully"
-  ));
+  const { projectId } = req.params;
+  const quotations = await quotationService.getQuotations(projectId);
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(StatusCodes.OK, quotations, 'Quotations fetched successfully')
+    );
 });
 
-// Add assumptions to a quotation
-export const addAssumptions = asyncHandler(async (req, res) => {
-  const updatedQuotation = await quotationService.addAssumptions(
-    req.params.quotationId,
-    req.body
-  );
-  res.status(StatusCodes.OK).json(new ApiResponse(
-    StatusCodes.OK,
-    updatedQuotation,
-    "Assumptions added successfully"
-  ));
+export const getQuotation = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const quotation = await quotationService.getQuotation(id);
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(StatusCodes.OK, quotation, 'Quotation fetched successfully')
+    );
 });
 
-// Calculate ROI / IRR / NPV
-export const calculateROI = asyncHandler(async (req, res) => {
-  const result = await quotationService.calculateROI(req.params.quotationId);
-  res.status(StatusCodes.OK).json(new ApiResponse(
-    StatusCodes.OK,
-    result,
-    "ROI / IRR / NPV calculated"
-  ));
+export const updateAssumptions = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const quotation = await quotationService.updateAssumptions(id, req.body);
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(StatusCodes.OK, quotation, 'Assumptions updated successfully')
+    );
 });
 
-// Convert quotation to baseline budget
+export const addCostLine = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const line = await quotationService.addCostLine(id, req.body);
+  res
+    .status(StatusCodes.CREATED)
+    .json(new ApiResponse(StatusCodes.CREATED, line, 'Cost line added successfully'));
+});
+
+export const updateCostLine = asyncHandler(async (req, res) => {
+  const { lineId } = req.params;
+  const line = await quotationService.updateCostLine(lineId, req.body);
+  res
+    .status(StatusCodes.OK)
+    .json(new ApiResponse(StatusCodes.OK, line, 'Cost line updated successfully'));
+});
+
+export const deleteCostLine = asyncHandler(async (req, res) => {
+  const { lineId } = req.params;
+  const result = await quotationService.deleteCostLine(lineId);
+  res
+    .status(StatusCodes.OK)
+    .json(new ApiResponse(StatusCodes.OK, result, 'Cost line deleted successfully'));
+});
+
+export const updateFinancingPlan = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const quotation = await quotationService.updateFinancingPlan(id, req.body);
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(StatusCodes.OK, quotation, 'Financing plan updated successfully')
+    );
+});
+
+export const updateRevenueModel = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const quotation = await quotationService.updateRevenueModel(id, req.body);
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(StatusCodes.OK, quotation, 'Revenue model updated successfully')
+    );
+});
+
+export const calculateMetrics = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const metrics = await quotationService.calculateMetrics(id);
+  res
+    .status(StatusCodes.OK)
+    .json(new ApiResponse(StatusCodes.OK, metrics, 'Metrics calculated successfully'));
+});
+
 export const convertToBaseline = asyncHandler(async (req, res) => {
-  const baseline = await quotationService.convertToBaseline(req.params.quotationId);
-  res.status(StatusCodes.OK).json(new ApiResponse(
-    StatusCodes.OK,
-    baseline,
-    "Quotation converted to Baseline Budget"
-  ));
+  const { id } = req.params;
+  const result = await quotationService.convertToBaseline(id);
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(
+        StatusCodes.OK,
+        result,
+        'Quotation converted to baseline successfully'
+      )
+    );
 });

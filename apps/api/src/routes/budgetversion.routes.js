@@ -16,9 +16,9 @@ const router = express.Router({ mergeParams: true });
 router.post("/", authMiddleware, authorizeRoles("Producer"), createBudgetVersion);
 router.get("/", authMiddleware, authorizeRoles("Producer","Investor"), getBudgetVersions);
 
-router.post("/:versionId/lines", authMiddleware, authorizeRoles("Line Producer"), addLineItem);
-router.put("/lines/:lineId", authMiddleware, authorizeRoles("Line Producer"), updateLineItem);
-router.delete("/lines/:lineId", authMiddleware, authorizeRoles("Line Producer"), deleteLineItem);
+router.post("/:versionId/lines", authMiddleware, authorizeRoles("Producer","Line Producer"), addLineItem);
+router.put("/lines/:lineId", authMiddleware, authorizeRoles("Producer","Line Producer"), updateLineItem);
+router.delete("/lines/:lineId", authMiddleware, authorizeRoles("Producer","Line Producer"), deleteLineItem);
 
 router.post("/:versionId/lock", authMiddleware, authorizeRoles("Producer"), lockBaseline);
 
