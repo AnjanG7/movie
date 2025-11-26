@@ -5,60 +5,38 @@ import { Phase } from "@prisma/client";
 
 export class ProjectService {
   // Create Project + Default Phases + Baseline Budget
-  async createProject(data, userId) {
-    const { title, baseCurrency, timezone, ownerId, status } = data;
+async createProject(data, userId) {
+  const { title, baseCurrency, timezone, ownerId, status } = data;
 
-    // Default phases
-    const phases = [
-      Phase.DEVELOPMENT,
-      Phase.PRODUCTION,
-      Phase.POST,
-      Phase.PUBLICITY,
-    ];
-    const phaseEntities = phases.map((phase, index) => ({
-      name: phase,
-      orderNo: index + 1,
-    }));
-    const defaultLineItems = [
-      { phase: "DEVELOPMENT", name: "Script Development", qty: 1, rate: 5000 },
-      { phase: "PRODUCTION", name: "Camera Equipment", qty: 1, rate: 20000 },
-      { phase: "POST", name: "Editing", qty: 1, rate: 10000 },
-      { phase: "PUBLICITY", name: "Marketing Campaign", qty: 1, rate: 8000 },
-    ];
-    // Baseline budget version
-    const baselineBudgetVersion = {
-      version: "v1",
-      type: "BASELINE",
-      createdBy: userId,
-      lines: {
-        create: defaultLineItems,
+  // Default phases
+  const phases = [Phase.DEVELOPMENT, Phase.PRODUCTION, Phase.POST, Phase.PUBLICITY];
+  const phaseEntities = phases.map((phase, index) => ({
+    name: phase,
+    orderNo: index + 1,
+  }));
+
+  // Create project WITHOUT any budget versions
+  const project = await prisma.project.create({
+    data: {
+      title,
+      baseCurrency,
+      timezone: timezone || 'Asia/Kathmandu',
+      status: status || 'planning',
+      ownerId: ownerId || userId,
+      phases: {
+        create: phaseEntities,
       },
-    };
+      // No budgetVersions here!
+    },
+    include: {
+      phases: true,
+      budgetVersions: true,
+    },
+  });
 
-    const project = await prisma.project.create({
-      data: {
-        title,
-        baseCurrency,
-        timezone: timezone || "Asia/Kathmandu",
-        status: status || "planning",
-        ownerId: ownerId || userId,
+  return project;
+}
 
-        phases: {
-          create: phaseEntities,
-        },
-
-        budgetVersions: {
-          create: baselineBudgetVersion,
-        },
-      },
-      include: {
-        phases: true,
-        budgetVersions: true,
-      },
-    });
-
-    return project;
-  }
 
   // Assign Project Owner hai
   async assignProject(projectId, ownerId) {

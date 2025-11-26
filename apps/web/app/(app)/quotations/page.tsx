@@ -93,32 +93,7 @@ const handleCreateQuotation = async (e: React.FormEvent) => {
     alert('Please enter a version number');
     return;
   }
-const handleDeleteQuotation = async (quotationId: string) => {
-  if (!confirm('Are you sure you want to delete this quotation? This action cannot be undone.')) {
-    return;
-  }
 
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/projects/${selectedProjectId}/quotations/${quotationId}`,
-      {
-        method: 'DELETE',
-        credentials: 'include',
-      }
-    );
-
-    const result = await response.json();
-    if (result.success) {
-      alert('Quotation deleted successfully');
-      fetchQuotations();
-    } else {
-      alert(result.message || 'Failed to delete quotation');
-    }
-  } catch (error) {
-    console.error('Error deleting quotation:', error);
-    alert('Failed to delete quotation');
-  }
-};
 
   try {
     // Create payload with correct field name
@@ -156,7 +131,32 @@ const handleDeleteQuotation = async (quotationId: string) => {
   }
 };
 
+const handleDeleteQuotation = async (quotationId: string) => {
+  if (!confirm('Are you sure you want to delete this quotation? This action cannot be undone.')) {
+    return;
+  }
 
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/projects/${selectedProjectId}/quotations/${quotationId}`,
+      {
+        method: 'DELETE',
+        credentials: 'include',
+      }
+    );
+
+    const result = await response.json();
+    if (result.success) {
+      alert('Quotation deleted successfully');
+      fetchQuotations();
+    } else {
+      alert(result.message || 'Failed to delete quotation');
+    }
+  } catch (error) {
+    console.error('Error deleting quotation:', error);
+    alert('Failed to delete quotation');
+  }
+};
 
   const formatCurrency = (amount: number) => {
     const project = projects.find((p) => p.id === selectedProjectId);
@@ -353,16 +353,7 @@ const handleDeleteQuotation = async (quotationId: string) => {
                       )}
                     </td>
                     <td>
-                      <button
-                        onClick={() =>
-                          router.push(
-                            `/quotations/${quote.id}?projectId=${selectedProjectId}`
-                          )
-                        }
-                        style={{ padding: '5px 10px', marginRight: '5px' }}
-                      >
-                        Edit
-                      </button>
+                 
                       <button
                         onClick={() =>
                           router.push(

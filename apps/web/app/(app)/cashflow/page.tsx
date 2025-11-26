@@ -67,7 +67,7 @@ export default function CashflowPage() {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/projects?limit=all`, {
+      const response = await fetch(`${API_BASE_URL}/projects?limit=9999`, {
         credentials: 'include',
       });
       const result = await response.json();
@@ -502,7 +502,7 @@ export default function CashflowPage() {
               Auto-Compute
             </button>
             <a
-              href={`/app/financing-sources?projectId=${selectedProjectId}`}
+              href={`/financing-sources?projectId=${selectedProjectId}`}
               style={{ padding: '8px 15px', textDecoration: 'none', border: '1px solid #ccc', borderRadius: '4px' }}
             >
               Manage Financing

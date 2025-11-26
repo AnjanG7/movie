@@ -84,7 +84,7 @@ export default function PurchaseOrdersPage() {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/projects?limit=-1`, {
+      const response = await fetch(`${API_BASE_URL}/projects?limit=999999`, {
         credentials: 'include',
       });
       const result = await response.json();

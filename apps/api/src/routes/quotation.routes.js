@@ -11,6 +11,7 @@ import {
   updateRevenueModel,
   calculateMetrics,
   convertToBaseline,
+  deleteQuotation,
 } from '../controllers/quotation/quotation.controller.js';
 import { authMiddleware } from '../middlewares/authmiddleware.js';
 import { authorizeRoles } from '../middlewares/rolemiddleware.js';
@@ -105,6 +106,13 @@ router.post(
   authMiddleware,
   authorizeRoles('Producer'),
   convertToBaseline
+);
+
+router.delete(
+  '/:id',
+  authMiddleware,
+  authorizeRoles('Producer'),
+  deleteQuotation
 );
 
 export default router;

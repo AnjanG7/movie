@@ -325,68 +325,136 @@ export const getAllProjects = asyncHandler(async (req, res) => {
 
 File: /home/parrot/Desktop/Film-Finance-App/apps/api/src/controllers/quotation/quotation.controller.js
 ============================================================
-import asyncHandler from "express-async-handler";
-import { QuotationService } from "../../services/quotation/quotation.service.js";
-import { ApiResponse } from "../../utils/ApiResponse.js";
-import { StatusCodes } from "http-status-codes";
+import asyncHandler from 'express-async-handler';
+import { QuotationService } from '../../services/quotation/quotation.service.js';
+import { ApiResponse } from '../../utils/ApiResponse.js';
+import { StatusCodes } from 'http-status-codes';
 
 const quotationService = new QuotationService();
 
-// Create a new quotation version
 export const createQuotation = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
   const quotation = await quotationService.createQuotation(
-    req.params.projectId,
+    projectId,
     req.body,
     req.user.id
   );
-  res.status(StatusCodes.CREATED).json(new ApiResponse(
-    StatusCodes.CREATED,
-    quotation,
-    "Quotation created successfully"
-  ));
+  res
+    .status(StatusCodes.CREATED)
+    .json(
+      new ApiResponse(
+        StatusCodes.CREATED,
+        quotation,
+        'Quotation created successfully'
+      )
+    );
 });
 
-// Get all quotations for a project
 export const getQuotations = asyncHandler(async (req, res) => {
-  const result = await quotationService.getQuotations(req.params.projectId);
-  res.status(StatusCodes.OK).json(new ApiResponse(
-    StatusCodes.OK,
-    result,
-    "Quotations fetched successfully"
-  ));
+  const { projectId } = req.params;
+  const quotations = await quotationService.getQuotations(projectId);
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(StatusCodes.OK, quotations, 'Quotations fetched successfully')
+    );
 });
 
-// Add assumptions to a quotation
-export const addAssumptions = asyncHandler(async (req, res) => {
-  const updatedQuotation = await quotationService.addAssumptions(
-    req.params.quotationId,
-    req.body
-  );
-  res.status(StatusCodes.OK).json(new ApiResponse(
-    StatusCodes.OK,
-    updatedQuotation,
-    "Assumptions added successfully"
-  ));
+export const getQuotation = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const quotation = await quotationService.getQuotation(id);
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(StatusCodes.OK, quotation, 'Quotation fetched successfully')
+    );
 });
 
-// Calculate ROI / IRR / NPV
-export const calculateROI = asyncHandler(async (req, res) => {
-  const result = await quotationService.calculateROI(req.params.quotationId);
-  res.status(StatusCodes.OK).json(new ApiResponse(
-    StatusCodes.OK,
-    result,
-    "ROI / IRR / NPV calculated"
-  ));
+export const deleteQuotation = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  await quotationService.deleteQuotation(id);
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(StatusCodes.OK, null, 'Quotation deleted successfully')
+    );
 });
 
-// Convert quotation to baseline budget
+
+export const updateAssumptions = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const quotation = await quotationService.updateAssumptions(id, req.body);
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(StatusCodes.OK, quotation, 'Assumptions updated successfully')
+    );
+});
+
+export const addCostLine = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const line = await quotationService.addCostLine(id, req.body);
+  res
+    .status(StatusCodes.CREATED)
+    .json(new ApiResponse(StatusCodes.CREATED, line, 'Cost line added successfully'));
+});
+
+export const updateCostLine = asyncHandler(async (req, res) => {
+  const { lineId } = req.params;
+  const line = await quotationService.updateCostLine(lineId, req.body);
+  res
+    .status(StatusCodes.OK)
+    .json(new ApiResponse(StatusCodes.OK, line, 'Cost line updated successfully'));
+});
+
+export const deleteCostLine = asyncHandler(async (req, res) => {
+  const { lineId } = req.params;
+  const result = await quotationService.deleteCostLine(lineId);
+  res
+    .status(StatusCodes.OK)
+    .json(new ApiResponse(StatusCodes.OK, result, 'Cost line deleted successfully'));
+});
+
+export const updateFinancingPlan = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const quotation = await quotationService.updateFinancingPlan(id, req.body);
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(StatusCodes.OK, quotation, 'Financing plan updated successfully')
+    );
+});
+
+export const updateRevenueModel = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const quotation = await quotationService.updateRevenueModel(id, req.body);
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(StatusCodes.OK, quotation, 'Revenue model updated successfully')
+    );
+});
+
+export const calculateMetrics = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const metrics = await quotationService.calculateMetrics(id);
+  res
+    .status(StatusCodes.OK)
+    .json(new ApiResponse(StatusCodes.OK, metrics, 'Metrics calculated successfully'));
+});
+
 export const convertToBaseline = asyncHandler(async (req, res) => {
-  const baseline = await quotationService.convertToBaseline(req.params.quotationId);
-  res.status(StatusCodes.OK).json(new ApiResponse(
-    StatusCodes.OK,
-    baseline,
-    "Quotation converted to Baseline Budget"
-  ));
+  const { id } = req.params;
+  const result = await quotationService.convertToBaseline(id);
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(
+        StatusCodes.OK,
+        result,
+        'Quotation converted to baseline successfully'
+      )
+    );
 });
 
 ============================================================
@@ -1087,9 +1155,9 @@ const router = express.Router({ mergeParams: true });
 router.post("/", authMiddleware, authorizeRoles("Producer"), createBudgetVersion);
 router.get("/", authMiddleware, authorizeRoles("Producer","Investor"), getBudgetVersions);
 
-router.post("/:versionId/lines", authMiddleware, authorizeRoles("Line Producer"), addLineItem);
-router.put("/lines/:lineId", authMiddleware, authorizeRoles("Line Producer"), updateLineItem);
-router.delete("/lines/:lineId", authMiddleware, authorizeRoles("Line Producer"), deleteLineItem);
+router.post("/:versionId/lines", authMiddleware, authorizeRoles("Producer","Line Producer"), addLineItem);
+router.put("/lines/:lineId", authMiddleware, authorizeRoles("Producer","Line Producer"), updateLineItem);
+router.delete("/lines/:lineId", authMiddleware, authorizeRoles("Producer","Line Producer"), deleteLineItem);
 
 router.post("/:versionId/lock", authMiddleware, authorizeRoles("Producer"), lockBaseline);
 
@@ -1269,27 +1337,122 @@ export default router;
 
 File: /home/parrot/Desktop/Film-Finance-App/apps/api/src/routes/quotation.routes.js
 ============================================================
-import express from "express";
+import express from 'express';
 import {
   createQuotation,
   getQuotations,
-  addAssumptions,
-  calculateROI,
-  convertToBaseline
-} from "../controllers/quotation/quotation.controller.js";
-import { authMiddleware } from "../middlewares/authmiddleware.js";
-import { authorizeRoles } from "../middlewares/rolemiddleware.js";
+  getQuotation,
+  updateAssumptions,
+  addCostLine,
+  updateCostLine,
+  deleteCostLine,
+  updateFinancingPlan,
+  updateRevenueModel,
+  calculateMetrics,
+  convertToBaseline,
+  deleteQuotation,
+} from '../controllers/quotation/quotation.controller.js';
+import { authMiddleware } from '../middlewares/authmiddleware.js';
+import { authorizeRoles } from '../middlewares/rolemiddleware.js';
 
 const router = express.Router({ mergeParams: true });
 
-// Base URL: /api/projects/:projectId/quotations
-router.post("/", authMiddleware, authorizeRoles("Producer"), createQuotation);
-router.get("/", authMiddleware, authorizeRoles("Producer", "Investor"), getQuotations);
+// Base: /api/projects/:projectId/quotations
 
-router.post("/:quotationId/assumptions", authMiddleware, authorizeRoles("Producer"), addAssumptions);
-router.get("/:quotationId/calculate", authMiddleware, authorizeRoles("Producer"), calculateROI);
+// Create new quotation
+router.post(
+  '/',
+  authMiddleware,
+  authorizeRoles('Producer'),
+  createQuotation
+);
 
-router.post("/:quotationId/convert", authMiddleware, authorizeRoles("Producer"), convertToBaseline);
+// Get all quotations for project
+router.get(
+  '/',
+  authMiddleware,
+  authorizeRoles('Producer', 'Line Producer', 'Accountant', 'Investor'),
+  getQuotations
+);
+
+// Get specific quotation
+router.get(
+  '/:id',
+  authMiddleware,
+  authorizeRoles('Producer', 'Line Producer', 'Accountant', 'Investor'),
+  getQuotation
+);
+
+// Update assumptions
+router.patch(
+  '/:id/assumptions',
+  authMiddleware,
+  authorizeRoles('Producer'),
+  updateAssumptions
+);
+
+// Add cost line
+router.post(
+  '/:id/lines',
+  authMiddleware,
+  authorizeRoles('Producer', 'Line Producer'),
+  addCostLine
+);
+
+// Update cost line
+router.patch(
+  '/:id/lines/:lineId',
+  authMiddleware,
+  authorizeRoles('Producer', 'Line Producer'),
+  updateCostLine
+);
+
+// Delete cost line
+router.delete(
+  '/:id/lines/:lineId',
+  authMiddleware,
+  authorizeRoles('Producer'),
+  deleteCostLine
+);
+
+// Update financing plan
+router.patch(
+  '/:id/financing',
+  authMiddleware,
+  authorizeRoles('Producer'),
+  updateFinancingPlan
+);
+
+// Update revenue model
+router.patch(
+  '/:id/revenue',
+  authMiddleware,
+  authorizeRoles('Producer'),
+  updateRevenueModel
+);
+
+// Calculate metrics (ROI, IRR, NPV)
+router.post(
+  '/:id/calculate',
+  authMiddleware,
+  authorizeRoles('Producer', 'Investor'),
+  calculateMetrics
+);
+
+// Convert to baseline budget
+router.post(
+  '/:id/convert-to-baseline',
+  authMiddleware,
+  authorizeRoles('Producer'),
+  convertToBaseline
+);
+
+router.delete(
+  '/:id',
+  authMiddleware,
+  authorizeRoles('Producer'),
+  deleteQuotation
+);
 
 export default router;
 
@@ -2084,60 +2247,38 @@ import { Phase } from "@prisma/client";
 
 export class ProjectService {
   // Create Project + Default Phases + Baseline Budget
-  async createProject(data, userId) {
-    const { title, baseCurrency, timezone, ownerId, status } = data;
+async createProject(data, userId) {
+  const { title, baseCurrency, timezone, ownerId, status } = data;
 
-    // Default phases
-    const phases = [
-      Phase.DEVELOPMENT,
-      Phase.PRODUCTION,
-      Phase.POST,
-      Phase.PUBLICITY,
-    ];
-    const phaseEntities = phases.map((phase, index) => ({
-      name: phase,
-      orderNo: index + 1,
-    }));
-    const defaultLineItems = [
-      { phase: "DEVELOPMENT", name: "Script Development", qty: 1, rate: 5000 },
-      { phase: "PRODUCTION", name: "Camera Equipment", qty: 1, rate: 20000 },
-      { phase: "POST", name: "Editing", qty: 1, rate: 10000 },
-      { phase: "PUBLICITY", name: "Marketing Campaign", qty: 1, rate: 8000 },
-    ];
-    // Baseline budget version
-    const baselineBudgetVersion = {
-      version: "v1",
-      type: "BASELINE",
-      createdBy: userId,
-      lines: {
-        create: defaultLineItems,
+  // Default phases
+  const phases = [Phase.DEVELOPMENT, Phase.PRODUCTION, Phase.POST, Phase.PUBLICITY];
+  const phaseEntities = phases.map((phase, index) => ({
+    name: phase,
+    orderNo: index + 1,
+  }));
+
+  // Create project WITHOUT any budget versions
+  const project = await prisma.project.create({
+    data: {
+      title,
+      baseCurrency,
+      timezone: timezone || 'Asia/Kathmandu',
+      status: status || 'planning',
+      ownerId: ownerId || userId,
+      phases: {
+        create: phaseEntities,
       },
-    };
+      // No budgetVersions here!
+    },
+    include: {
+      phases: true,
+      budgetVersions: true,
+    },
+  });
 
-    const project = await prisma.project.create({
-      data: {
-        title,
-        baseCurrency,
-        timezone: timezone || "Asia/Kathmandu",
-        status: status || "planning",
-        ownerId: ownerId || userId,
+  return project;
+}
 
-        phases: {
-          create: phaseEntities,
-        },
-
-        budgetVersions: {
-          create: baselineBudgetVersion,
-        },
-      },
-      include: {
-        phases: true,
-        budgetVersions: true,
-      },
-    });
-
-    return project;
-  }
 
   // Assign Project Owner hai
   async assignProject(projectId, ownerId) {
@@ -2239,82 +2380,475 @@ async fetchProject(projectId) {
 
 File: /home/parrot/Desktop/Film-Finance-App/apps/api/src/services/quotation/quotation.service.js
 ============================================================
-import prisma from "../../utils/prismaClient.js";
-import { ApiError } from "../../utils/ApiError.js";
-import { StatusCodes } from "http-status-codes";
+import prisma from '../../utils/prismaClient.js';
+import { ApiError } from '../../utils/ApiError.js';
+import { StatusCodes } from 'http-status-codes';
 
 export class QuotationService {
+  // Create new quotation
+ async createQuotation(projectId, data, userId) {
+  const { template, versionNo } = data; // Changed from 'version' to 'versionNo'
 
-  // Create new quotation version
-  async createQuotation(projectId, data, userId) {
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+  // Check if version already exists
+  const existing = await prisma.budgetVersion.findFirst({
+    where: { projectId, version: versionNo }, // Use versionNo here
+  });
 
-    const quotation = await prisma.budgetVersion.create({
-      data: {
-        projectId,
-        version: data.version || "v1",
-        type: "QUOTE",
-        createdBy: userId
+  if (existing) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      `Version ${versionNo} already exists`
+    );
+  }
+
+  // Initialize assumptions based on template
+  const assumptions = this.getTemplateAssumptions(template);
+
+  const quotation = await prisma.budgetVersion.create({
+    data: {
+      projectId,
+      version: versionNo, // Store as 'version' in DB
+      type: 'QUOTE',
+      template,
+      assumptions,
+      createdBy: userId,
+    },
+    include: {
+      project: true,
+      lines: true,
+    },
+  });
+
+  return quotation;
+}
+
+
+  // Get template assumptions
+  getTemplateAssumptions(template) {
+    const templates = {
+      FEATURE: {
+        currency: 'USD',
+        taxPercent: 0,
+        contingencyPercent: 10,
+        insurancePercent: 3,
+        bondPercent: 2,
+        phases: ['DEVELOPMENT', 'PRE_PRODUCTION', 'PRODUCTION', 'POST_PRODUCTION', 'PUBLICITY'],
       },
-      include: { lines: true }
-    });
+      SERIES: {
+        currency: 'USD',
+        taxPercent: 0,
+        contingencyPercent: 8,
+        insurancePercent: 2.5,
+        bondPercent: 1.5,
+        phases: ['DEVELOPMENT', 'PRE_PRODUCTION', 'PRODUCTION', 'POST_PRODUCTION', 'PUBLICITY'],
+      },
+      SHORT: {
+        currency: 'USD',
+        taxPercent: 0,
+        contingencyPercent: 15,
+        insurancePercent: 2,
+        bondPercent: 0,
+        phases: ['PRE_PRODUCTION', 'PRODUCTION', 'POST_PRODUCTION'],
+      },
+    };
 
-    return quotation;
+    return templates[template] || templates.FEATURE;
+  }
+  
+  // Delete quotation
+async deleteQuotation(quotationId) {
+  const quotation = await prisma.budgetVersion.findUnique({
+    where: { id: quotationId },
+    include: { lines: true },
+  });
+
+  if (!quotation) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Quotation not found');
   }
 
-  // Get all quotations
-  async getQuotations(projectId) {
-    return prisma.budgetVersion.findMany({
-      where: { projectId, type: "QUOTE" },
-      include: { lines: true }
-    });
+  if (quotation.type !== 'QUOTE') {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Can only delete quotations, not baseline or working budgets'
+    );
   }
 
-  // Add assumptions (currency, tax %, contingency)
-  async addAssumptions(quotationId, assumptions) {
-    const quotation = await prisma.budgetVersion.findUnique({ where: { id: quotationId } });
-    if (!quotation) throw new ApiError(StatusCodes.NOT_FOUND, "Quotation not found");
+  // Delete all lines first
+  await prisma.budgetLineItem.deleteMany({
+    where: { budgetVersionId: quotationId },
+  });
 
-    return prisma.budgetVersion.update({
-      where: { id: quotationId },
-      data: { sentTo: assumptions } // storing assumptions as JSON
-    });
-  }
+  // Delete the quotation
+  await prisma.budgetVersion.delete({
+    where: { id: quotationId },
+  });
 
-  // ROI / IRR / NPV calculation
-  async calculateROI(quotationId) {
+  return { message: 'Quotation deleted successfully' };
+}
+
+  // Update assumptions
+  async updateAssumptions(quotationId, assumptions) {
     const quotation = await prisma.budgetVersion.findUnique({
       where: { id: quotationId },
-      include: { lines: true }
     });
-    if (!quotation) throw new ApiError(StatusCodes.NOT_FOUND, "Quotation not found");
 
-    const totalCost = quotation.lines.reduce((sum, line) => {
-      return sum + line.qty * line.rate * (1 + (line.taxPercent || 0)/100);
-    }, 0);
+    if (!quotation) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Quotation not found');
+    }
 
-    // Simple ROI / NPV / IRR simulation (mocked, replace with real formulas)
-    const projectedRevenue = totalCost * 1.5; 
-    const roi = (projectedRevenue - totalCost) / totalCost;
-    const npv = projectedRevenue - totalCost;
-    const irr = 0.25; // placeholder 25%
+    if (quotation.type !== 'QUOTE') {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        'Can only update assumptions for quotations'
+      );
+    }
 
-    return { totalCost, projectedRevenue, roi, npv, irr };
-  }
-
-  // Convert quotation → baseline budget
-  async convertToBaseline(quotationId) {
-    const quotation = await prisma.budgetVersion.findUnique({ where: { id: quotationId } });
-    if (!quotation) throw new ApiError(StatusCodes.NOT_FOUND, "Quotation not found");
-
-    if (quotation.type !== "QUOTE") throw new ApiError(StatusCodes.BAD_REQUEST, "Only quotations can be converted");
-
-    return prisma.budgetVersion.update({
+    return await prisma.budgetVersion.update({
       where: { id: quotationId },
-      data: { type: "BASELINE", lockedAt: new Date() }
+      data: { assumptions },
     });
   }
+
+  // Get quotation
+  async getQuotation(quotationId) {
+    const quotation = await prisma.budgetVersion.findUnique({
+      where: { id: quotationId },
+      include: {
+        project: true,
+        lines: {
+          orderBy: [{ phase: 'asc' }, { department: 'asc' }],
+        },
+      },
+    });
+
+    if (!quotation) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Quotation not found');
+    }
+
+    // Calculate totals
+    const totalsByPhase = {};
+    let grandTotal = 0;
+
+    quotation.lines.forEach((line) => {
+      const lineTotal = line.qty * line.rate * (1 + (line.taxPercent || 0) / 100);
+      grandTotal += lineTotal;
+
+      if (!totalsByPhase[line.phase]) {
+        totalsByPhase[line.phase] = 0;
+      }
+      totalsByPhase[line.phase] += lineTotal;
+    });
+
+    // Apply contingency, insurance, bond
+    const assumptions = quotation.assumptions || {};
+    const contingency = grandTotal * ((assumptions.contingencyPercent || 0) / 100);
+    const insurance = grandTotal * ((assumptions.insurancePercent || 0) / 100);
+    const bond = grandTotal * ((assumptions.bondPercent || 0) / 100);
+
+    const totalWithOverheads = grandTotal + contingency + insurance + bond;
+
+    return {
+      ...quotation,
+      summary: {
+        subtotal: grandTotal,
+        contingency,
+        insurance,
+        bond,
+        total: totalWithOverheads,
+        totalsByPhase,
+      },
+    };
+  }
+
+  // Get all quotations for a project
+  async getQuotations(projectId) {
+    const quotations = await prisma.budgetVersion.findMany({
+      where: {
+        projectId,
+        type: 'QUOTE',
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        lines: true,
+      },
+    });
+
+    return quotations.map((q) => {
+      const grandTotal = q.lines.reduce(
+        (sum, line) => sum + line.qty * line.rate * (1 + (line.taxPercent || 0) / 100),
+        0
+      );
+
+      const assumptions = q.assumptions || {};
+      const contingency = grandTotal * ((assumptions.contingencyPercent || 0) / 100);
+      const insurance = grandTotal * ((assumptions.insurancePercent || 0) / 100);
+      const bond = grandTotal * ((assumptions.bondPercent || 0) / 100);
+
+      return {
+        ...q,
+        total: grandTotal + contingency + insurance + bond,
+      };
+    });
+  }
+
+  // Add cost line to quotation
+  async addCostLine(quotationId, data) {
+    const quotation = await prisma.budgetVersion.findUnique({
+      where: { id: quotationId },
+    });
+
+    if (!quotation) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Quotation not found');
+    }
+
+    const line = await prisma.budgetLineItem.create({
+      data: {
+        budgetVersionId: quotationId,
+        phase: data.phase,
+        department: data.department || null,
+        name: data.name,
+        qty: data.qty || 1,
+        rate: data.rate,
+        taxPercent: data.taxPercent || 0,
+        vendor: data.vendor || null,
+        notes: data.notes || null,
+      },
+    });
+
+    return line;
+  }
+
+  // Update cost line
+  async updateCostLine(lineId, data) {
+    const line = await prisma.budgetLineItem.findUnique({
+      where: { id: lineId },
+    });
+
+    if (!line) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Line item not found');
+    }
+
+    return await prisma.budgetLineItem.update({
+      where: { id: lineId },
+      data,
+    });
+  }
+
+  // Delete cost line
+  async deleteCostLine(lineId) {
+    const line = await prisma.budgetLineItem.findUnique({
+      where: { id: lineId },
+    });
+
+    if (!line) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Line item not found');
+    }
+
+    await prisma.budgetLineItem.delete({ where: { id: lineId } });
+    return { message: 'Line item deleted successfully' };
+  }
+
+  // Update financing plan
+  async updateFinancingPlan(quotationId, financingPlan) {
+    const quotation = await prisma.budgetVersion.findUnique({
+      where: { id: quotationId },
+    });
+
+    if (!quotation) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Quotation not found');
+    }
+
+    return await prisma.budgetVersion.update({
+      where: { id: quotationId },
+      data: { financingPlan },
+    });
+  }
+
+  // Update revenue model
+  async updateRevenueModel(quotationId, revenueModel) {
+    const quotation = await prisma.budgetVersion.findUnique({
+      where: { id: quotationId },
+    });
+
+    if (!quotation) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Quotation not found');
+    }
+
+    return await prisma.budgetVersion.update({
+      where: { id: quotationId },
+      data: { revenueModel },
+    });
+  }
+
+  // Calculate financial metrics (ROI, IRR, NPV)
+  async calculateMetrics(quotationId) {
+    const quotation = await this.getQuotation(quotationId);
+    
+    const totalCost = quotation.summary.total;
+    const revenueModel = quotation.revenueModel || {};
+
+    // Simple calculations (you can enhance these)
+    const projectedRevenue = revenueModel.grossRevenue || totalCost * 1.5;
+    const distributionFees = projectedRevenue * (revenueModel.distributionFeePercent || 20) / 100;
+    const netRevenue = projectedRevenue - distributionFees;
+    
+    const profit = netRevenue - totalCost;
+    const roi = totalCost > 0 ? (profit / totalCost) * 100 : 0;
+    
+    // Simplified NPV (assuming 10% discount rate and 3 years)
+    const discountRate = 0.10;
+    const years = 3;
+    const annualCashflow = netRevenue / years;
+    let npv = -totalCost;
+    for (let i = 1; i <= years; i++) {
+      npv += annualCashflow / Math.pow(1 + discountRate, i);
+    }
+
+    // Simplified IRR (iterative approximation)
+    let irr = 0;
+    const cashflows = [-totalCost, ...Array(years).fill(annualCashflow)];
+    
+    // Simple IRR calculation using NPV = 0
+    for (let rate = 0; rate <= 1; rate += 0.01) {
+      let testNpv = 0;
+      cashflows.forEach((cf, i) => {
+        testNpv += cf / Math.pow(1 + rate, i);
+      });
+      if (Math.abs(testNpv) < 1000) {
+        irr = rate * 100;
+        break;
+      }
+    }
+
+    const metrics = {
+      totalCost,
+      projectedRevenue,
+      distributionFees,
+      netRevenue,
+      profit,
+      roi: parseFloat(roi.toFixed(2)),
+      npv: parseFloat(npv.toFixed(2)),
+      irr: parseFloat(irr.toFixed(2)),
+      breakEvenRevenue: totalCost + distributionFees,
+      calculatedAt: new Date().toISOString(),
+    };
+
+    // Save metrics
+    await prisma.budgetVersion.update({
+      where: { id: quotationId },
+      data: { metrics },
+    });
+
+    return metrics;
+  }
+
+  // Convert quotation to baseline budget
+// Convert quotation to baseline budget
+async convertToBaseline(quotationId) {
+  const quotation = await prisma.budgetVersion.findUnique({
+    where: { id: quotationId },
+    include: { lines: true },
+  });
+
+  if (!quotation) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Quotation not found');
+  }
+
+  if (quotation.type !== 'QUOTE') {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Only quotations can be converted to baseline'
+    );
+  }
+
+  // Check if baseline already exists
+  const existingBaseline = await prisma.budgetVersion.findFirst({
+    where: {
+      projectId: quotation.projectId,
+      type: 'BASELINE',
+    },
+  });
+
+  if (existingBaseline) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Baseline budget already exists for this project'
+    );
+  }
+
+  // Create baseline
+  const baseline = await prisma.budgetVersion.create({
+    data: {
+      projectId: quotation.projectId,
+      version: 'BASELINE',
+      type: 'BASELINE',
+      template: quotation.template,
+      assumptions: quotation.assumptions,
+      financingPlan: quotation.financingPlan,
+      revenueModel: quotation.revenueModel,
+      metrics: quotation.metrics,
+      createdBy: quotation.createdBy,
+    },
+  });
+
+  // Copy all lines to baseline
+  for (const line of quotation.lines) {
+    await prisma.budgetLineItem.create({
+      data: {
+        budgetVersionId: baseline.id,
+        phase: line.phase,
+        department: line.department,
+        name: line.name,
+        qty: line.qty,
+        rate: line.rate,
+        taxPercent: line.taxPercent,
+        vendor: line.vendor,
+        notes: line.notes,
+      },
+    });
+  }
+
+  // Create working budget from baseline
+  const working = await prisma.budgetVersion.create({
+    data: {
+      projectId: quotation.projectId,
+      version: 'WORKING-V1',
+      type: 'WORKING',
+      template: quotation.template,
+      assumptions: quotation.assumptions,
+      financingPlan: quotation.financingPlan,
+      revenueModel: quotation.revenueModel,
+      metrics: quotation.metrics,
+      createdBy: quotation.createdBy,
+    },
+  });
+
+  // Copy lines to working budget
+  for (const line of quotation.lines) {
+    await prisma.budgetLineItem.create({
+      data: {
+        budgetVersionId: working.id,
+        phase: line.phase,
+        department: line.department,
+        name: line.name,
+        qty: line.qty,
+        rate: line.rate,
+        taxPercent: line.taxPercent,
+        vendor: line.vendor,
+        notes: line.notes,
+      },
+    });
+  }
+
+  // Mark quotation as accepted
+  await prisma.budgetVersion.update({
+    where: { id: quotationId },
+    data: { acceptedAt: new Date() },
+  });
+
+  return { baseline, working };
+}
+
 }
 
 ============================================================
@@ -3721,140 +4255,78 @@ export default function Home() {
 
 File: /home/parrot/Desktop/Film-Finance-App/apps/web/app/(app)/budget/page.tsx
 ============================================================
-// app/budget/page.tsx - Budget management page
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  DollarSign, Plus, Filter, Download, TrendingUp, 
-  TrendingDown, AlertCircle, Search, Edit, Trash2, Eye, X, Lock
-} from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useRouter } from 'next/navigation';
 
 const API_BASE_URL = 'http://localhost:4000/api';
 
-// Types
 interface Project {
   id: string;
   title: string;
   baseCurrency: string;
-  status: string;
 }
 
 interface BudgetVersion {
   id: string;
-  projectId: string;
-  version: number;
-  type: 'BASELINE' | 'WORKING' | 'QUOTE';
-  lockedAt: string | null;
+  version: string;
+  type: string;
+  grandTotal: number;
   createdAt: string;
-  lines?: BudgetLineItem[];
+  lockedAt?: string;
+  lines: BudgetLine[];
 }
 
-interface BudgetLineItem {
+interface BudgetLine {
   id: string;
-  budgetVersionId: string;
-  name: string;
-  phase: 'DEVELOPMENT' | 'PRODUCTION' | 'POST' | 'PUBLICITY';
+  phase: string;
   department: string | null;
-  qty: number;
-  rate: number;
-  taxPercent: number | null;
-  vendor: string | null;
-}
-
-interface CreateVersionForm {
-  version: number;
-  type: 'BASELINE' | 'WORKING' | 'QUOTE';
-}
-
-interface CreateLineItemForm {
   name: string;
-  phase: 'DEVELOPMENT' | 'PRODUCTION' | 'POST' | 'PUBLICITY';
-  department: string;
   qty: number;
   rate: number;
   taxPercent: number;
-  vendor: string;
 }
 
 export default function BudgetPage() {
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = useState('');
   const [budgetVersions, setBudgetVersions] = useState<BudgetVersion[]>([]);
-  const [selectedVersionId, setSelectedVersionId] = useState<string>('');
-  const [budgetLines, setBudgetLines] = useState<BudgetLineItem[]>([]);
+  const [selectedVersion, setSelectedVersion] = useState<BudgetVersion | null>(null);
   const [loading, setLoading] = useState(false);
-  const [filterPhase, setFilterPhase] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  // Modal states
-  const [showCreateVersionModal, setShowCreateVersionModal] = useState(false);
-  const [showCreateLineModal, setShowCreateLineModal] = useState(false);
-  const [showEditLineModal, setShowEditLineModal] = useState(false);
-  const [editingLine, setEditingLine] = useState<BudgetLineItem | null>(null);
-  
-  // Form states
-  const [versionForm, setVersionForm] = useState<CreateVersionForm>({
-    version: 1,
-    type: 'WORKING'
-  });
-  
-  const [lineForm, setLineForm] = useState<CreateLineItemForm>({
-    name: '',
+  const [showAddLineModal, setShowAddLineModal] = useState(false);
+  const [editingLine, setEditingLine] = useState<BudgetLine | null>(null);
+
+  const [lineFormData, setLineFormData] = useState({
     phase: 'PRODUCTION',
     department: '',
+    name: '',
     qty: 1,
     rate: 0,
     taxPercent: 0,
-    vendor: ''
+    vendor: '',
+    notes: '',
   });
 
-  // Fetch projects on mount
   useEffect(() => {
     fetchProjects();
   }, []);
 
-  // Fetch budget versions when project is selected
   useEffect(() => {
-    if (!selectedProjectId) return;
-    fetchBudgetVersions();
+    if (selectedProjectId) {
+      fetchBudgetVersions();
+    }
   }, [selectedProjectId]);
 
-  // Update budget lines when version is selected
-  useEffect(() => {
-    if (!selectedVersionId) {
-      setBudgetLines([]);
-      return;
-    }
-
-    const version = budgetVersions.find(v => v.id === selectedVersionId);
-    if (version && version.lines) {
-      setBudgetLines(version.lines);
-    } else {
-      setBudgetLines([]);
-    }
-  }, [selectedVersionId, budgetVersions]);
-
-  // API Calls
   const fetchProjects = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/projects/`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch(`${API_BASE_URL}/projects?limit=1000`, {
         credentials: 'include',
       });
-
-      if (!response.ok) throw new Error('Failed to fetch projects');
-
       const result = await response.json();
-      if (result.success && result.data) {
-        const projs = result.data.projects || [];
-        setProjects(projs);
-        if (projs.length > 0 && !selectedProjectId) {
-          setSelectedProjectId(projs[0].id);
-        }
+      if (result.success) {
+        setProjects(result.data.projects);
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -3862,24 +4334,22 @@ export default function BudgetPage() {
   };
 
   const fetchBudgetVersions = async () => {
+    if (!selectedProjectId) return;
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/budget?limit=-1`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch budget versions');
-
+      const response = await fetch(
+        `${API_BASE_URL}/projects/${selectedProjectId}/budget`,
+        { credentials: 'include' }
+      );
       const result = await response.json();
-      if (result.success && result.data) {
-        const versions = result.data.versions || [];
-        setBudgetVersions(versions);
-        if (versions.length > 0 && !selectedVersionId) {
-          const baseline = versions.find((v: BudgetVersion) => v.type === 'BASELINE');
-          const working = versions.find((v: BudgetVersion) => v.type === 'WORKING');
-          setSelectedVersionId(baseline?.id || working?.id || versions[0].id);
+      if (result.success) {
+        setBudgetVersions(result.data.versions || []);
+        // Auto-select working budget if exists
+        const workingBudget = result.data.versions?.find(
+          (v: BudgetVersion) => v.type === 'WORKING'
+        );
+        if (workingBudget) {
+          setSelectedVersion(workingBudget);
         }
       }
     } catch (error) {
@@ -3889,809 +4359,539 @@ export default function BudgetPage() {
     }
   };
 
-  const createBudgetVersion = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/budget`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(versionForm),
-      });
+  const handleAddLine = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-      if (!response.ok) throw new Error('Failed to create budget version');
-
-      const result = await response.json();
-      if (result.success && result.data) {
-        await fetchBudgetVersions();
-        setShowCreateVersionModal(false);
-        setVersionForm({ version: 1, type: 'WORKING' });
-      }
-    } catch (error) {
-      console.error('Error creating budget version:', error);
-      alert('Failed to create budget version');
+    if (!selectedVersion) {
+      alert('Please select a budget version first');
+      return;
     }
-  };
 
-  const addLineItem = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/budget/${selectedVersionId}/lines`, {
-        method: 'POST',
+      const endpoint = editingLine
+        ? `${API_BASE_URL}/projects/${selectedProjectId}/budget/${selectedVersion.id}/lines/${editingLine.id}`
+        : `${API_BASE_URL}/projects/${selectedProjectId}/budget/${selectedVersion.id}/lines`;
+
+      const method = editingLine ? 'PATCH' : 'POST';
+
+      const response = await fetch(endpoint, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(lineForm),
+        body: JSON.stringify(lineFormData),
       });
-
-      if (!response.ok) throw new Error('Failed to add line item');
 
       const result = await response.json();
       if (result.success) {
-        await fetchBudgetVersions();
-        setShowCreateLineModal(false);
-        setLineForm({
-          name: '',
-          phase: 'PRODUCTION',
-          department: '',
-          qty: 1,
-          rate: 0,
-          taxPercent: 0,
-          vendor: ''
-        });
-      }
-    } catch (error) {
-      console.error('Error adding line item:', error);
-      alert('Failed to add line item');
-    }
-  };
-
-  const updateLineItem = async () => {
-    if (!editingLine) return;
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/budget/lines/${editingLine.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(lineForm),
-      });
-
-      if (!response.ok) throw new Error('Failed to update line item');
-
-      const result = await response.json();
-      if (result.success) {
-        await fetchBudgetVersions();
-        setShowEditLineModal(false);
+        alert(editingLine ? 'Line updated successfully' : 'Line added successfully');
+        setShowAddLineModal(false);
         setEditingLine(null);
-        setLineForm({
-          name: '',
-          phase: 'PRODUCTION',
-          department: '',
-          qty: 1,
-          rate: 0,
-          taxPercent: 0,
-          vendor: ''
-        });
+        resetLineForm();
+        fetchBudgetVersions();
+      } else {
+        alert(result.message || 'Failed to save line');
       }
     } catch (error) {
-      console.error('Error updating line item:', error);
-      alert('Failed to update line item');
+      console.error('Error saving line:', error);
+      alert('Failed to save line');
     }
   };
 
-  const deleteLineItem = async (lineId: string) => {
-    if (!confirm('Are you sure you want to delete this line item?')) return;
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/budget/lines/${lineId}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-
-      if (!response.ok) throw new Error('Failed to delete line item');
-
-      const result = await response.json();
-      if (result.success) {
-        await fetchBudgetVersions();
-      }
-    } catch (error) {
-      console.error('Error deleting line item:', error);
-      alert('Failed to delete line item');
-    }
-  };
-
-  const lockBaseline = async (versionId: string) => {
-    if (!confirm('Are you sure you want to lock this baseline? This action cannot be undone.')) return;
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/projects/${selectedProjectId}/budget/${versionId}/lock`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-
-      if (!response.ok) throw new Error('Failed to lock baseline');
-
-      const result = await response.json();
-      if (result.success) {
-        await fetchBudgetVersions();
-      }
-    } catch (error) {
-      console.error('Error locking baseline:', error);
-      alert('Failed to lock baseline');
-    }
-  };
-
-  // Helper functions
-  const openEditModal = (line: BudgetLineItem) => {
+  const handleEditLine = (line: BudgetLine) => {
     setEditingLine(line);
-    setLineForm({
-      name: line.name,
+    setLineFormData({
       phase: line.phase,
       department: line.department || '',
+      name: line.name,
       qty: line.qty,
       rate: line.rate,
-      taxPercent: line.taxPercent || 0,
-      vendor: line.vendor || ''
+      taxPercent: line.taxPercent,
+      vendor: '',
+      notes: '',
     });
-    setShowEditLineModal(true);
+    setShowAddLineModal(true);
   };
 
-  const currentVersion = budgetVersions.find(v => v.id === selectedVersionId);
-  
-  // Calculate totals from line items
-  const totalBudget = budgetLines.reduce((sum, line) => sum + (line.qty * line.rate * (1 + (line.taxPercent || 0) / 100)), 0);
-  const totalSpent = 0;
-  const utilizationRate = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+  const handleDeleteLine = async (lineId: string) => {
+    if (!confirm('Delete this budget line?')) return;
 
-  // Group lines by phase for breakdown
-  const phaseBreakdown = budgetLines.reduce((acc, line) => {
-    const phase = line.phase;
-    if (!acc[phase]) {
-      acc[phase] = { budget: 0, spent: 0 };
+    if (!selectedVersion) return;
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/projects/${selectedProjectId}/budget/${selectedVersion.id}/lines/${lineId}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+        }
+      );
+
+      const result = await response.json();
+      if (result.success) {
+        alert('Line deleted successfully');
+        fetchBudgetVersions();
+      } else {
+        alert(result.message || 'Failed to delete line');
+      }
+    } catch (error) {
+      console.error('Error deleting line:', error);
+      alert('Failed to delete line');
     }
-    acc[phase].budget += line.qty * line.rate * (1 + (line.taxPercent || 0) / 100);
-    return acc;
-  }, {} as Record<string, { budget: number; spent: number }>);
+  };
 
-  const phaseBreakdownData = Object.entries(phaseBreakdown).map(([phase, data]) => ({
-    phase: phase.replace('_', ' '),
-    budget: data.budget,
-    spent: data.spent,
-  }));
-
-  // Budget trend data
-  const budgetTrend = budgetVersions
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-    .map((v, idx) => {
-      const versionTotal = v.lines?.reduce((sum, line) => sum + (line.qty * line.rate * (1 + (line.taxPercent || 0) / 100)), 0) || 0;
-      return {
-        month: `v${v.version}`,
-        allocated: versionTotal,
-        spent: versionTotal * 0.7,
-        forecast: versionTotal * 0.8,
-      };
+  const resetLineForm = () => {
+    setLineFormData({
+      phase: 'PRODUCTION',
+      department: '',
+      name: '',
+      qty: 1,
+      rate: 0,
+      taxPercent: 0,
+      vendor: '',
+      notes: '',
     });
+  };
 
-  const filteredLines = budgetLines.filter(line => {
-    const matchesPhase = filterPhase === 'all' || line.phase === filterPhase;
-    const matchesSearch = line.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (line.department?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
-    return matchesPhase && matchesSearch;
+const formatCurrency = (amount: number) => {
+  const project = projects.find((p) => p.id === selectedProjectId);
+  const currency = project?.baseCurrency || 'USD';
+  return `${currency} ${amount.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2, // Fixed typo here
+  })}`;
+};
+
+  const calculateLineTotal = (line: BudgetLine) => {
+    return line.qty * line.rate * (1 + line.taxPercent / 100);
+  };
+
+ const calculateTotalsByPhase = () => {
+  if (!selectedVersion) return {};
+
+  const totals: Record<string, number> = {};
+  selectedVersion.lines.forEach((line) => {
+    const lineTotal = calculateLineTotal(line);
+    const phase = line.phase;
+    if (totals[phase] === undefined) {
+      totals[phase] = 0;
+    }
+    totals[phase] += lineTotal;
   });
+  return totals;
+};
+
+
+  const calculateGrandTotal = () => {
+    if (!selectedVersion) return 0;
+    return selectedVersion.lines.reduce((sum, line) => sum + calculateLineTotal(line), 0);
+  };
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Budget Management</h1>
-          <p className="text-gray-600">Track and manage project budgets across all phases</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* Project Selector */}
-          {projects.length > 0 && (
+    <div style={{ padding: '20px' }}>
+      <h1>Budget Management</h1>
+
+      {/* Project Selector */}
+      <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <label>
+          Select Project:
+          <select
+            value={selectedProjectId}
+            onChange={(e) => setSelectedProjectId(e.target.value)}
+            style={{ marginLeft: '10px', padding: '5px' }}
+          >
+            <option value="">-- Select Project --</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.title}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {selectedProjectId && budgetVersions.length > 0 && (
+          <label>
+            Budget Version:
             <select
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={selectedVersion?.id || ''}
+              onChange={(e) => {
+                const version = budgetVersions.find((v) => v.id === e.target.value);
+                setSelectedVersion(version || null);
+              }}
+              style={{ marginLeft: '10px', padding: '5px' }}
             >
-              {projects.map(project => (
-                <option key={project.id} value={project.id}>{project.title}</option>
+              <option value="">-- Select Version --</option>
+              {budgetVersions.map((version) => (
+                <option key={version.id} value={version.id}>
+                  {version.version} ({version.type})
+                </option>
               ))}
             </select>
-          )}
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-            <Download className="w-5 h-5" />
-            Export
+          </label>
+        )}
+
+        {selectedVersion && !selectedVersion.lockedAt && (
+          <button
+            onClick={() => {
+              setEditingLine(null);
+              resetLineForm();
+              setShowAddLineModal(true);
+            }}
+            style={{ padding: '8px 15px' }}
+          >
+            Add Budget Line
           </button>
-          {selectedProjectId && (
-            <button 
-              onClick={() => setShowCreateVersionModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              New Budget Version
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
-      {!selectedProjectId ? (
-        <div className="bg-white rounded-xl p-12 border border-gray-200 text-center">
-          <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Project Selected</h3>
-          <p className="text-gray-600">Please select a project to view budget information</p>
-        </div>
-      ) : loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      ) : (
-        <>
-          {/* Version Selector */}
-          {budgetVersions.length > 0 && (
-            <div className="bg-white rounded-xl p-4 border border-gray-200 mb-6">
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Budget Version</label>
+      {/* Add/Edit Line Modal */}
+      {showAddLineModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              padding: '30px',
+              width: '600px',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              borderRadius: '8px',
+            }}
+          >
+            <h2>{editingLine ? 'Edit Budget Line' : 'Add Budget Line'}</h2>
+            <form onSubmit={handleAddLine}>
+              <div style={{ marginBottom: '15px' }}>
+                <label>
+                  <strong>Phase:</strong>
                   <select
-                    value={selectedVersionId}
-                    onChange={(e) => setSelectedVersionId(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={lineFormData.phase}
+                    onChange={(e) =>
+                      setLineFormData({ ...lineFormData, phase: e.target.value })
+                    }
+                    required
+                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
                   >
-                    {budgetVersions.map(version => (
-                      <option key={version.id} value={version.id}>
-                        v{version.version} - {version.type} {version.lockedAt ? '(Locked)' : ''}
-                      </option>
-                    ))}
+                    <option value="DEVELOPMENT">Development</option>
+                    <option value="PRODUCTION">Production</option>
+                    <option value="POST">Post-Production</option>
+                    <option value="PUBLICITY">Publicity</option>
                   </select>
-                </div>
-                {currentVersion && currentVersion.type === 'BASELINE' && !currentVersion.lockedAt && (
-                  <button
-                    onClick={() => lockBaseline(currentVersion.id)}
-                    className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors mt-6"
-                  >
-                    <Lock className="w-5 h-5" />
-                    Lock Baseline
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <DollarSign className="w-6 h-6 text-blue-600" />
-                </div>
-                <span className="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                  {utilizationRate.toFixed(0)}%
-                </span>
-              </div>
-              <p className="text-sm text-gray-600 mb-1">Total Budget</p>
-              <p className="text-2xl font-bold text-gray-900">
-                ${totalBudget.toLocaleString()}
-              </p>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <TrendingUp className="w-6 h-6 text-green-600" />
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 mb-1">Total Spent</p>
-              <p className="text-2xl font-bold text-gray-900">
-                ${totalSpent.toLocaleString()}
-              </p>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <TrendingDown className="w-6 h-6 text-purple-600" />
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 mb-1">Remaining</p>
-              <p className="text-2xl font-bold text-gray-900">
-                ${(totalBudget - totalSpent).toLocaleString()}
-              </p>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-orange-100 rounded-lg">
-                  <AlertCircle className="w-6 h-6 text-orange-600" />
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 mb-1">Budget Versions</p>
-              <p className="text-2xl font-bold text-gray-900">{budgetVersions.length}</p>
-            </div>
-          </div>
-
-          {/* Charts Row */}
-          {budgetTrend.length > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Budget Trend */}
-              <div className="bg-white rounded-xl p-6 border border-gray-200">
-                <h3 className="text-lg font-bold text-gray-900 mb-6">Budget Trend</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={budgetTrend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="month" tick={{ fill: '#6b7280', fontSize: 12 }} />
-                    <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="allocated" stroke="#3b82f6" strokeWidth={2} name="Allocated" />
-                    <Line type="monotone" dataKey="spent" stroke="#10b981" strokeWidth={2} name="Spent" />
-                    <Line type="monotone" dataKey="forecast" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" name="Forecast" />
-                  </LineChart>
-                </ResponsiveContainer>
+                </label>
               </div>
 
-              {/* Phase Breakdown */}
-              {phaseBreakdownData.length > 0 && (
-                <div className="bg-white rounded-xl p-6 border border-gray-200">
-                  <h3 className="text-lg font-bold text-gray-900 mb-6">Budget by Phase</h3>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={phaseBreakdownData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="phase" tick={{ fill: '#6b7280', fontSize: 12 }} />
-                      <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="budget" fill="#3b82f6" radius={[8, 8, 0, 0]} name="Budget" />
-                      <Bar dataKey="spent" fill="#10b981" radius={[8, 8, 0, 0]} name="Spent" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Budget Lines Table */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            {/* Table Header */}
-            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">Budget Line Items</h3>
-              <div className="flex items-center gap-3">
-                {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <div style={{ marginBottom: '15px' }}>
+                <label>
+                  <strong>Department (Optional):</strong>
                   <input
                     type="text"
-                    placeholder="Search items..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    value={lineFormData.department}
+                    onChange={(e) =>
+                      setLineFormData({ ...lineFormData, department: e.target.value })
+                    }
+                    placeholder="e.g., Camera, Lighting, Art Dept"
+                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
                   />
-                </div>
-                {/* Phase Filter */}
-                <select
-                  value={filterPhase}
-                  onChange={(e) => setFilterPhase(e.target.value)}
-                  className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                >
-                  <option value="all">All Phases</option>
-                  <option value="DEVELOPMENT">Development</option>
-                  <option value="PRODUCTION">Production</option>
-                  <option value="POST">Post</option>
-                  <option value="PUBLICITY">Publicity</option>
-                </select>
-                {selectedVersionId && (
-                  <button
-                    onClick={() => setShowCreateLineModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Line Item
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Table */}
-            {filteredLines.length === 0 ? (
-              <div className="p-12 text-center">
-                <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Budget Line Items</h3>
-                <p className="text-gray-600 mb-4">Add line items to start tracking your budget</p>
-                {selectedVersionId && (
-                  <button
-                    onClick={() => setShowCreateLineModal(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Add First Line Item
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Phase</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Department</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Item</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Qty</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Rate</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Budget</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Vendor</th>
-                      <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {filteredLines.map((line) => {
-                      const budget = line.qty * line.rate * (1 + (line.taxPercent || 0) / 100);
-
-                      return (
-                        <tr key={line.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              line.phase === 'DEVELOPMENT' ? 'bg-blue-100 text-blue-700' :
-                              line.phase === 'PRODUCTION' ? 'bg-green-100 text-green-700' :
-                              line.phase === 'POST' ? 'bg-orange-100 text-orange-700' :
-                              'bg-purple-100 text-purple-700'
-                            }`}>
-                              {line.phase}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{line.department || '-'}</td>
-                          <td className="px-6 py-4 text-sm font-medium text-gray-900">{line.name}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{line.qty}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${line.rate.toLocaleString()}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                            ${budget.toLocaleString()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{line.vendor || '-'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button 
-                                onClick={() => openEditModal(line)}
-                                className="p-1 hover:bg-gray-100 rounded transition-colors"
-                              >
-                                <Edit className="w-4 h-4 text-gray-600" />
-                              </button>
-                              <button 
-                                onClick={() => deleteLineItem(line.id)}
-                                className="p-1 hover:bg-red-50 rounded transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4 text-red-600" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Create Budget Version Modal */}
-      {showCreateVersionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Create Budget Version</h2>
-              <button
-                onClick={() => setShowCreateVersionModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <form onSubmit={(e) => { e.preventDefault(); createBudgetVersion(); }}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Version Number *</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={versionForm.version}
-                  onChange={(e) => setVersionForm({ ...versionForm, version: parseInt(e.target.value) })}
-                  required
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                </label>
               </div>
 
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Type *</label>
-                <select
-                  value={versionForm.type}
-                  onChange={(e) => setVersionForm({ ...versionForm, type: e.target.value as any })}
-                  required
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="BASELINE">BASELINE</option>
-                  <option value="WORKING">WORKING</option>
-                  <option value="QUOTE">QUOTE</option>
-                </select>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateVersionModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Create Version
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Create Line Item Modal */}
-      {showCreateLineModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Add Line Item</h2>
-              <button
-                onClick={() => setShowCreateLineModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <form onSubmit={(e) => { e.preventDefault(); addLineItem(); }}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Item Name *</label>
+              <div style={{ marginBottom: '15px' }}>
+                <label>
+                  <strong>Line Item Name:</strong>
                   <input
                     type="text"
-                    value={lineForm.name}
-                    onChange={(e) => setLineForm({ ...lineForm, name: e.target.value })}
+                    value={lineFormData.name}
+                    onChange={(e) =>
+                      setLineFormData({ ...lineFormData, name: e.target.value })
+                    }
                     required
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., Camera Operator"
+                    placeholder="e.g., Director Fee, Camera Rental"
+                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phase *</label>
-                  <select
-                    value={lineForm.phase}
-                    onChange={(e) => setLineForm({ ...lineForm, phase: e.target.value as any })}
-                    required
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="DEVELOPMENT">DEVELOPMENT</option>
-                    <option value="PRODUCTION">PRODUCTION</option>
-                    <option value="POST">POST</option>
-                    <option value="PUBLICITY">PUBLICITY</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
-                  <input
-                    type="text"
-                    value={lineForm.department}
-                    onChange={(e) => setLineForm({ ...lineForm, department: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., Camera"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Quantity *</label>
-                  <input
-                    type="number"
-                    min="1"
-                    step="0.01"
-                    value={lineForm.qty}
-                    onChange={(e) => setLineForm({ ...lineForm, qty: parseFloat(e.target.value) })}
-                    required
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Rate *</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={lineForm.rate}
-                    onChange={(e) => setLineForm({ ...lineForm, rate: parseFloat(e.target.value) })}
-                    required
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tax %</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    value={lineForm.taxPercent}
-                    onChange={(e) => setLineForm({ ...lineForm, taxPercent: parseFloat(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Vendor</label>
-                  <input
-                    type="text"
-                    value={lineForm.vendor}
-                    onChange={(e) => setLineForm({ ...lineForm, vendor: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., ABC Equipment Rentals"
-                  />
-                </div>
+                </label>
               </div>
 
-              <div className="mt-6 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateLineModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Add Line Item
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Line Item Modal */}
-      {showEditLineModal && editingLine && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Edit Line Item</h2>
-              <button
-                onClick={() => {
-                  setShowEditLineModal(false);
-                  setEditingLine(null);
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr 1fr',
+                  gap: '10px',
+                  marginBottom: '15px',
                 }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
               >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <form onSubmit={(e) => { e.preventDefault(); updateLineItem(); }}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Item Name *</label>
-                  <input
-                    type="text"
-                    value={lineForm.name}
-                    onChange={(e) => setLineForm({ ...lineForm, name: e.target.value })}
-                    required
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phase *</label>
-                  <select
-                    value={lineForm.phase}
-                    onChange={(e) => setLineForm({ ...lineForm, phase: e.target.value as any })}
-                    required
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="DEVELOPMENT">DEVELOPMENT</option>
-                    <option value="PRODUCTION">PRODUCTION</option>
-                    <option value="POST">POST</option>
-                    <option value="PUBLICITY">PUBLICITY</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
-                  <input
-                    type="text"
-                    value={lineForm.department}
-                    onChange={(e) => setLineForm({ ...lineForm, department: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Quantity *</label>
+                <label>
+                  <strong>Qty:</strong>
                   <input
                     type="number"
+                    value={lineFormData.qty}
+                    onChange={(e) =>
+                      setLineFormData({ ...lineFormData, qty: Number(e.target.value) })
+                    }
+                    required
                     min="1"
-                    step="0.01"
-                    value={lineForm.qty}
-                    onChange={(e) => setLineForm({ ...lineForm, qty: parseFloat(e.target.value) })}
-                    required
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
                   />
-                </div>
+                </label>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Rate *</label>
+                <label>
+                  <strong>Rate:</strong>
                   <input
                     type="number"
+                    value={lineFormData.rate}
+                    onChange={(e) =>
+                      setLineFormData({ ...lineFormData, rate: Number(e.target.value) })
+                    }
+                    required
                     min="0"
                     step="0.01"
-                    value={lineForm.rate}
-                    onChange={(e) => setLineForm({ ...lineForm, rate: parseFloat(e.target.value) })}
-                    required
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
                   />
-                </div>
+                </label>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tax %</label>
+                <label>
+                  <strong>Tax %:</strong>
                   <input
                     type="number"
+                    value={lineFormData.taxPercent}
+                    onChange={(e) =>
+                      setLineFormData({
+                        ...lineFormData,
+                        taxPercent: Number(e.target.value),
+                      })
+                    }
                     min="0"
-                    max="100"
-                    step="0.01"
-                    value={lineForm.taxPercent}
-                    onChange={(e) => setLineForm({ ...lineForm, taxPercent: parseFloat(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    step="0.1"
+                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
                   />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Vendor</label>
-                  <input
-                    type="text"
-                    value={lineForm.vendor}
-                    onChange={(e) => setLineForm({ ...lineForm, vendor: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+                </label>
               </div>
 
-              <div className="mt-6 flex gap-3">
+              <div style={{ marginBottom: '15px' }}>
+                <label>
+                  <strong>Vendor (Optional):</strong>
+                  <input
+                    type="text"
+                    value={lineFormData.vendor}
+                    onChange={(e) =>
+                      setLineFormData({ ...lineFormData, vendor: e.target.value })
+                    }
+                    placeholder="Vendor name"
+                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
+                  />
+                </label>
+              </div>
+
+              <div style={{ marginBottom: '15px' }}>
+                <label>
+                  <strong>Notes (Optional):</strong>
+                  <textarea
+                    value={lineFormData.notes}
+                    onChange={(e) =>
+                      setLineFormData({ ...lineFormData, notes: e.target.value })
+                    }
+                    placeholder="Additional notes"
+                    rows={3}
+                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
+                  />
+                </label>
+              </div>
+
+              <p style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>
+                <strong>Line Total:</strong>{' '}
+                {formatCurrency(
+                  lineFormData.qty *
+                    lineFormData.rate *
+                    (1 + lineFormData.taxPercent / 100)
+                )}
+              </p>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="submit" style={{ padding: '10px 20px' }}>
+                  {editingLine ? 'Update' : 'Add'} Line
+                </button>
                 <button
                   type="button"
                   onClick={() => {
-                    setShowEditLineModal(false);
+                    setShowAddLineModal(false);
                     setEditingLine(null);
+                    resetLineForm();
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  style={{ padding: '10px 20px' }}
                 >
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Update Line Item
                 </button>
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Budget Display */}
+      {selectedProjectId && (
+        <div>
+          {loading ? (
+            <p>Loading...</p>
+          ) : !selectedVersion ? (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '40px',
+                backgroundColor: '#f9fafb',
+                borderRadius: '8px',
+              }}
+            >
+              <p style={{ fontSize: '16px', color: '#666', marginBottom: '10px' }}>
+                No budget version found for this project.
+              </p>
+              <p style={{ fontSize: '14px', color: '#999' }}>
+                Create a quotation first, then convert it to a baseline budget.
+              </p>
+              <button
+                onClick={() => router.push(`/quotations?projectId=${selectedProjectId}`)}
+                style={{ marginTop: '20px', padding: '10px 20px' }}
+              >
+                Go to Quotations
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Budget Header */}
+              <div
+                style={{
+                  marginBottom: '20px',
+                  padding: '20px',
+                  backgroundColor: '#f0f8ff',
+                  borderRadius: '8px',
+                }}
+              >
+                <h2 style={{ margin: '0 0 10px 0' }}>
+                  {selectedVersion.version} ({selectedVersion.type})
+                </h2>
+                <p style={{ margin: 0, color: '#666' }}>
+                  Created: {new Date(selectedVersion.createdAt).toLocaleDateString()}
+                  {selectedVersion.lockedAt && (
+                    <span style={{ marginLeft: '20px', color: '#ef4444' }}>
+                      🔒 Locked
+                    </span>
+                  )}
+                </p>
+              </div>
+
+              {/* Summary by Phase */}
+              <div style={{ marginBottom: '30px' }}>
+                <h3>Summary by Phase</h3>
+                <table
+                  border={1}
+                  cellPadding={10}
+                  style={{ width: '100%', borderCollapse: 'collapse' }}
+                >
+                  <thead style={{ backgroundColor: '#4472C4', color: 'white' }}>
+                    <tr>
+                      <th>Phase</th>
+                      <th style={{ textAlign: 'right' }}>Total</th>
+                      <th style={{ textAlign: 'right' }}>% of Budget</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(calculateTotalsByPhase()).map(([phase, total]) => (
+                      <tr key={phase}>
+                        <td><strong>{phase}</strong></td>
+                        <td style={{ textAlign: 'right' }}>{formatCurrency(total)}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          {((total / calculateGrandTotal()) * 100).toFixed(1)}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot style={{ backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>
+                    <tr>
+                      <td>TOTAL</td>
+                      <td style={{ textAlign: 'right', color: '#4472C4' }}>
+                        {formatCurrency(calculateGrandTotal())}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>100%</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              {/* Detailed Budget Lines */}
+              <div>
+                <h3>Budget Lines ({selectedVersion.lines.length})</h3>
+                {selectedVersion.lines.length === 0 ? (
+                  <p>No budget lines yet. Add your first line item above.</p>
+                ) : (
+                  <table
+                    border={1}
+                    cellPadding={8}
+                    style={{ width: '100%', borderCollapse: 'collapse' }}
+                  >
+                    <thead style={{ backgroundColor: '#f5f5f5' }}>
+                      <tr>
+                        <th>Phase</th>
+                        <th>Department</th>
+                        <th>Line Item</th>
+                        <th style={{ textAlign: 'right' }}>Qty</th>
+                        <th style={{ textAlign: 'right' }}>Rate</th>
+                        <th style={{ textAlign: 'right' }}>Tax %</th>
+                        <th style={{ textAlign: 'right' }}>Total</th>
+                        {!selectedVersion.lockedAt && <th>Actions</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedVersion.lines.map((line) => (
+                        <tr key={line.id}>
+                          <td>{line.phase}</td>
+                          <td>{line.department || '-'}</td>
+                          <td>{line.name}</td>
+                          <td style={{ textAlign: 'right' }}>{line.qty}</td>
+                          <td style={{ textAlign: 'right' }}>
+                            {line.rate.toLocaleString()}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>{line.taxPercent}%</td>
+                          <td style={{ textAlign: 'right' }}>
+                            {formatCurrency(calculateLineTotal(line))}
+                          </td>
+                          {!selectedVersion.lockedAt && (
+                            <td>
+                              <button
+                                onClick={() => handleEditLine(line)}
+                                style={{ padding: '5px 10px', marginRight: '5px' }}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteLine(line.id)}
+                                style={{ padding: '5px 10px' }}
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
   );
 }
+
 ============================================================
 
 File: /home/parrot/Desktop/Film-Finance-App/apps/web/app/(app)/cashflow/page.tsx
@@ -4765,7 +4965,7 @@ export default function CashflowPage() {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/projects?limit=all`, {
+      const response = await fetch(`${API_BASE_URL}/projects?limit=9999`, {
         credentials: 'include',
       });
       const result = await response.json();
@@ -5200,7 +5400,7 @@ export default function CashflowPage() {
               Auto-Compute
             </button>
             <a
-              href={`/app/financing-sources?projectId=${selectedProjectId}`}
+              href={`/financing-sources?projectId=${selectedProjectId}`}
               style={{ padding: '8px 15px', textDecoration: 'none', border: '1px solid #ccc', borderRadius: '4px' }}
             >
               Manage Financing
@@ -5889,6 +6089,7 @@ File: /home/parrot/Desktop/Film-Finance-App/apps/web/app/(app)/components/SideBa
 ============================================================
 'use client';
 
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -5926,6 +6127,13 @@ const menuItems = [
     label: 'Phases',
     href: '/phases',
   },
+
+// In your menu items array, add this after Projects:
+{
+  icon: FileText,
+  label: 'Quotations',
+  href: '/quotations',
+},
   {
     icon: DollarSign,
     label: 'Budget',
@@ -8601,7 +8809,7 @@ export default function PurchaseOrdersPage() {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/projects?limit=-1`, {
+      const response = await fetch(`${API_BASE_URL}/projects?limit=999999`, {
         credentials: 'include',
       });
       const result = await response.json();
@@ -11000,7 +11208,7 @@ export default function BudgetVariancePage() {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/projects?limit=all`, {
+      const response = await fetch(`${API_BASE_URL}/projects?limit=9999`, {
         credentials: 'include',
       });
       const result = await response.json();
@@ -11257,6 +11465,1159 @@ export default function BudgetVariancePage() {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+============================================================
+
+File: /home/parrot/Desktop/Film-Finance-App/apps/web/app/(app)/quotations/page.tsx
+============================================================
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+const API_BASE_URL = 'http://localhost:4000/api';
+
+interface Project {
+  id: string;
+  title: string;
+  baseCurrency: string;
+}
+
+interface Quotation {
+  id: string;
+  version: string;
+  type: string;
+  template?: string;
+  total: number;
+  createdAt: string;
+  acceptedAt?: string;
+}
+
+export default function QuotationsPage() {
+  const router = useRouter();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  const [formData, setFormData] = useState({
+    template: 'FEATURE',
+    versionNo: 'v1.0',
+  });
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  useEffect(() => {
+    if (selectedProjectId) {
+      fetchQuotations();
+    }
+  }, [selectedProjectId]);
+
+const fetchProjects = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/projects?limit=1000`, {
+      credentials: 'include',
+    });
+    const result = await response.json();
+    console.log('Projects response:', result); // Debug line
+    if (result.success) {
+      setProjects(result.data.projects);
+      console.log('Projects loaded:', result.data.projects.length); // Debug line
+    } else {
+      console.error('API returned error:', result.message);
+    }
+  } catch (error) {
+    console.error('Error fetching projects:', error);
+  }
+};
+
+  const fetchQuotations = async () => {
+    if (!selectedProjectId) return;
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/projects/${selectedProjectId}/quotations`,
+        { credentials: 'include' }
+      );
+      const result = await response.json();
+      if (result.success) {
+        setQuotations(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching quotations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+const handleCreateQuotation = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!selectedProjectId) {
+    alert('Please select a project first');
+    return;
+  }
+
+  if (!formData.versionNo.trim()) {
+    alert('Please enter a version number');
+    return;
+  }
+
+
+  try {
+    // Create payload with correct field name
+    const payload = {
+      template: formData.template,
+      versionNo: formData.versionNo, // Backend expects 'versionNo' not 'version'
+    };
+
+    console.log('Sending payload:', payload); // Debug
+
+    const response = await fetch(
+      `${API_BASE_URL}/projects/${selectedProjectId}/quotations`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      }
+    );
+
+    const result = await response.json();
+    console.log('Create response:', result); // Debug
+    
+    if (result.success) {
+      alert('Quotation created successfully');
+      setShowCreateModal(false);
+      setFormData({ template: 'FEATURE', versionNo: 'v1.0' });
+      fetchQuotations();
+    } else {
+      alert(result.message || 'Failed to create quotation');
+    }
+  } catch (error) {
+    console.error('Error creating quotation:', error);
+    alert('Failed to create quotation');
+  }
+};
+
+const handleDeleteQuotation = async (quotationId: string) => {
+  if (!confirm('Are you sure you want to delete this quotation? This action cannot be undone.')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/projects/${selectedProjectId}/quotations/${quotationId}`,
+      {
+        method: 'DELETE',
+        credentials: 'include',
+      }
+    );
+
+    const result = await response.json();
+    if (result.success) {
+      alert('Quotation deleted successfully');
+      fetchQuotations();
+    } else {
+      alert(result.message || 'Failed to delete quotation');
+    }
+  } catch (error) {
+    console.error('Error deleting quotation:', error);
+    alert('Failed to delete quotation');
+  }
+};
+
+  const formatCurrency = (amount: number) => {
+    const project = projects.find((p) => p.id === selectedProjectId);
+    const currency = project?.baseCurrency || 'USD';
+    return `${currency} ${amount.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <h1>Investor Quotations</h1>
+
+      {/* Project Selector */}
+      <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <label>
+          Select Project:
+          <select
+            value={selectedProjectId}
+            onChange={(e) => setSelectedProjectId(e.target.value)}
+            style={{ marginLeft: '10px', padding: '5px' }}
+          >
+            <option value="">-- Select Project --</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.title}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {selectedProjectId && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            style={{ padding: '8px 15px' }}
+          >
+            Create New Quotation
+          </button>
+        )}
+      </div>
+
+      {/* Create Modal */}
+      {showCreateModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              padding: '30px',
+              width: '500px',
+              borderRadius: '8px',
+            }}
+          >
+            <h2>Create New Quotation</h2>
+            <form onSubmit={handleCreateQuotation}>
+              <div style={{ marginBottom: '15px' }}>
+                <label>
+                  <strong>Template:</strong>
+                  <select
+                    value={formData.template}
+                    onChange={(e) =>
+                      setFormData({ ...formData, template: e.target.value })
+                    }
+                    required
+                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
+                  >
+                    <option value="FEATURE">Feature Film</option>
+                    <option value="SERIES">TV Series</option>
+                    <option value="SHORT">Short Film</option>
+                  </select>
+                </label>
+                <p style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                  {formData.template === 'FEATURE' && 'Standard feature film with 10% contingency'}
+                  {formData.template === 'SERIES' && 'TV series with 8% contingency'}
+                  {formData.template === 'SHORT' && 'Short film with 15% contingency'}
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label>
+                  <strong>Version Number:</strong>
+                  <input
+                    type="text"
+                    value={formData.versionNo}
+                    onChange={(e) =>
+                      setFormData({ ...formData, versionNo: e.target.value })
+                    }
+                    required
+                    placeholder="e.g., v1.0, v1.1, v2.0"
+                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
+                  />
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="submit" style={{ padding: '10px 20px' }}>
+                  Create
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  style={{ padding: '10px 20px' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Quotations Table */}
+      {selectedProjectId && (
+        <div>
+          {loading ? (
+            <p>Loading...</p>
+          ) : quotations.length === 0 ? (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '40px',
+                backgroundColor: '#f9fafb',
+                borderRadius: '8px',
+              }}
+            >
+              <p style={{ fontSize: '16px', color: '#666', marginBottom: '10px' }}>
+                No quotations yet.
+              </p>
+              <p style={{ fontSize: '14px', color: '#999' }}>
+                Create your first quotation to start planning project finances.
+              </p>
+            </div>
+          ) : (
+            <table
+              border={1}
+              cellPadding={10}
+              style={{ width: '100%', borderCollapse: 'collapse' }}
+            >
+              <thead style={{ backgroundColor: '#f5f5f5' }}>
+                <tr>
+                  <th>Version</th>
+                  <th>Template</th>
+                  <th style={{ textAlign: 'right' }}>Total</th>
+                  <th>Created</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {quotations.map((quote) => (
+                  <tr key={quote.id}>
+                    <td>
+                      <strong>{quote.version}</strong>
+                    </td>
+                    <td>{quote.template || 'N/A'}</td>
+                    <td style={{ textAlign: 'right' }}>{formatCurrency(quote.total)}</td>
+                    <td>{new Date(quote.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      {quote.acceptedAt ? (
+                        <span
+                          style={{
+                            padding: '4px 8px',
+                            backgroundColor: '#d4edda',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                          }}
+                        >
+                          Accepted
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            padding: '4px 8px',
+                            backgroundColor: '#fff3cd',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                          }}
+                        >
+                          Draft
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                 
+                      <button
+                        onClick={() =>
+                          router.push(
+                            `/quotations/${quote.id}/view?projectId=${selectedProjectId}`
+                          )
+                        }
+                        style={{ padding: '5px 10px' }}
+                      >
+                        View
+                      </button>
+                        <button
+    onClick={() => handleDeleteQuotation(quote.id)}
+    style={{ 
+      padding: '5px 10px', 
+      backgroundColor: '#ef4444', 
+      color: 'white',
+      border: 'none',
+      cursor: 'pointer',
+      borderRadius: '4px'
+    }}
+  >
+    Delete
+  </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+============================================================
+
+File: /home/parrot/Desktop/Film-Finance-App/apps/web/app/(app)/quotations/[id]/page.tsx
+============================================================
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
+
+const API_BASE_URL = 'http://localhost:4000/api';
+
+interface Quotation {
+  id: string;
+  version: string;
+  projectId: string;
+  template?: string;
+  assumptions?: {
+    currency?: string;
+    taxPercent?: number;
+    contingencyPercent?: number;
+    insurancePercent?: number;
+    bondPercent?: number;
+  };
+  financingPlan?: {
+    sources: Array<{
+      type: string;
+      amount: number;
+      rate: number;
+    }>;
+  };
+  revenueModel?: {
+    grossRevenue: number;
+    distributionFeePercent: number;
+  };
+  metrics?: {
+    totalCost: number;
+    projectedRevenue: number;
+    roi: number;
+    irr: number;
+    npv: number;
+    profit: number;
+  };
+  lines: CostLine[];
+  summary?: {
+    subtotal: number;
+    contingency: number;
+    insurance: number;
+    bond: number;
+    total: number;
+    totalsByPhase: Record<string, number>;
+  };
+  project?: {
+    title: string;
+    baseCurrency: string;
+  };
+  createdAt: string;
+}
+
+interface CostLine {
+  id: string;
+  phase: string;
+  department: string | null;
+  name: string;
+  qty: number;
+  rate: number;
+  taxPercent: number;
+}
+
+export default function QuotationViewPage() {
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const quotationId = params.id as string;
+  const projectId = searchParams.get('projectId') || '';
+
+  const [quotation, setQuotation] = useState<Quotation | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (quotationId) {
+      fetchQuotation();
+    }
+  }, [quotationId]);
+
+  const fetchQuotation = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/projects/${projectId}/quotations/${quotationId}`,
+        { credentials: 'include' }
+      );
+      const result = await response.json();
+      if (result.success) {
+        setQuotation(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching quotation:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    const currency = quotation?.project?.baseCurrency || 'USD';
+    return `${currency} ${amount.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  if (loading) {
+    return <div style={{ padding: '20px' }}>Loading...</div>;
+  }
+
+  if (!quotation) {
+    return <div style={{ padding: '20px' }}>Quotation not found</div>;
+  }
+
+  const assumptions = quotation.assumptions || {};
+
+  return (
+    <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '40px', borderBottom: '2px solid #4472C4', paddingBottom: '20px' }}>
+        <h1 style={{ margin: '0 0 10px 0', color: '#4472C4' }}>
+          INVESTOR QUOTATION
+        </h1>
+        <h2 style={{ margin: '0 0 10px 0' }}>{quotation.project?.title || 'Untitled Project'}</h2>
+        <p style={{ color: '#666', margin: 0 }}>
+          Version: {quotation.version} | Template: {quotation.template || 'N/A'} | Created: {new Date(quotation.createdAt).toLocaleDateString()}
+        </p>
+      </div>
+
+      {/* Print Button */}
+      <div style={{ marginBottom: '20px' }} className="no-print">
+        <button onClick={handlePrint} style={{ padding: '10px 20px', cursor: 'pointer' }}>
+          🖨️ Print / Save as PDF
+        </button>
+      </div>
+
+      {/* Assumptions */}
+      <div style={{ marginBottom: '40px' }}>
+        <h3 style={{ borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>
+          Budget Assumptions
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginTop: '20px' }}>
+          <div>
+            <strong>Currency:</strong> {assumptions.currency || 'USD'}
+          </div>
+          <div>
+            <strong>Tax:</strong> {assumptions.taxPercent || 0}%
+          </div>
+          <div>
+            <strong>Contingency:</strong> {assumptions.contingencyPercent || 0}%
+          </div>
+          <div>
+            <strong>Insurance:</strong> {assumptions.insurancePercent || 0}%
+          </div>
+          <div>
+            <strong>Bond:</strong> {assumptions.bondPercent || 0}%
+          </div>
+        </div>
+      </div>
+
+      {/* Cost Breakdown by Phase */}
+      <div style={{ marginBottom: '40px' }}>
+        <h3 style={{ borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>
+          Cost Breakdown
+        </h3>
+        
+        {quotation.summary?.totalsByPhase && (
+          <div style={{ marginTop: '20px', marginBottom: '30px' }}>
+            <table border={1} cellPadding={10} style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead style={{ backgroundColor: '#4472C4', color: 'white' }}>
+                <tr>
+                  <th>Phase</th>
+                  <th style={{ textAlign: 'right' }}>Amount</th>
+                  <th style={{ textAlign: 'right' }}>% of Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(quotation.summary.totalsByPhase).map(([phase, amount]) => (
+                  <tr key={phase}>
+                    <td><strong>{phase}</strong></td>
+                    <td style={{ textAlign: 'right' }}>{formatCurrency(amount as number)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      {quotation.summary && quotation.summary.subtotal > 0
+                        ? ((amount as number / quotation.summary.subtotal) * 100).toFixed(1)
+                        : 0}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Detailed Line Items */}
+        {quotation.lines.length > 0 && (
+          <table border={1} cellPadding={8} style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+            <thead style={{ backgroundColor: '#f5f5f5' }}>
+              <tr>
+                <th>Phase</th>
+                <th>Department</th>
+                <th>Line Item</th>
+                <th style={{ textAlign: 'right' }}>Qty</th>
+                <th style={{ textAlign: 'right' }}>Rate</th>
+                <th style={{ textAlign: 'right' }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {quotation.lines.map((line) => {
+                const lineTotal = line.qty * line.rate * (1 + line.taxPercent / 100);
+                return (
+                  <tr key={line.id}>
+                    <td>{line.phase}</td>
+                    <td>{line.department || '-'}</td>
+                    <td>{line.name}</td>
+                    <td style={{ textAlign: 'right' }}>{line.qty}</td>
+                    <td style={{ textAlign: 'right' }}>{line.rate.toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{formatCurrency(lineTotal)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Summary */}
+      {quotation.summary && (
+        <div style={{ marginBottom: '40px', border: '2px solid #4472C4', padding: '20px', borderRadius: '8px' }}>
+          <h3 style={{ marginTop: 0 }}>Budget Summary</h3>
+          <table style={{ width: '100%', fontSize: '14px' }}>
+            <tbody>
+              <tr>
+                <td style={{ padding: '8px 0' }}>Subtotal:</td>
+                <td style={{ textAlign: 'right', padding: '8px 0' }}>
+                  {formatCurrency(quotation.summary.subtotal)}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ padding: '8px 0' }}>
+                  Contingency ({assumptions.contingencyPercent || 0}%):
+                </td>
+                <td style={{ textAlign: 'right', padding: '8px 0' }}>
+                  {formatCurrency(quotation.summary.contingency)}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ padding: '8px 0' }}>
+                  Insurance ({assumptions.insurancePercent || 0}%):
+                </td>
+                <td style={{ textAlign: 'right', padding: '8px 0' }}>
+                  {formatCurrency(quotation.summary.insurance)}
+                </td>
+              </tr>
+              <tr style={{ borderBottom: '2px solid #ddd' }}>
+                <td style={{ padding: '8px 0' }}>
+                  Bond ({assumptions.bondPercent || 0}%):
+                </td>
+                <td style={{ textAlign: 'right', padding: '8px 0' }}>
+                  {formatCurrency(quotation.summary.bond)}
+                </td>
+              </tr>
+              <tr style={{ fontSize: '18px', fontWeight: 'bold' }}>
+                <td style={{ padding: '15px 0 0 0' }}>TOTAL BUDGET:</td>
+                <td style={{ textAlign: 'right', padding: '15px 0 0 0', color: '#4472C4' }}>
+                  {formatCurrency(quotation.summary.total)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Financing Plan */}
+      {quotation.financingPlan?.sources && quotation.financingPlan.sources.length > 0 && (
+        <div style={{ marginBottom: '40px' }}>
+          <h3 style={{ borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>
+            Financing Plan
+          </h3>
+          <table border={1} cellPadding={10} style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
+            <thead style={{ backgroundColor: '#f5f5f5' }}>
+              <tr>
+                <th>Type</th>
+                <th style={{ textAlign: 'right' }}>Amount</th>
+                <th style={{ textAlign: 'right' }}>Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {quotation.financingPlan.sources.map((source, index) => (
+                <tr key={index}>
+                  <td>{source.type}</td>
+                  <td style={{ textAlign: 'right' }}>{formatCurrency(source.amount)}</td>
+                  <td style={{ textAlign: 'right' }}>{source.rate || 0}%</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot style={{ backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>
+              <tr>
+                <td>Total Financing</td>
+                <td style={{ textAlign: 'right' }} colSpan={2}>
+                  {formatCurrency(
+                    quotation.financingPlan.sources.reduce(
+                      (sum, s) => sum + s.amount,
+                      0
+                    )
+                  )}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+
+      {/* Financial Metrics */}
+      {quotation.metrics && (
+        <div style={{ marginBottom: '40px' }}>
+          <h3 style={{ borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>
+            Financial Projections
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginTop: '20px' }}>
+            <div style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
+                Return on Investment
+              </div>
+              <div style={{ fontSize: '32px', fontWeight: 'bold', color: quotation.metrics.roi >= 0 ? '#22c55e' : '#ef4444' }}>
+                {quotation.metrics.roi.toFixed(2)}%
+              </div>
+            </div>
+            <div style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
+                Internal Rate of Return
+              </div>
+              <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#4472C4' }}>
+                {quotation.metrics.irr.toFixed(2)}%
+              </div>
+            </div>
+            <div style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
+                Net Present Value
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: quotation.metrics.npv >= 0 ? '#22c55e' : '#ef4444' }}>
+                {formatCurrency(quotation.metrics.npv)}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginTop: '20px' }}>
+            <div style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px' }}>
+              <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>Total Cost</div>
+              <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
+                {formatCurrency(quotation.metrics.totalCost)}
+              </div>
+            </div>
+            <div style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px' }}>
+              <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>Projected Revenue</div>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#22c55e' }}>
+                {formatCurrency(quotation.metrics.projectedRevenue)}
+              </div>
+            </div>
+            <div style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px' }}>
+              <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>Projected Profit</div>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', color: quotation.metrics.profit >= 0 ? '#22c55e' : '#ef4444' }}>
+                {formatCurrency(quotation.metrics.profit)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div style={{ marginTop: '60px', paddingTop: '20px', borderTop: '1px solid #ddd', fontSize: '12px', color: '#666', textAlign: 'center' }}>
+        <p>This quotation is valid for 30 days from the date of issue.</p>
+        <p>All figures are estimates and subject to final negotiation.</p>
+        <p>© {new Date().getFullYear()} {quotation.project?.title || 'Film Finance App'}. All rights reserved.</p>
+      </div>
+
+      {/* Print Styles */}
+      <style jsx global>{`
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+          body {
+            margin: 0;
+            padding: 20px;
+          }
+          @page {
+            margin: 2cm;
+          }
+          table {
+            page-break-inside: avoid;
+          }
+          h1, h2, h3 {
+            page-break-after: avoid;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+============================================================
+
+File: /home/parrot/Desktop/Film-Finance-App/apps/web/app/(app)/quotations/[id]/view/page.tsx
+============================================================
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
+
+const API_BASE_URL = 'http://localhost:4000/api';
+
+interface Quotation {
+  id: string;
+  version: string;
+  projectId: string;
+  template?: string;
+  assumptions?: any;
+  financingPlan?: any;
+  revenueModel?: any;
+  metrics?: any;
+  lines: CostLine[];
+  summary?: {
+    subtotal: number;
+    contingency: number;
+    insurance: number;
+    bond: number;
+    total: number;
+    totalsByPhase: Record<string, number>;
+  };
+  project?: {
+    title: string;
+    baseCurrency: string;
+  };
+  createdAt: string;
+}
+
+interface CostLine {
+  id: string;
+  phase: string;
+  department: string | null;
+  name: string;
+  qty: number;
+  rate: number;
+  taxPercent: number;
+}
+
+export default function QuotationViewPage() {
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const quotationId = params.id as string;
+  const projectId = searchParams.get('projectId') || '';
+
+  const [quotation, setQuotation] = useState<Quotation | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (quotationId) {
+      fetchQuotation();
+    }
+  }, [quotationId]);
+
+  const fetchQuotation = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/projects/${projectId}/quotations/${quotationId}`,
+        { credentials: 'include' }
+      );
+      const result = await response.json();
+      if (result.success) {
+        setQuotation(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching quotation:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    const currency = quotation?.project?.baseCurrency || 'USD';
+    return `${currency} ${amount.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  if (loading) {
+    return <div style={{ padding: '20px' }}>Loading...</div>;
+  }
+
+  if (!quotation) {
+    return <div style={{ padding: '20px' }}>Quotation not found</div>;
+  }
+
+  const assumptions = quotation.assumptions || {};
+
+  return (
+    <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '40px', borderBottom: '2px solid #4472C4', paddingBottom: '20px' }}>
+        <h1 style={{ margin: '0 0 10px 0', color: '#4472C4' }}>
+          INVESTOR QUOTATION
+        </h1>
+        <h2 style={{ margin: '0 0 10px 0' }}>{quotation.project?.title}</h2>
+        <p style={{ color: '#666', margin: 0 }}>
+          Version: {quotation.version} | Created: {new Date(quotation.createdAt).toLocaleDateString()}
+        </p>
+      </div>
+
+      {/* Print Button */}
+      <div style={{ marginBottom: '20px' }} className="no-print">
+        <button onClick={handlePrint} style={{ padding: '10px 20px' }}>
+          Print / Save as PDF
+        </button>
+      </div>
+
+      {/* Assumptions */}
+      <div style={{ marginBottom: '40px' }}>
+        <h3 style={{ borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>
+          Budget Assumptions
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginTop: '20px' }}>
+          <div>
+            <strong>Currency:</strong> {assumptions.currency || 'USD'}
+          </div>
+          <div>
+            <strong>Tax:</strong> {assumptions.taxPercent || 0}%
+          </div>
+          <div>
+            <strong>Contingency:</strong> {assumptions.contingencyPercent || 0}%
+          </div>
+          <div>
+            <strong>Insurance:</strong> {assumptions.insurancePercent || 0}%
+          </div>
+          <div>
+            <strong>Bond:</strong> {assumptions.bondPercent || 0}%
+          </div>
+        </div>
+      </div>
+
+      {/* Cost Breakdown by Phase */}
+      <div style={{ marginBottom: '40px' }}>
+        <h3 style={{ borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>
+          Cost Breakdown
+        </h3>
+        
+        {quotation.summary?.totalsByPhase && (
+          <div style={{ marginTop: '20px', marginBottom: '30px' }}>
+            <table border={1} cellPadding={10} style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead style={{ backgroundColor: '#4472C4', color: 'white' }}>
+                <tr>
+                  <th>Phase</th>
+                  <th style={{ textAlign: 'right' }}>Amount</th>
+                  <th style={{ textAlign: 'right' }}>% of Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(quotation.summary.totalsByPhase).map(([phase, amount]) => (
+                  <tr key={phase}>
+                    <td><strong>{phase}</strong></td>
+                    <td style={{ textAlign: 'right' }}>{formatCurrency(amount as number)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      {quotation.summary ? 
+                        ((amount as number / quotation.summary.subtotal) * 100).toFixed(1) : 0}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Detailed Line Items */}
+        <table border={1} cellPadding={8} style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+          <thead style={{ backgroundColor: '#f5f5f5' }}>
+            <tr>
+              <th>Phase</th>
+              <th>Department</th>
+              <th>Line Item</th>
+              <th style={{ textAlign: 'right' }}>Qty</th>
+              <th style={{ textAlign: 'right' }}>Rate</th>
+              <th style={{ textAlign: 'right' }}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {quotation.lines.map((line) => {
+              const lineTotal = line.qty * line.rate * (1 + line.taxPercent / 100);
+              return (
+                <tr key={line.id}>
+                  <td>{line.phase}</td>
+                  <td>{line.department || '-'}</td>
+                  <td>{line.name}</td>
+                  <td style={{ textAlign: 'right' }}>{line.qty}</td>
+                  <td style={{ textAlign: 'right' }}>{line.rate.toLocaleString()}</td>
+                  <td style={{ textAlign: 'right' }}>{formatCurrency(lineTotal)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Summary */}
+      {quotation.summary && (
+        <div style={{ marginBottom: '40px', border: '2px solid #4472C4', padding: '20px', borderRadius: '8px' }}>
+          <h3 style={{ marginTop: 0 }}>Budget Summary</h3>
+          <table style={{ width: '100%', fontSize: '14px' }}>
+            <tbody>
+              <tr>
+                <td style={{ padding: '8px 0' }}>Subtotal:</td>
+                <td style={{ textAlign: 'right', padding: '8px 0' }}>
+                  {formatCurrency(quotation.summary.subtotal)}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ padding: '8px 0' }}>
+                  Contingency ({assumptions.contingencyPercent}%):
+                </td>
+                <td style={{ textAlign: 'right', padding: '8px 0' }}>
+                  {formatCurrency(quotation.summary.contingency)}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ padding: '8px 0' }}>
+                  Insurance ({assumptions.insurancePercent}%):
+                </td>
+                <td style={{ textAlign: 'right', padding: '8px 0' }}>
+                  {formatCurrency(quotation.summary.insurance)}
+                </td>
+              </tr>
+              <tr style={{ borderBottom: '2px solid #ddd' }}>
+                <td style={{ padding: '8px 0' }}>
+                  Bond ({assumptions.bondPercent}%):
+                </td>
+                <td style={{ textAlign: 'right', padding: '8px 0' }}>
+                  {formatCurrency(quotation.summary.bond)}
+                </td>
+              </tr>
+              <tr style={{ fontSize: '18px', fontWeight: 'bold' }}>
+                <td style={{ padding: '15px 0 0 0' }}>TOTAL BUDGET:</td>
+                <td style={{ textAlign: 'right', padding: '15px 0 0 0', color: '#4472C4' }}>
+                  {formatCurrency(quotation.summary.total)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Financing Plan */}
+      {quotation.financingPlan?.sources && (
+        <div style={{ marginBottom: '40px' }}>
+          <h3 style={{ borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>
+            Financing Plan
+          </h3>
+          <table border={1} cellPadding={10} style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
+            <thead style={{ backgroundColor: '#f5f5f5' }}>
+              <tr>
+                <th>Type</th>
+                <th style={{ textAlign: 'right' }}>Amount</th>
+                <th style={{ textAlign: 'right' }}>Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {quotation.financingPlan.sources.map((source: any, index: number) => (
+                <tr key={index}>
+                  <td>{source.type}</td>
+                  <td style={{ textAlign: 'right' }}>{formatCurrency(source.amount)}</td>
+                  <td style={{ textAlign: 'right' }}>{source.rate || 0}%</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot style={{ backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>
+              <tr>
+                <td>Total Financing</td>
+                <td style={{ textAlign: 'right' }} colSpan={2}>
+                  {formatCurrency(
+                    quotation.financingPlan.sources.reduce(
+                      (sum: number, s: any) => sum + s.amount,
+                      0
+                    )
+                  )}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+
+      {/* Financial Metrics */}
+      {quotation.metrics && (
+        <div style={{ marginBottom: '40px' }}>
+          <h3 style={{ borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>
+            Financial Projections
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginTop: '20px' }}>
+            <div style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
+                Return on Investment
+              </div>
+              <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#4472C4' }}>
+                {quotation.metrics.roi}%
+              </div>
+            </div>
+            <div style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
+                Internal Rate of Return
+              </div>
+              <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#4472C4' }}>
+                {quotation.metrics.irr}%
+              </div>
+            </div>
+            <div style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
+                Net Present Value
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#22c55e' }}>
+                {formatCurrency(quotation.metrics.npv)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div style={{ marginTop: '60px', paddingTop: '20px', borderTop: '1px solid #ddd', fontSize: '12px', color: '#666', textAlign: 'center' }}>
+        <p>This quotation is valid for 30 days from the date of issue.</p>
+        <p>© {new Date().getFullYear()} {quotation.project?.title}. All rights reserved.</p>
+      </div>
+
+      {/* Print Styles */}
+      <style jsx global>{`
+        @media print {
+          .no-print {
+            display: none;
+          }
+          body {
+            margin: 0;
+            padding: 20px;
+          }
+        }
+      `}</style>
     </div>
   );
 }
