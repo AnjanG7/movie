@@ -34,6 +34,8 @@ import cashflowRouter from './routes/cashflow.routes.js';
 import financingSourceRouter from './routes/financingSource.routes.js';
 import drawdownRouter from './routes/drawdown.routes.js';
 import budgetLineRouter from './routes/budgetLine.routes.js';
+// Add this import with your other route imports
+import postProductionRouter from './routes/postProduction.routes.js';
 
 // Register all routes
 app.use("/api/auth", authRouter);
@@ -49,6 +51,9 @@ app.use('/api/projects/:projectId/cashflow', cashflowRouter);
 app.use('/api/projects/:projectId/financing-sources', financingSourceRouter);
 app.use('/api/projects/:projectId/drawdowns', drawdownRouter);
 app.use('/api/projects/:projectId/budget-lines', budgetLineRouter);
+
+// Add this route registration with your other routes
+app.use('/api/projects/:projectId/post-production', postProductionRouter);
 
 // Error handler (should be last)
 app.use(errorHandler);

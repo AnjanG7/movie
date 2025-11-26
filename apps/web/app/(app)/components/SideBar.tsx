@@ -15,9 +15,12 @@ import {
   Receipt,
   Wallet,
   Package,
+  
 } from 'lucide-react';
 
 const menuItems = [
+
+
   {
     icon: LayoutDashboard,
     label: 'Dashboard',
