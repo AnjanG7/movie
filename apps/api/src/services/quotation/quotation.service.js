@@ -72,6 +72,37 @@ export class QuotationService {
 
     return templates[template] || templates.FEATURE;
   }
+  
+  // Delete quotation
+async deleteQuotation(quotationId) {
+  const quotation = await prisma.budgetVersion.findUnique({
+    where: { id: quotationId },
+    include: { lines: true },
+  });
+
+  if (!quotation) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Quotation not found');
+  }
+
+  if (quotation.type !== 'QUOTE') {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Can only delete quotations, not baseline or working budgets'
+    );
+  }
+
+  // Delete all lines first
+  await prisma.budgetLineItem.deleteMany({
+    where: { budgetVersionId: quotationId },
+  });
+
+  // Delete the quotation
+  await prisma.budgetVersion.delete({
+    where: { id: quotationId },
+  });
+
+  return { message: 'Quotation deleted successfully' };
+}
 
   // Update assumptions
   async updateAssumptions(quotationId, assumptions) {
@@ -330,100 +361,110 @@ export class QuotationService {
   }
 
   // Convert quotation to baseline budget
-  async convertToBaseline(quotationId) {
-    const quotation = await prisma.budgetVersion.findUnique({
-      where: { id: quotationId },
-      include: { lines: true },
-    });
+// Convert quotation to baseline budget
+async convertToBaseline(quotationId) {
+  const quotation = await prisma.budgetVersion.findUnique({
+    where: { id: quotationId },
+    include: { lines: true },
+  });
 
-    if (!quotation) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Quotation not found');
-    }
-
-    if (quotation.type !== 'QUOTE') {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        'Only quotations can be converted to baseline'
-      );
-    }
-
-    // Check if baseline already exists
-    const existingBaseline = await prisma.budgetVersion.findFirst({
-      where: {
-        projectId: quotation.projectId,
-        type: 'BASELINE',
-      },
-    });
-
-    if (existingBaseline) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        'Baseline budget already exists for this project'
-      );
-    }
-
-    // Create baseline
-    const baseline = await prisma.budgetVersion.create({
-      data: {
-        projectId: quotation.projectId,
-        versionNo: 'BASELINE',
-        type: 'BASELINE',
-        assumptions: quotation.assumptions,
-        financingPlan: quotation.financingPlan,
-        revenueModel: quotation.revenueModel,
-        metrics: quotation.metrics,
-        createdBy: quotation.createdBy,
-      },
-    });
-
-    // Copy all lines
-    for (const line of quotation.lines) {
-      await prisma.budgetLineItem.create({
-        data: {
-          budgetVersionId: baseline.id,
-          phase: line.phase,
-          department: line.department,
-          name: line.name,
-          qty: line.qty,
-          rate: line.rate,
-          taxPercent: line.taxPercent,
-          vendor: line.vendor,
-          notes: line.notes,
-        },
-      });
-    }
-
-    // Also create working budget
-    const working = await prisma.budgetVersion.create({
-      data: {
-        projectId: quotation.projectId,
-        versionNo: 'WORKING-V1',
-        type: 'WORKING',
-        assumptions: quotation.assumptions,
-        financingPlan: quotation.financingPlan,
-        revenueModel: quotation.revenueModel,
-        metrics: quotation.metrics,
-        createdBy: quotation.createdBy,
-      },
-    });
-
-    // Copy lines to working budget
-    for (const line of quotation.lines) {
-      await prisma.budgetLineItem.create({
-        data: {
-          budgetVersionId: working.id,
-          phase: line.phase,
-          department: line.department,
-          name: line.name,
-          qty: line.qty,
-          rate: line.rate,
-          taxPercent: line.taxPercent,
-          vendor: line.vendor,
-          notes: line.notes,
-        },
-      });
-    }
-
-    return { baseline, working };
+  if (!quotation) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Quotation not found');
   }
+
+  if (quotation.type !== 'QUOTE') {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Only quotations can be converted to baseline'
+    );
+  }
+
+  // Check if baseline already exists
+  const existingBaseline = await prisma.budgetVersion.findFirst({
+    where: {
+      projectId: quotation.projectId,
+      type: 'BASELINE',
+    },
+  });
+
+  if (existingBaseline) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Baseline budget already exists for this project'
+    );
+  }
+
+  // Create baseline
+  const baseline = await prisma.budgetVersion.create({
+    data: {
+      projectId: quotation.projectId,
+      version: 'BASELINE',
+      type: 'BASELINE',
+      template: quotation.template,
+      assumptions: quotation.assumptions,
+      financingPlan: quotation.financingPlan,
+      revenueModel: quotation.revenueModel,
+      metrics: quotation.metrics,
+      createdBy: quotation.createdBy,
+    },
+  });
+
+  // Copy all lines to baseline
+  for (const line of quotation.lines) {
+    await prisma.budgetLineItem.create({
+      data: {
+        budgetVersionId: baseline.id,
+        phase: line.phase,
+        department: line.department,
+        name: line.name,
+        qty: line.qty,
+        rate: line.rate,
+        taxPercent: line.taxPercent,
+        vendor: line.vendor,
+        notes: line.notes,
+      },
+    });
+  }
+
+  // Create working budget from baseline
+  const working = await prisma.budgetVersion.create({
+    data: {
+      projectId: quotation.projectId,
+      version: 'WORKING-V1',
+      type: 'WORKING',
+      template: quotation.template,
+      assumptions: quotation.assumptions,
+      financingPlan: quotation.financingPlan,
+      revenueModel: quotation.revenueModel,
+      metrics: quotation.metrics,
+      createdBy: quotation.createdBy,
+    },
+  });
+
+  // Copy lines to working budget
+  for (const line of quotation.lines) {
+    await prisma.budgetLineItem.create({
+      data: {
+        budgetVersionId: working.id,
+        phase: line.phase,
+        department: line.department,
+        name: line.name,
+        qty: line.qty,
+        rate: line.rate,
+        taxPercent: line.taxPercent,
+        vendor: line.vendor,
+        notes: line.notes,
+      },
+    });
+  }
+
+  // Mark quotation as accepted
+  await prisma.budgetVersion.update({
+    where: { id: quotationId },
+    data: { acceptedAt: new Date() },
+  });
+
+  return { baseline, working };
+}
+
 }

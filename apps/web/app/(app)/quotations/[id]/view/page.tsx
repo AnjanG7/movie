@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 
 const API_BASE_URL = 'http://localhost:4000/api';
 
@@ -10,10 +10,32 @@ interface Quotation {
   version: string;
   projectId: string;
   template?: string;
-  assumptions?: any;
-  financingPlan?: any;
-  revenueModel?: any;
-  metrics?: any;
+  assumptions?: {
+    currency?: string;
+    taxPercent?: number;
+    contingencyPercent?: number;
+    insurancePercent?: number;
+    bondPercent?: number;
+  };
+  financingPlan?: {
+    sources: Array<{
+      type: string;
+      amount: number;
+      rate: number;
+    }>;
+  };
+  revenueModel?: {
+    grossRevenue: number;
+    distributionFeePercent: number;
+  };
+  metrics?: {
+    totalCost: number;
+    projectedRevenue: number;
+    roi: number;
+    irr: number;
+    npv: number;
+    profit: number;
+  };
   lines: CostLine[];
   summary?: {
     subtotal: number;
@@ -28,6 +50,7 @@ interface Quotation {
     baseCurrency: string;
   };
   createdAt: string;
+  acceptedAt?: string;
 }
 
 interface CostLine {
@@ -43,6 +66,7 @@ interface CostLine {
 export default function QuotationViewPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const quotationId = params.id as string;
   const projectId = searchParams.get('projectId') || '';
 
@@ -85,6 +109,47 @@ export default function QuotationViewPage() {
     window.print();
   };
 
+  const handleConvertToBaseline = async () => {
+    if (!confirm(
+      'Convert this quotation to Baseline Budget?\n\n' +
+      'This will:\n' +
+      '1. Create a BASELINE budget (locked reference)\n' +
+      '2. Create a WORKING budget (for tracking actuals)\n' +
+      '3. Mark this quotation as accepted\n\n' +
+      'This action cannot be undone. Continue?'
+    )) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/projects/${projectId}/quotations/${quotationId}/convert-to-baseline`,
+        {
+          method: 'POST',
+          credentials: 'include',
+        }
+      );
+
+      const result = await response.json();
+      if (result.success) {
+        alert(
+          'Success! ✅\n\n' +
+          '✓ Baseline budget created\n' +
+          '✓ Working budget created (WORKING-V1)\n' +
+          '✓ Quotation marked as accepted\n\n' +
+          'You can now track actual costs in the Budget page.'
+        );
+        // Refresh the page to show updated status
+        fetchQuotation();
+      } else {
+        alert(result.message || 'Failed to convert to baseline');
+      }
+    } catch (error) {
+      console.error('Error converting:', error);
+      alert('Failed to convert to baseline');
+    }
+  };
+
   if (loading) {
     return <div style={{ padding: '20px' }}>Loading...</div>;
   }
@@ -102,16 +167,69 @@ export default function QuotationViewPage() {
         <h1 style={{ margin: '0 0 10px 0', color: '#4472C4' }}>
           INVESTOR QUOTATION
         </h1>
-        <h2 style={{ margin: '0 0 10px 0' }}>{quotation.project?.title}</h2>
+        <h2 style={{ margin: '0 0 10px 0' }}>{quotation.project?.title || 'Untitled Project'}</h2>
         <p style={{ color: '#666', margin: 0 }}>
-          Version: {quotation.version} | Created: {new Date(quotation.createdAt).toLocaleDateString()}
+          Version: {quotation.version} | Template: {quotation.template || 'N/A'} | Created: {new Date(quotation.createdAt).toLocaleDateString()}
         </p>
       </div>
 
-      {/* Print Button */}
-      <div style={{ marginBottom: '20px' }} className="no-print">
-        <button onClick={handlePrint} style={{ padding: '10px 20px' }}>
-          Print / Save as PDF
+      {/* Action Buttons */}
+      <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }} className="no-print">
+        <button 
+          onClick={handlePrint} 
+          style={{ 
+            padding: '10px 20px',
+            cursor: 'pointer',
+            backgroundColor: '#4472C4',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+          }}
+        >
+          🖨️ Print / Save as PDF
+        </button>
+        
+        {!quotation.acceptedAt ? (
+          <button
+            onClick={handleConvertToBaseline}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#22c55e',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer',
+              borderRadius: '4px',
+              fontWeight: 'bold',
+            }}
+          >
+            ✅ Convert to Baseline & Create Working Budget
+          </button>
+        ) : (
+          <div
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#d4edda',
+              borderRadius: '4px',
+              color: '#155724',
+              fontWeight: 'bold',
+            }}
+          >
+            ✅ Converted to Baseline on {new Date(quotation.acceptedAt).toLocaleDateString()}
+          </div>
+        )}
+
+        <button
+          onClick={() => router.push(`/quotations?projectId=${projectId}`)}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#6c757d',
+            color: 'white',
+            border: 'none',
+            cursor: 'pointer',
+            borderRadius: '4px',
+          }}
+        >
+          ← Back to Quotations
         </button>
       </div>
 
@@ -161,8 +279,9 @@ export default function QuotationViewPage() {
                     <td><strong>{phase}</strong></td>
                     <td style={{ textAlign: 'right' }}>{formatCurrency(amount as number)}</td>
                     <td style={{ textAlign: 'right' }}>
-                      {quotation.summary ? 
-                        ((amount as number / quotation.summary.subtotal) * 100).toFixed(1) : 0}%
+                      {quotation.summary && quotation.summary.subtotal > 0
+                        ? ((amount as number / quotation.summary.subtotal) * 100).toFixed(1)
+                        : 0}%
                     </td>
                   </tr>
                 ))}
@@ -172,33 +291,35 @@ export default function QuotationViewPage() {
         )}
 
         {/* Detailed Line Items */}
-        <table border={1} cellPadding={8} style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-          <thead style={{ backgroundColor: '#f5f5f5' }}>
-            <tr>
-              <th>Phase</th>
-              <th>Department</th>
-              <th>Line Item</th>
-              <th style={{ textAlign: 'right' }}>Qty</th>
-              <th style={{ textAlign: 'right' }}>Rate</th>
-              <th style={{ textAlign: 'right' }}>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {quotation.lines.map((line) => {
-              const lineTotal = line.qty * line.rate * (1 + line.taxPercent / 100);
-              return (
-                <tr key={line.id}>
-                  <td>{line.phase}</td>
-                  <td>{line.department || '-'}</td>
-                  <td>{line.name}</td>
-                  <td style={{ textAlign: 'right' }}>{line.qty}</td>
-                  <td style={{ textAlign: 'right' }}>{line.rate.toLocaleString()}</td>
-                  <td style={{ textAlign: 'right' }}>{formatCurrency(lineTotal)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        {quotation.lines.length > 0 && (
+          <table border={1} cellPadding={8} style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+            <thead style={{ backgroundColor: '#f5f5f5' }}>
+              <tr>
+                <th>Phase</th>
+                <th>Department</th>
+                <th>Line Item</th>
+                <th style={{ textAlign: 'right' }}>Qty</th>
+                <th style={{ textAlign: 'right' }}>Rate</th>
+                <th style={{ textAlign: 'right' }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {quotation.lines.map((line) => {
+                const lineTotal = line.qty * line.rate * (1 + line.taxPercent / 100);
+                return (
+                  <tr key={line.id}>
+                    <td>{line.phase}</td>
+                    <td>{line.department || '-'}</td>
+                    <td>{line.name}</td>
+                    <td style={{ textAlign: 'right' }}>{line.qty}</td>
+                    <td style={{ textAlign: 'right' }}>{line.rate.toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{formatCurrency(lineTotal)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* Summary */}
@@ -215,7 +336,7 @@ export default function QuotationViewPage() {
               </tr>
               <tr>
                 <td style={{ padding: '8px 0' }}>
-                  Contingency ({assumptions.contingencyPercent}%):
+                  Contingency ({assumptions.contingencyPercent || 0}%):
                 </td>
                 <td style={{ textAlign: 'right', padding: '8px 0' }}>
                   {formatCurrency(quotation.summary.contingency)}
@@ -223,7 +344,7 @@ export default function QuotationViewPage() {
               </tr>
               <tr>
                 <td style={{ padding: '8px 0' }}>
-                  Insurance ({assumptions.insurancePercent}%):
+                  Insurance ({assumptions.insurancePercent || 0}%):
                 </td>
                 <td style={{ textAlign: 'right', padding: '8px 0' }}>
                   {formatCurrency(quotation.summary.insurance)}
@@ -231,7 +352,7 @@ export default function QuotationViewPage() {
               </tr>
               <tr style={{ borderBottom: '2px solid #ddd' }}>
                 <td style={{ padding: '8px 0' }}>
-                  Bond ({assumptions.bondPercent}%):
+                  Bond ({assumptions.bondPercent || 0}%):
                 </td>
                 <td style={{ textAlign: 'right', padding: '8px 0' }}>
                   {formatCurrency(quotation.summary.bond)}
@@ -249,7 +370,7 @@ export default function QuotationViewPage() {
       )}
 
       {/* Financing Plan */}
-      {quotation.financingPlan?.sources && (
+      {quotation.financingPlan?.sources && quotation.financingPlan.sources.length > 0 && (
         <div style={{ marginBottom: '40px' }}>
           <h3 style={{ borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>
             Financing Plan
@@ -263,7 +384,7 @@ export default function QuotationViewPage() {
               </tr>
             </thead>
             <tbody>
-              {quotation.financingPlan.sources.map((source: any, index: number) => (
+              {quotation.financingPlan.sources.map((source, index) => (
                 <tr key={index}>
                   <td>{source.type}</td>
                   <td style={{ textAlign: 'right' }}>{formatCurrency(source.amount)}</td>
@@ -277,7 +398,7 @@ export default function QuotationViewPage() {
                 <td style={{ textAlign: 'right' }} colSpan={2}>
                   {formatCurrency(
                     quotation.financingPlan.sources.reduce(
-                      (sum: number, s: any) => sum + s.amount,
+                      (sum, s) => sum + s.amount,
                       0
                     )
                   )}
@@ -299,8 +420,8 @@ export default function QuotationViewPage() {
               <div style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
                 Return on Investment
               </div>
-              <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#4472C4' }}>
-                {quotation.metrics.roi}%
+              <div style={{ fontSize: '32px', fontWeight: 'bold', color: quotation.metrics.roi >= 0 ? '#22c55e' : '#ef4444' }}>
+                {quotation.metrics.roi.toFixed(2)}%
               </div>
             </div>
             <div style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
@@ -308,15 +429,36 @@ export default function QuotationViewPage() {
                 Internal Rate of Return
               </div>
               <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#4472C4' }}>
-                {quotation.metrics.irr}%
+                {quotation.metrics.irr.toFixed(2)}%
               </div>
             </div>
             <div style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
               <div style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
                 Net Present Value
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#22c55e' }}>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: quotation.metrics.npv >= 0 ? '#22c55e' : '#ef4444' }}>
                 {formatCurrency(quotation.metrics.npv)}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginTop: '20px' }}>
+            <div style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px' }}>
+              <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>Total Cost</div>
+              <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
+                {formatCurrency(quotation.metrics.totalCost)}
+              </div>
+            </div>
+            <div style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px' }}>
+              <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>Projected Revenue</div>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#22c55e' }}>
+                {formatCurrency(quotation.metrics.projectedRevenue)}
+              </div>
+            </div>
+            <div style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px' }}>
+              <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>Projected Profit</div>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', color: quotation.metrics.profit >= 0 ? '#22c55e' : '#ef4444' }}>
+                {formatCurrency(quotation.metrics.profit)}
               </div>
             </div>
           </div>
@@ -326,18 +468,28 @@ export default function QuotationViewPage() {
       {/* Footer */}
       <div style={{ marginTop: '60px', paddingTop: '20px', borderTop: '1px solid #ddd', fontSize: '12px', color: '#666', textAlign: 'center' }}>
         <p>This quotation is valid for 30 days from the date of issue.</p>
-        <p>© {new Date().getFullYear()} {quotation.project?.title}. All rights reserved.</p>
+        <p>All figures are estimates and subject to final negotiation.</p>
+        <p>© {new Date().getFullYear()} {quotation.project?.title || 'Film Finance App'}. All rights reserved.</p>
       </div>
 
       {/* Print Styles */}
       <style jsx global>{`
         @media print {
           .no-print {
-            display: none;
+            display: none !important;
           }
           body {
             margin: 0;
             padding: 20px;
+          }
+          @page {
+            margin: 2cm;
+          }
+          table {
+            page-break-inside: avoid;
+          }
+          h1, h2, h3 {
+            page-break-after: avoid;
           }
         }
       `}</style>

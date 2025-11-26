@@ -43,6 +43,17 @@ export const getQuotation = asyncHandler(async (req, res) => {
     );
 });
 
+export const deleteQuotation = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  await quotationService.deleteQuotation(id);
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(StatusCodes.OK, null, 'Quotation deleted successfully')
+    );
+});
+
+
 export const updateAssumptions = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const quotation = await quotationService.updateAssumptions(id, req.body);

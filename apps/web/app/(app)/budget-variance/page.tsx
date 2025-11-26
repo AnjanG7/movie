@@ -60,7 +60,7 @@ export default function BudgetVariancePage() {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/projects?limit=all`, {
+      const response = await fetch(`${API_BASE_URL}/projects?limit=9999`, {
         credentials: 'include',
       });
       const result = await response.json();
