@@ -1,9 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, {
+  useState,
+  useEffect,
+  FormEvent,
+  ChangeEvent,
+} from 'react';
 import { useSearchParams } from 'next/navigation';
 
-const API_BASE_URL = 'http://localhost:4000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 interface PurchaseOrder {
   id: string;
@@ -51,9 +57,16 @@ interface BudgetLine {
   remaining: number;
 }
 
+interface POFormData {
+  vendorId: string;
+  amount: number;
+  notes: string;
+  budgetLineId: string;
+}
+
 export default function PurchaseOrdersPage() {
   const searchParams = useSearchParams();
-  const projectId = searchParams.get('projectId');
+  const projectIdParam = searchParams.get('projectId');
 
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -62,8 +75,11 @@ export default function PurchaseOrdersPage() {
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const [selectedProjectId, setSelectedProjectId] = useState(projectId || '');
-  const [formData, setFormData] = useState({
+  const [selectedProjectId, setSelectedProjectId] = useState(
+    projectIdParam || ''
+  );
+
+  const [formData, setFormData] = useState<POFormData>({
     vendorId: '',
     amount: 0,
     notes: '',
@@ -89,7 +105,7 @@ export default function PurchaseOrdersPage() {
       });
       const result = await response.json();
       if (result.success) {
-        setProjects(result.data.projects);
+        setProjects(result.data.projects || []);
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -133,13 +149,11 @@ export default function PurchaseOrdersPage() {
     try {
       const response = await fetch(
         `${API_BASE_URL}/projects/${selectedProjectId}/purchase-orders`,
-        {
-          credentials: 'include',
-        }
+        { credentials: 'include' }
       );
       const result = await response.json();
       if (result.success) {
-        setPurchaseOrders(result.data.purchaseOrders);
+        setPurchaseOrders(result.data.purchaseOrders || []);
       }
     } catch (error) {
       console.error('Error fetching purchase orders:', error);
@@ -148,7 +162,7 @@ export default function PurchaseOrdersPage() {
     }
   };
 
-  const handleCreatePO = async (e: React.FormEvent) => {
+  const handleCreatePO = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedProjectId) {
       alert('Please select a project');
@@ -183,7 +197,8 @@ export default function PurchaseOrdersPage() {
   };
 
   const handleUpdateStatus = async (poId: string, status: string) => {
-    if (!confirm(`Are you sure you want to ${status.toLowerCase()} this PO?`)) return;
+    if (!confirm(`Are you sure you want to ${status.toLowerCase()} this PO?`))
+      return;
 
     try {
       const response = await fetch(
@@ -236,64 +251,89 @@ export default function PurchaseOrdersPage() {
     }
   };
 
+  const handleProjectChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    setSelectedProjectId(e.target.value);
+  };
+
+  const handleFormChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    if (name === 'amount') {
+      setFormData((prev) => ({ ...prev, [name]: Number(value) }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const selectedProject = projects.find((p) => p.id === selectedProjectId);
+
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>Purchase Orders</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">
+              Purchase Orders
+            </h1>
+            <p className="text-slate-600">
+              Create and manage POs linked to your budget lines.
+            </p>
+          </div>
+          {selectedProject && (
+            <div className="px-4 py-2 rounded-xl bg-white/70 border border-slate-200 text-sm text-slate-700 shadow-sm">
+              <div className="font-semibold">{selectedProject.title}</div>
+            </div>
+          )}
+        </div>
 
-      {/* Project Selector */}
-      <div style={{ marginBottom: '20px' }}>
-        <label>
-          Select Project:
-          <select
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            style={{ marginLeft: '10px', padding: '5px' }}
+        {/* Project selector and create button */}
+        <div className="bg-white/80 rounded-2xl border border-slate-200 shadow-md p-4 mb-6 flex flex-wrap gap-4 items-center">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-semibold text-slate-700">
+              Select Project
+            </label>
+            <select
+              value={selectedProjectId}
+              onChange={handleProjectChange}
+              className="h-10 min-w-[220px] rounded-lg border border-slate-300 px-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">-- Select Project --</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            type="button"
+            disabled={!selectedProjectId}
+            onClick={() => setShowCreateModal(true)}
+            className="ml-auto px-4 h-10 rounded-lg bg-blue-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-semibold"
           >
-            <option value="">-- Select Project --</option>
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          disabled={!selectedProjectId}
-          style={{ marginLeft: '20px', padding: '8px 15px' }}
-        >
-          Create New PO
-        </button>
-      </div>
+            Create New PO
+          </button>
+        </div>
 
-      {/* Create PO Modal */}
-      {showCreateModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <div style={{ backgroundColor: 'white', padding: '30px', width: '500px', borderRadius: '8px' }}>
-            <h2>Create Purchase Order</h2>
-            <form onSubmit={handleCreatePO}>
-              <div style={{ marginBottom: '15px' }}>
-                <label>
-                  Vendor:
+        {/* Create PO Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+              <h2 className="text-xl font-bold mb-4">Create Purchase Order</h2>
+              <form onSubmit={handleCreatePO} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Vendor
+                  </label>
                   <select
+                    name="vendorId"
                     value={formData.vendorId}
-                    onChange={(e) =>
-                      setFormData({ ...formData, vendorId: e.target.value })
-                    }
+                    onChange={handleFormChange}
                     required
-                    style={{ display: 'block', width: '100%', padding: '5px' }}
+                    className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm"
                   >
                     <option value="">-- Select Vendor --</option>
                     {vendors.map((vendor) => (
@@ -302,158 +342,181 @@ export default function PurchaseOrdersPage() {
                       </option>
                     ))}
                   </select>
-                </label>
-              </div>
+                </div>
 
-              <div style={{ marginBottom: '15px' }}>
-                <label>
-                  Amount:
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Amount
+                  </label>
                   <input
+                    name="amount"
                     type="number"
                     value={formData.amount}
-                    onChange={(e) =>
-                      setFormData({ ...formData, amount: Number(e.target.value) })
-                    }
+                    onChange={handleFormChange}
+                    min={0}
+                    step="0.01"
                     required
-                    style={{ display: 'block', width: '100%', padding: '5px' }}
+                    className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm"
                   />
-                </label>
-              </div>
+                </div>
 
-              {/* Budget Line Selection */}
-              <div style={{ marginBottom: '15px' }}>
-                <label>
-                  Budget Line (Optional):
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Budget Line (Optional)
+                  </label>
                   <select
+                    name="budgetLineId"
                     value={formData.budgetLineId}
-                    onChange={(e) =>
-                      setFormData({ ...formData, budgetLineId: e.target.value })
-                    }
-                    style={{ display: 'block', width: '100%', padding: '5px' }}
+                    onChange={handleFormChange}
+                    className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm"
                   >
                     <option value="">-- Select Budget Line --</option>
                     {budgetLines.map((line) => (
                       <option key={line.id} value={line.id}>
-                        {line.phase} - {line.department || 'General'} - {line.name} 
-                        (Remaining: {line.remaining.toLocaleString()})
+                        {line.phase} - {line.department || 'General'} -{' '}
+                        {line.name} (Remaining:{' '}
+                        {line.remaining.toLocaleString()})
                       </option>
                     ))}
                   </select>
-                </label>
-                {budgetLines.length === 0 && (
-                  <p style={{ fontSize: '12px', color: '#999', marginTop: '5px' }}>
-                    No budget lines available for this project
-                  </p>
-                )}
-              </div>
+                  {budgetLines.length === 0 && (
+                    <p className="text-xs text-slate-400 mt-1">
+                      No budget lines available for this project.
+                    </p>
+                  )}
+                </div>
 
-              <div style={{ marginBottom: '15px' }}>
-                <label>
-                  Notes:
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Notes
+                  </label>
                   <textarea
+                    name="notes"
                     value={formData.notes}
-                    onChange={(e) =>
-                      setFormData({ ...formData, notes: e.target.value })
-                    }
-                    style={{ display: 'block', width: '100%', padding: '5px' }}
+                    onChange={handleFormChange}
                     rows={3}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
                   />
-                </label>
-              </div>
+                </div>
 
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button type="submit" style={{ padding: '8px 15px' }}>
-                  Create
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  style={{ padding: '8px 15px' }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-4 h-9 rounded-lg border border-slate-300 text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 h-9 rounded-lg bg-blue-600 text-white text-sm font-semibold"
+                  >
+                    Create
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Purchase Orders Table */}
-      {selectedProjectId && (
-        <div>
-          {loading ? (
-            <p>Loading...</p>
-          ) : (
-            <table border={1} cellPadding={10} style={{ width: '100%' }}>
-              <thead>
-                <tr>
-                  <th>PO Number</th>
-                  <th>Vendor</th>
-                  <th>Amount</th>
-                  <th>Budget Line</th>
-                  <th>Status</th>
-                  <th>Created</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {purchaseOrders.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} style={{ textAlign: 'center' }}>
-                      No purchase orders found
-                    </td>
-                  </tr>
-                ) : (
-                  purchaseOrders.map((po) => (
-                    <tr key={po.id}>
-                      <td>{po.poNo}</td>
-                      <td>{po.vendor?.name || 'N/A'}</td>
-                      <td>
-                        {po.vendor?.currency} {po.amount.toLocaleString()}
-                      </td>
-                      <td>
-                        {po.budgetLine ? (
-                          <span>
-                            {po.budgetLine.phase} - {po.budgetLine.name}
-                          </span>
-                        ) : (
-                          <span style={{ color: '#999' }}>Not linked</span>
-                        )}
-                      </td>
-                      <td>{po.status}</td>
-                      <td>{new Date(po.createdAt).toLocaleDateString()}</td>
-                      <td>
-                        {po.status === 'Pending' && (
-                          <>
-                            <button
-                              onClick={() => handleUpdateStatus(po.id, 'Approved')}
-                              style={{ marginRight: '5px', padding: '5px 10px' }}
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => handleUpdateStatus(po.id, 'Rejected')}
-                              style={{ marginRight: '5px', padding: '5px 10px' }}
-                            >
-                              Reject
-                            </button>
-                          </>
-                        )}
-                        <button
-                          onClick={() => handleDelete(po.id)}
-                          style={{ padding: '5px 10px' }}
-                        >
-                          Delete
-                        </button>
-                      </td>
+        {/* Purchase Orders Table */}
+        {selectedProjectId && (
+          <div className="mt-4">
+            {loading ? (
+              <p className="text-center text-slate-600 mt-6">Loading...</p>
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left">PO Number</th>
+                      <th className="px-4 py-2 text-left">Vendor</th>
+                      <th className="px-4 py-2 text-right">Amount</th>
+                      <th className="px-4 py-2 text-left">Budget Line</th>
+                      <th className="px-4 py-2 text-left">Status</th>
+                      <th className="px-4 py-2 text-left">Created</th>
+                      <th className="px-4 py-2 text-left">Actions</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+                  </thead>
+                  <tbody>
+                    {purchaseOrders.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-4 py-8 text-center text-slate-600"
+                        >
+                          No purchase orders found.
+                        </td>
+                      </tr>
+                    ) : (
+                      purchaseOrders.map((po) => (
+                        <tr
+                          key={po.id}
+                          className="border-t hover:bg-slate-50"
+                        >
+                          <td className="px-4 py-2 font-semibold">
+                            {po.poNo}
+                          </td>
+                          <td className="px-4 py-2">
+                            {po.vendor?.name || 'N/A'}
+                          </td>
+                          <td className="px-4 py-2 text-right">
+                            {po.vendor?.currency} {po.amount.toLocaleString()}
+                          </td>
+                          <td className="px-4 py-2">
+                            {po.budgetLine ? (
+                              <span>
+                                {po.budgetLine.phase} - {po.budgetLine.name}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">Not linked</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2">{po.status}</td>
+                          <td className="px-4 py-2">
+                            {new Date(po.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-2">
+                            {po.status === 'Pending' && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleUpdateStatus(po.id, 'Approved')
+                                  }
+                                  className="mr-2 px-3 h-8 rounded-md border border-emerald-300 text-xs text-emerald-700 hover:bg-emerald-50"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleUpdateStatus(po.id, 'Rejected')
+                                  }
+                                  className="mr-2 px-3 h-8 rounded-md border border-amber-300 text-xs text-amber-700 hover:bg-amber-50"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(po.id)}
+                              className="px-3 h-8 rounded-md border border-red-300 text-xs text-red-600 hover:bg-red-50"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

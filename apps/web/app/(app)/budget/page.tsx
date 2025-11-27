@@ -1,24 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, {
+  useState,
+  useEffect,
+  FormEvent,
+  ChangeEvent,
+} from 'react';
 import { useRouter } from 'next/navigation';
+import { Film, Plus, Edit2, Trash2 } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:4000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 interface Project {
   id: string;
   title: string;
   baseCurrency: string;
-}
-
-interface BudgetVersion {
-  id: string;
-  version: string;
-  type: string;
-  grandTotal: number;
-  createdAt: string;
-  lockedAt?: string;
-  lines: BudgetLine[];
 }
 
 interface BudgetLine {
@@ -31,17 +28,39 @@ interface BudgetLine {
   taxPercent: number;
 }
 
+interface BudgetVersion {
+  id: string;
+  version: string;
+  type: string;
+  grandTotal: number;
+  createdAt: string;
+  lockedAt?: string;
+  lines: BudgetLine[];
+}
+
+interface LineFormData {
+  phase: string;
+  department: string;
+  name: string;
+  qty: number;
+  rate: number;
+  taxPercent: number;
+  vendor: string;
+  notes: string;
+}
+
 export default function BudgetPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [budgetVersions, setBudgetVersions] = useState<BudgetVersion[]>([]);
-  const [selectedVersion, setSelectedVersion] = useState<BudgetVersion | null>(null);
+  const [selectedVersion, setSelectedVersion] =
+    useState<BudgetVersion | null>(null);
   const [loading, setLoading] = useState(false);
   const [showAddLineModal, setShowAddLineModal] = useState(false);
   const [editingLine, setEditingLine] = useState<BudgetLine | null>(null);
 
-  const [lineFormData, setLineFormData] = useState({
+  const [lineFormData, setLineFormData] = useState<LineFormData>({
     phase: 'PRODUCTION',
     department: '',
     name: '',
@@ -69,7 +88,7 @@ export default function BudgetPage() {
       });
       const result = await response.json();
       if (result.success) {
-        setProjects(result.data.projects);
+        setProjects(result.data.projects || []);
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -86,14 +105,12 @@ export default function BudgetPage() {
       );
       const result = await response.json();
       if (result.success) {
-        setBudgetVersions(result.data.versions || []);
-        // Auto-select working budget if exists
-        const workingBudget = result.data.versions?.find(
+        const versions: BudgetVersion[] = result.data.versions || [];
+        setBudgetVersions(versions);
+        const workingBudget = versions.find(
           (v: BudgetVersion) => v.type === 'WORKING'
         );
-        if (workingBudget) {
-          setSelectedVersion(workingBudget);
-        }
+        setSelectedVersion(workingBudget || versions[0] || null);
       }
     } catch (error) {
       console.error('Error fetching budget versions:', error);
@@ -102,7 +119,7 @@ export default function BudgetPage() {
     }
   };
 
-  const handleAddLine = async (e: React.FormEvent) => {
+  const handleAddLine = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!selectedVersion) {
@@ -157,7 +174,6 @@ export default function BudgetPage() {
 
   const handleDeleteLine = async (lineId: string) => {
     if (!confirm('Delete this budget line?')) return;
-
     if (!selectedVersion) return;
 
     try {
@@ -195,442 +211,491 @@ export default function BudgetPage() {
     });
   };
 
-const formatCurrency = (amount: number) => {
-  const project = projects.find((p) => p.id === selectedProjectId);
-  const currency = project?.baseCurrency || 'USD';
-  return `${currency} ${amount.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2, // Fixed typo here
-  })}`;
-};
+  const formatCurrency = (amount: number) => {
+    const project = projects.find((p) => p.id === selectedProjectId);
+    const currency = project?.baseCurrency || 'USD';
+    return `${currency} ${amount.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
 
   const calculateLineTotal = (line: BudgetLine) => {
     return line.qty * line.rate * (1 + line.taxPercent / 100);
   };
 
- const calculateTotalsByPhase = () => {
-  if (!selectedVersion) return {};
-
-  const totals: Record<string, number> = {};
-  selectedVersion.lines.forEach((line) => {
-    const lineTotal = calculateLineTotal(line);
-    const phase = line.phase;
-    if (totals[phase] === undefined) {
-      totals[phase] = 0;
-    }
-    totals[phase] += lineTotal;
-  });
-  return totals;
-};
-
+  const calculateTotalsByPhase = () => {
+    if (!selectedVersion) return {} as Record<string, number>;
+    const totals: Record<string, number> = {};
+    selectedVersion.lines.forEach((line) => {
+      const lineTotal = calculateLineTotal(line);
+      const phase = line.phase;
+      if (totals[phase] === undefined) {
+        totals[phase] = 0;
+      }
+      totals[phase] += lineTotal;
+    });
+    return totals;
+  };
 
   const calculateGrandTotal = () => {
     if (!selectedVersion) return 0;
-    return selectedVersion.lines.reduce((sum, line) => sum + calculateLineTotal(line), 0);
+    return selectedVersion.lines.reduce(
+      (sum, line) => sum + calculateLineTotal(line),
+      0
+    );
   };
 
+  const handleProjectChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    setSelectedProjectId(e.target.value);
+  };
+
+  const handleVersionChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const version = budgetVersions.find((v) => v.id === e.target.value);
+    setSelectedVersion(version || null);
+  };
+
+  const handleLineFieldChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    if (name === 'qty' || name === 'rate' || name === 'taxPercent') {
+      setLineFormData((prev) => ({
+        ...prev,
+        [name]: Number(value),
+      }));
+    } else {
+      setLineFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
+  };
+
+  const selectedProject = projects.find((p) => p.id === selectedProjectId);
+
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>Budget Management</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <Film className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl lg:text-4xl font-bold text-slate-900">
+                Budget Management
+              </h1>
+              <p className="text-slate-600 text-lg">
+                Track production, post, and publicity costs by phase.
+              </p>
+            </div>
+          </div>
 
-      {/* Project Selector */}
-      <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-        <label>
-          Select Project:
-          <select
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            style={{ marginLeft: '10px', padding: '5px' }}
-          >
-            <option value="">-- Select Project --</option>
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.title}
-              </option>
-            ))}
-          </select>
-        </label>
+          {selectedProject && selectedVersion && (
+            <div className="bg-white/70 border border-slate-200 rounded-xl px-4 py-3 shadow-sm text-sm text-slate-700">
+              <div className="font-semibold">{selectedProject.title}</div>
+              <div>
+                Version:{' '}
+                <span className="font-medium">
+                  {selectedVersion.version} ({selectedVersion.type})
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
 
-        {selectedProjectId && budgetVersions.length > 0 && (
-          <label>
-            Budget Version:
+        {/* Selectors */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200 shadow-md p-5 mb-8 flex flex-wrap gap-4 items-center">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-semibold text-slate-700">
+              Select Project
+            </label>
             <select
-              value={selectedVersion?.id || ''}
-              onChange={(e) => {
-                const version = budgetVersions.find((v) => v.id === e.target.value);
-                setSelectedVersion(version || null);
-              }}
-              style={{ marginLeft: '10px', padding: '5px' }}
+              value={selectedProjectId}
+              onChange={handleProjectChange}
+              className="h-11 min-w-[220px] rounded-lg border border-slate-300 px-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">-- Select Version --</option>
-              {budgetVersions.map((version) => (
-                <option key={version.id} value={version.id}>
-                  {version.version} ({version.type})
+              <option value="">-- Select Project --</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.title}
                 </option>
               ))}
             </select>
-          </label>
-        )}
+          </div>
 
-        {selectedVersion && !selectedVersion.lockedAt && (
-          <button
-            onClick={() => {
-              setEditingLine(null);
-              resetLineForm();
-              setShowAddLineModal(true);
-            }}
-            style={{ padding: '8px 15px' }}
-          >
-            Add Budget Line
-          </button>
-        )}
-      </div>
+          {selectedProjectId && budgetVersions.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-semibold text-slate-700">
+                Budget Version
+              </label>
+              <select
+                value={selectedVersion?.id || ''}
+                onChange={handleVersionChange}
+                className="h-11 min-w-[220px] rounded-lg border border-slate-300 px-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">-- Select Version --</option>
+                {budgetVersions.map((version) => (
+                  <option key={version.id} value={version.id}>
+                    {version.version} ({version.type})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-      {/* Add/Edit Line Modal */}
-      {showAddLineModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: 'white',
-              padding: '30px',
-              width: '600px',
-              maxHeight: '90vh',
-              overflow: 'auto',
-              borderRadius: '8px',
-            }}
-          >
-            <h2>{editingLine ? 'Edit Budget Line' : 'Add Budget Line'}</h2>
-            <form onSubmit={handleAddLine}>
-              <div style={{ marginBottom: '15px' }}>
-                <label>
-                  <strong>Phase:</strong>
+          {selectedVersion && !selectedVersion.lockedAt && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingLine(null);
+                resetLineForm();
+                setShowAddLineModal(true);
+              }}
+              className="ml-auto inline-flex items-center gap-2 px-4 h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Add Budget Line
+            </button>
+          )}
+        </div>
+
+        {/* Modal */}
+        {showAddLineModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+              <h2 className="text-xl font-bold mb-4">
+                {editingLine ? 'Edit Budget Line' : 'Add Budget Line'}
+              </h2>
+              <form onSubmit={handleAddLine} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Phase
+                  </label>
                   <select
+                    name="phase"
                     value={lineFormData.phase}
-                    onChange={(e) =>
-                      setLineFormData({ ...lineFormData, phase: e.target.value })
-                    }
+                    onChange={handleLineFieldChange}
+                    className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
-                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
                   >
                     <option value="DEVELOPMENT">Development</option>
                     <option value="PRODUCTION">Production</option>
                     <option value="POST">Post-Production</option>
                     <option value="PUBLICITY">Publicity</option>
                   </select>
-                </label>
-              </div>
+                </div>
 
-              <div style={{ marginBottom: '15px' }}>
-                <label>
-                  <strong>Department (Optional):</strong>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Department (Optional)
+                  </label>
                   <input
+                    name="department"
                     type="text"
                     value={lineFormData.department}
-                    onChange={(e) =>
-                      setLineFormData({ ...lineFormData, department: e.target.value })
-                    }
+                    onChange={handleLineFieldChange}
                     placeholder="e.g., Camera, Lighting, Art Dept"
-                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
+                    className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                </label>
-              </div>
+                </div>
 
-              <div style={{ marginBottom: '15px' }}>
-                <label>
-                  <strong>Line Item Name:</strong>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Line Item Name
+                  </label>
                   <input
+                    name="name"
                     type="text"
                     value={lineFormData.name}
-                    onChange={(e) =>
-                      setLineFormData({ ...lineFormData, name: e.target.value })
-                    }
-                    required
+                    onChange={handleLineFieldChange}
                     placeholder="e.g., Director Fee, Camera Rental"
-                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
-                  />
-                </label>
-              </div>
-
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr 1fr',
-                  gap: '10px',
-                  marginBottom: '15px',
-                }}
-              >
-                <label>
-                  <strong>Qty:</strong>
-                  <input
-                    type="number"
-                    value={lineFormData.qty}
-                    onChange={(e) =>
-                      setLineFormData({ ...lineFormData, qty: Number(e.target.value) })
-                    }
                     required
-                    min="1"
-                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
+                    className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                </label>
+                </div>
 
-                <label>
-                  <strong>Rate:</strong>
-                  <input
-                    type="number"
-                    value={lineFormData.rate}
-                    onChange={(e) =>
-                      setLineFormData({ ...lineFormData, rate: Number(e.target.value) })
-                    }
-                    required
-                    min="0"
-                    step="0.01"
-                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
-                  />
-                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">
+                      Qty
+                    </label>
+                    <input
+                      name="qty"
+                      type="number"
+                      value={lineFormData.qty}
+                      onChange={handleLineFieldChange}
+                      min={1}
+                      required
+                      className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">
+                      Rate
+                    </label>
+                    <input
+                      name="rate"
+                      type="number"
+                      value={lineFormData.rate}
+                      onChange={handleLineFieldChange}
+                      min={0}
+                      step="0.01"
+                      required
+                      className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">
+                      Tax %
+                    </label>
+                    <input
+                      name="taxPercent"
+                      type="number"
+                      value={lineFormData.taxPercent}
+                      onChange={handleLineFieldChange}
+                      min={0}
+                      step="0.1"
+                      className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
 
-                <label>
-                  <strong>Tax %:</strong>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Vendor (Optional)
+                  </label>
                   <input
-                    type="number"
-                    value={lineFormData.taxPercent}
-                    onChange={(e) =>
-                      setLineFormData({
-                        ...lineFormData,
-                        taxPercent: Number(e.target.value),
-                      })
-                    }
-                    min="0"
-                    step="0.1"
-                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
-                  />
-                </label>
-              </div>
-
-              <div style={{ marginBottom: '15px' }}>
-                <label>
-                  <strong>Vendor (Optional):</strong>
-                  <input
+                    name="vendor"
                     type="text"
                     value={lineFormData.vendor}
-                    onChange={(e) =>
-                      setLineFormData({ ...lineFormData, vendor: e.target.value })
-                    }
+                    onChange={handleLineFieldChange}
                     placeholder="Vendor name"
-                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
+                    className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                </label>
-              </div>
+                </div>
 
-              <div style={{ marginBottom: '15px' }}>
-                <label>
-                  <strong>Notes (Optional):</strong>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Notes (Optional)
+                  </label>
                   <textarea
+                    name="notes"
                     value={lineFormData.notes}
-                    onChange={(e) =>
-                      setLineFormData({ ...lineFormData, notes: e.target.value })
-                    }
-                    placeholder="Additional notes"
+                    onChange={handleLineFieldChange}
                     rows={3}
-                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
+                    placeholder="Additional notes"
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                </label>
-              </div>
+                </div>
 
-              <p style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>
-                <strong>Line Total:</strong>{' '}
-                {formatCurrency(
-                  lineFormData.qty *
-                    lineFormData.rate *
-                    (1 + lineFormData.taxPercent / 100)
-                )}
-              </p>
-
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button type="submit" style={{ padding: '10px 20px' }}>
-                  {editingLine ? 'Update' : 'Add'} Line
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddLineModal(false);
-                    setEditingLine(null);
-                    resetLineForm();
-                  }}
-                  style={{ padding: '10px 20px' }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Budget Display */}
-      {selectedProjectId && (
-        <div>
-          {loading ? (
-            <p>Loading...</p>
-          ) : !selectedVersion ? (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: '40px',
-                backgroundColor: '#f9fafb',
-                borderRadius: '8px',
-              }}
-            >
-              <p style={{ fontSize: '16px', color: '#666', marginBottom: '10px' }}>
-                No budget version found for this project.
-              </p>
-              <p style={{ fontSize: '14px', color: '#999' }}>
-                Create a quotation first, then convert it to a baseline budget.
-              </p>
-              <button
-                onClick={() => router.push(`/quotations?projectId=${selectedProjectId}`)}
-                style={{ marginTop: '20px', padding: '10px 20px' }}
-              >
-                Go to Quotations
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* Budget Header */}
-              <div
-                style={{
-                  marginBottom: '20px',
-                  padding: '20px',
-                  backgroundColor: '#f0f8ff',
-                  borderRadius: '8px',
-                }}
-              >
-                <h2 style={{ margin: '0 0 10px 0' }}>
-                  {selectedVersion.version} ({selectedVersion.type})
-                </h2>
-                <p style={{ margin: 0, color: '#666' }}>
-                  Created: {new Date(selectedVersion.createdAt).toLocaleDateString()}
-                  {selectedVersion.lockedAt && (
-                    <span style={{ marginLeft: '20px', color: '#ef4444' }}>
-                      🔒 Locked
-                    </span>
+                <p className="text-sm text-slate-600">
+                  <span className="font-semibold">Line Total:</span>{' '}
+                  {formatCurrency(
+                    lineFormData.qty *
+                      lineFormData.rate *
+                      (1 + lineFormData.taxPercent / 100)
                   )}
                 </p>
-              </div>
 
-              {/* Summary by Phase */}
-              <div style={{ marginBottom: '30px' }}>
-                <h3>Summary by Phase</h3>
-                <table
-                  border={1}
-                  cellPadding={10}
-                  style={{ width: '100%', borderCollapse: 'collapse' }}
-                >
-                  <thead style={{ backgroundColor: '#4472C4', color: 'white' }}>
-                    <tr>
-                      <th>Phase</th>
-                      <th style={{ textAlign: 'right' }}>Total</th>
-                      <th style={{ textAlign: 'right' }}>% of Budget</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.entries(calculateTotalsByPhase()).map(([phase, total]) => (
-                      <tr key={phase}>
-                        <td><strong>{phase}</strong></td>
-                        <td style={{ textAlign: 'right' }}>{formatCurrency(total)}</td>
-                        <td style={{ textAlign: 'right' }}>
-                          {((total / calculateGrandTotal()) * 100).toFixed(1)}%
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot style={{ backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>
-                    <tr>
-                      <td>TOTAL</td>
-                      <td style={{ textAlign: 'right', color: '#4472C4' }}>
-                        {formatCurrency(calculateGrandTotal())}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>100%</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-
-              {/* Detailed Budget Lines */}
-              <div>
-                <h3>Budget Lines ({selectedVersion.lines.length})</h3>
-                {selectedVersion.lines.length === 0 ? (
-                  <p>No budget lines yet. Add your first line item above.</p>
-                ) : (
-                  <table
-                    border={1}
-                    cellPadding={8}
-                    style={{ width: '100%', borderCollapse: 'collapse' }}
+                <div className="flex justify-end gap-3 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddLineModal(false);
+                      setEditingLine(null);
+                      resetLineForm();
+                    }}
+                    className="px-4 h-10 rounded-lg border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-50"
                   >
-                    <thead style={{ backgroundColor: '#f5f5f5' }}>
-                      <tr>
-                        <th>Phase</th>
-                        <th>Department</th>
-                        <th>Line Item</th>
-                        <th style={{ textAlign: 'right' }}>Qty</th>
-                        <th style={{ textAlign: 'right' }}>Rate</th>
-                        <th style={{ textAlign: 'right' }}>Tax %</th>
-                        <th style={{ textAlign: 'right' }}>Total</th>
-                        {!selectedVersion.lockedAt && <th>Actions</th>}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedVersion.lines.map((line) => (
-                        <tr key={line.id}>
-                          <td>{line.phase}</td>
-                          <td>{line.department || '-'}</td>
-                          <td>{line.name}</td>
-                          <td style={{ textAlign: 'right' }}>{line.qty}</td>
-                          <td style={{ textAlign: 'right' }}>
-                            {line.rate.toLocaleString()}
-                          </td>
-                          <td style={{ textAlign: 'right' }}>{line.taxPercent}%</td>
-                          <td style={{ textAlign: 'right' }}>
-                            {formatCurrency(calculateLineTotal(line))}
-                          </td>
-                          {!selectedVersion.lockedAt && (
-                            <td>
-                              <button
-                                onClick={() => handleEditLine(line)}
-                                style={{ padding: '5px 10px', marginRight: '5px' }}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleDeleteLine(line.id)}
-                                style={{ padding: '5px 10px' }}
-                              >
-                                Delete
-                              </button>
-                            </td>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 h-10 rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
+                  >
+                    {editingLine ? 'Update Line' : 'Add Line'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Main content */}
+        {selectedProjectId && (
+          <div>
+            {loading ? (
+              <p className="text-center text-slate-600 mt-10">Loading...</p>
+            ) : !selectedVersion ? (
+              <div className="text-center p-10 bg-white/80 rounded-2xl border border-slate-200 shadow-md">
+                <p className="text-base text-slate-700 mb-2">
+                  No budget version found for this project.
+                </p>
+                <p className="text-sm text-slate-500">
+                  Create a quotation first, then convert it to a baseline budget.
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push(`/quotations?projectId=${selectedProjectId}`)
+                  }
+                  className="mt-4 px-5 h-10 rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  Go to Quotations
+                </button>
               </div>
-            </>
-          )}
-        </div>
-      )}
+            ) : (
+              <>
+                {/* Header info */}
+                <div className="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-100">
+                  <h2 className="text-lg font-semibold text-slate-900 mb-1">
+                    {selectedVersion.version} ({selectedVersion.type})
+                  </h2>
+                  <p className="text-sm text-slate-600">
+                    Created:{' '}
+                    {new Date(
+                      selectedVersion.createdAt
+                    ).toLocaleDateString()}{' '}
+                    {selectedVersion.lockedAt && (
+                      <span className="ml-4 text-red-600 font-semibold">
+                        🔒 Locked
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                {/* Summary by Phase */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-3">
+                    Summary by Phase
+                  </h3>
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-blue-700 text-white">
+                        <tr>
+                          <th className="px-4 py-2 text-left">Phase</th>
+                          <th className="px-4 py-2 text-right">Total</th>
+                          <th className="px-4 py-2 text-right">% of Budget</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(calculateTotalsByPhase()).map(
+                          ([phase, total]) => (
+                            <tr key={phase} className="border-t">
+                              <td className="px-4 py-2 font-semibold">
+                                {phase}
+                              </td>
+                              <td className="px-4 py-2 text-right">
+                                {formatCurrency(total)}
+                              </td>
+                              <td className="px-4 py-2 text-right">
+                                {(
+                                  (total / calculateGrandTotal()) *
+                                  100
+                                ).toFixed(1)}
+                                %
+                              </td>
+                            </tr>
+                          )
+                        )}
+                      </tbody>
+                      <tfoot className="bg-slate-50 font-semibold">
+                        <tr>
+                          <td className="px-4 py-2">TOTAL</td>
+                          <td className="px-4 py-2 text-right text-blue-700">
+                            {formatCurrency(calculateGrandTotal())}
+                          </td>
+                          <td className="px-4 py-2 text-right">100%</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Detailed lines */}
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-3">
+                    Budget Lines ({selectedVersion.lines.length})
+                  </h3>
+                  {selectedVersion.lines.length === 0 ? (
+                    <p className="text-sm text-slate-600">
+                      No budget lines yet. Add your first line item above.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left">Phase</th>
+                            <th className="px-4 py-2 text-left">Department</th>
+                            <th className="px-4 py-2 text-left">Line Item</th>
+                            <th className="px-4 py-2 text-right">Qty</th>
+                            <th className="px-4 py-2 text-right">Rate</th>
+                            <th className="px-4 py-2 text-right">Tax %</th>
+                            <th className="px-4 py-2 text-right">Total</th>
+                            {!selectedVersion.lockedAt && (
+                              <th className="px-4 py-2 text-left">Actions</th>
+                            )}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedVersion.lines.map((line) => (
+                            <tr
+                              key={line.id}
+                              className="border-t hover:bg-slate-50"
+                            >
+                              <td className="px-4 py-2">{line.phase}</td>
+                              <td className="px-4 py-2">
+                                {line.department || '-'}
+                              </td>
+                              <td className="px-4 py-2">{line.name}</td>
+                              <td className="px-4 py-2 text-right">
+                                {line.qty}
+                              </td>
+                              <td className="px-4 py-2 text-right">
+                                {line.rate.toLocaleString()}
+                              </td>
+                              <td className="px-4 py-2 text-right">
+                                {line.taxPercent}%
+                              </td>
+                              <td className="px-4 py-2 text-right">
+                                {formatCurrency(calculateLineTotal(line))}
+                              </td>
+                              {!selectedVersion.lockedAt && (
+                                <td className="px-4 py-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEditLine(line)}
+                                    className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-slate-300 mr-2 hover:bg-slate-50"
+                                  >
+                                    <Edit2 className="w-3 h-3" />
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteLine(line.id)}
+                                    className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-red-300 text-red-600 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                    Delete
+                                  </button>
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

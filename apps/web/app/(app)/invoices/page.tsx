@@ -1,348 +1,464 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, {
+  useState,
+  useEffect,
+  FormEvent,
+  ChangeEvent,
+} from 'react';
 
-const API_BASE_URL = 'http://localhost:4000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 interface Invoice {
-    id: string;
-    docNo: string;
-    vendorId: string;
-    poId?: string;
-    date: string;
-    amount: number;
-    status: string;
-    createdAt: string;
-    vendor?: {
-        name: string;
-        currency: string;
-    };
-    po?: {
-        poNo: string;
-    };
+  id: string;
+  docNo: string;
+  vendorId: string;
+  poId?: string;
+  date: string;
+  amount: number;
+  status: string;
+  createdAt: string;
+  vendor?: {
+    name: string;
+    currency: string;
+  };
+  po?: {
+    poNo: string;
+  };
 }
 
 interface Vendor {
-    id: string;
-    name: string;
-    currency: string;
+  id: string;
+  name: string;
+  currency: string;
 }
 
-interface PurchaseOrder {
-    id: string;
-    poNo: string;
-    amount: number;
+interface InvoiceFormData {
+  vendorId: string;
+  poId: string;
+  date: string;
+  amount: number;
+  notes: string;
 }
 
 export default function InvoicesPage() {
-    const [invoices, setInvoices] = useState<Invoice[]>([]);
-    const [vendors, setVendors] = useState<Vendor[]>([]);
-    const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [showCreateModal, setShowCreateModal] = useState(false);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
-    const [formData, setFormData] = useState({
-        vendorId: '',
-        poId: '',
-        date: new Date().toISOString().split('T')[0],
-        amount: 0,
-        notes: '',
-    });
+  const [formData, setFormData] = useState<InvoiceFormData>({
+    vendorId: '',
+    poId: '',
+    date: new Date().toISOString().split('T')[0] as string,
+    amount: 0,
+    notes: '',
+  });
 
-    useEffect(() => {
+  useEffect(() => {
+    fetchInvoices();
+    fetchVendors();
+  }, []);
+
+  const fetchInvoices = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/invoices`, {
+        credentials: 'include',
+      });
+      const result = await response.json();
+      if (result.success) {
+        setInvoices(result.data.invoices || []);
+      }
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchVendors = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vendors`, {
+        credentials: 'include',
+      });
+      const result = await response.json();
+      if (result.success) {
+        setVendors(result.data.vendors || []);
+      }
+    } catch (error) {
+      console.error('Error fetching vendors:', error);
+    }
+  };
+
+  const handleCreateInvoice = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(`${API_BASE_URL}/invoices`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...formData,
+          poId: formData.poId || undefined,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        alert('Invoice created successfully');
+        setShowCreateModal(false);
+        setFormData({
+          vendorId: '',
+          poId: '',
+          date: new Date().toISOString().split('T')[0] as string,
+          amount: 0,
+          notes: '',
+        });
         fetchInvoices();
-        fetchVendors();
-    }, []);
+      } else {
+        alert(result.message || 'Failed to create invoice');
+      }
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+      alert('Failed to create invoice');
+    }
+  };
 
-    const fetchInvoices = async () => {
-        setLoading(true);
-        try {
-            const response = await fetch(`${API_BASE_URL}/invoices`, {
-                credentials: 'include',
-            });
-            const result = await response.json();
-            if (result.success) {
-                setInvoices(result.data.invoices);
-            }
-        } catch (error) {
-            console.error('Error fetching invoices:', error);
-        } finally {
-            setLoading(false);
+  const handleUpdateStatus = async (invoiceId: string, status: string) => {
+    if (
+      !confirm(`Are you sure you want to mark this invoice as ${status}?`)
+    )
+      return;
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/invoices/${invoiceId}/status`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ status }),
         }
-    };
+      );
 
-    const fetchVendors = async () => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/vendors`, {
-                credentials: 'include',
-            });
-            const result = await response.json();
-            if (result.success) {
-                setVendors(result.data.vendors || []);
-            }
-        } catch (error) {
-            console.error('Error fetching vendors:', error);
+      const result = await response.json();
+      if (result.success) {
+        alert(`Invoice ${status.toLowerCase()} successfully`);
+        fetchInvoices();
+      } else {
+        alert(result.message || 'Failed to update invoice');
+      }
+    } catch (error) {
+      console.error('Error updating invoice:', error);
+      alert('Failed to update invoice');
+    }
+  };
+
+  const handleDelete = async (invoiceId: string) => {
+    if (!confirm('Are you sure you want to delete this invoice?')) return;
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/invoices/${invoiceId}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
         }
-    };
+      );
 
-    const handleCreateInvoice = async (e: React.FormEvent) => {
-        e.preventDefault();
+      const result = await response.json();
+      if (result.success) {
+        alert('Invoice deleted successfully');
+        fetchInvoices();
+      } else {
+        alert(result.message || 'Failed to delete invoice');
+      }
+    } catch (error) {
+      console.error('Error deleting invoice:', error);
+      alert('Failed to delete invoice');
+    }
+  };
 
-        try {
-            const response = await fetch(`${API_BASE_URL}/invoices`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({
-                    ...formData,
-                    poId: formData.poId || undefined,
-                }),
-            });
+  const handleFormChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    if (name === 'amount') {
+      setFormData((prev) => ({ ...prev, [name]: Number(value) }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
 
-            const result = await response.json();
-            if (result.success) {
-                alert('Invoice created successfully');
-                setShowCreateModal(false);
-                setFormData({
-                    vendorId: '',
-                    poId: '',
-                    date: new Date().toISOString().split('T')[0],
-                    amount: 0,
-                    notes: '',
-                });
-                fetchInvoices();
-            } else {
-                alert(result.message || 'Failed to create invoice');
-            }
-        } catch (error) {
-            console.error('Error creating invoice:', error);
-            alert('Failed to create invoice');
-        }
-    };
+  const totalAmount = invoices.reduce((sum, inv) => sum + inv.amount, 0);
+  const pendingCount = invoices.filter((i) => i.status === 'Pending').length;
+  const approvedCount = invoices.filter((i) => i.status === 'Approved').length;
+  const rejectedCount = invoices.filter((i) => i.status === 'Rejected').length;
 
-    const handleUpdateStatus = async (invoiceId: string, status: string) => {
-        if (!confirm(`Are you sure you want to mark this invoice as ${status}?`))
-            return;
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/invoices/${invoiceId}/status`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ status }),
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                alert(`Invoice ${status.toLowerCase()} successfully`);
-                fetchInvoices();
-            } else {
-                alert(result.message || 'Failed to update invoice');
-            }
-        } catch (error) {
-            console.error('Error updating invoice:', error);
-            alert('Failed to update invoice');
-        }
-    };
-
-    const handleDelete = async (invoiceId: string) => {
-        if (!confirm('Are you sure you want to delete this invoice?')) return;
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/invoices/${invoiceId}`, {
-                method: 'DELETE',
-                credentials: 'include',
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                alert('Invoice deleted successfully');
-                fetchInvoices();
-            } else {
-                alert(result.message || 'Failed to delete invoice');
-            }
-        } catch (error) {
-            console.error('Error deleting invoice:', error);
-            alert('Failed to delete invoice');
-        }
-    };
-
-    return (
-        <div style={{ padding: '20px' }}>
-            <h1>Invoices</h1>
-
-            <div style={{ marginBottom: '20px' }}>
-                <button
-                    onClick={() => setShowCreateModal(true)}
-                    style={{ padding: '8px 15px' }}
-                >
-                    Create New Invoice
-                </button>
-            </div>
-
-            {/* Create Invoice Modal */}
-            {showCreateModal && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: 'rgba(0,0,0,0.5)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
-                >
-                    <div style={{ backgroundColor: 'white', padding: '30px', width: '500px' }}>
-                        <h2>Create Invoice</h2>
-                        <form onSubmit={handleCreateInvoice}>
-                            <div style={{ marginBottom: '15px' }}>
-                                <label>
-                                    Vendor:
-                                    <select
-                                        value={formData.vendorId}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, vendorId: e.target.value })
-                                        }
-                                        required
-                                        style={{ display: 'block', width: '100%', padding: '5px' }}
-                                    >
-                                        <option value="">-- Select Vendor --</option>
-                                        {vendors.map((vendor) => (
-                                            <option key={vendor.id} value={vendor.id}>
-                                                {vendor.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
-                            </div>
-
-                            <div style={{ marginBottom: '15px' }}>
-                                <label>
-                                    Purchase Order (Optional):
-                                    <input
-                                        type="text"
-                                        value={formData.poId}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, poId: e.target.value })
-                                        }
-                                        placeholder="PO ID"
-                                        style={{ display: 'block', width: '100%', padding: '5px' }}
-                                    />
-                                </label>
-                            </div>
-
-                            <div style={{ marginBottom: '15px' }}>
-                                <label>
-                                    Invoice Date:
-                                    <input
-                                        type="date"
-                                        value={formData.date}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, date: e.target.value })
-                                        }
-                                        required
-                                        style={{ display: 'block', width: '100%', padding: '5px' }}
-                                    />
-                                </label>
-                            </div>
-
-                            <div style={{ marginBottom: '15px' }}>
-                                <label>
-                                    Amount:
-                                    <input
-                                        type="number"
-                                        value={formData.amount}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, amount: Number(e.target.value) })
-                                        }
-                                        required
-                                        style={{ display: 'block', width: '100%', padding: '5px' }}
-                                    />
-                                </label>
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <button type="submit" style={{ padding: '8px 15px' }}>
-                                    Create
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowCreateModal(false)}
-                                    style={{ padding: '8px 15px' }}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Invoices Table */}
-            {loading ? (
-                <p>Loading...</p>
-            ) : (
-                <table border={1} cellPadding={10} style={{ width: '100%' }}>
-                    <thead>
-                        <tr>
-                            <th>Invoice Number</th>
-                            <th>Vendor</th>
-                            <th>PO Number</th>
-                            <th>Date</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {invoices.length === 0 ? (
-                            <tr>
-                                <td colSpan={7} style={{ textAlign: 'center' }}>
-                                    No invoices found
-                                </td>
-                            </tr>
-                        ) : (
-                            invoices.map((invoice) => (
-                                <tr key={invoice.id}>
-                                    <td>{invoice.docNo}</td>
-                                    <td>{invoice.vendor?.name || 'N/A'}</td>
-                                    <td>{invoice.po?.poNo || 'N/A'}</td>
-                                    <td>{new Date(invoice.date).toLocaleDateString()}</td>
-                                    <td>{invoice.amount.toLocaleString()}</td>
-                                    <td>{invoice.status}</td>
-                                    <td>
-                                        {invoice.status === 'Pending' && (
-                                            <>
-                                                <button
-                                                    onClick={() => handleUpdateStatus(invoice.id, 'Approved')}
-                                                    style={{ marginRight: '5px', padding: '5px 10px' }}
-                                                >
-                                                    Approve
-                                                </button>
-                                                <button
-                                                    onClick={() => handleUpdateStatus(invoice.id, 'Rejected')}
-                                                    style={{ marginRight: '5px', padding: '5px 10px' }}
-                                                >
-                                                    Reject
-                                                </button>
-                                            </>
-                                        )}
-                                        <button
-                                            onClick={() => handleDelete(invoice.id)}
-                                            style={{ padding: '5px 10px' }}
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            )}
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Invoices</h1>
+            <p className="text-slate-600">
+              Track vendor invoices, statuses, and payment readiness.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 h-10 rounded-lg bg-indigo-600 text-white text-sm font-semibold shadow-sm hover:bg-indigo-700"
+          >
+            Create New Invoice
+          </button>
         </div>
-    );
+
+        {/* Summary cards */}
+        {invoices.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
+              <div className="text-xs text-slate-500 mb-1">Total Invoices</div>
+              <div className="text-2xl font-bold text-slate-900">
+                {invoices.length}
+              </div>
+            </div>
+            <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
+              <div className="text-xs text-slate-500 mb-1">Total Amount</div>
+              <div className="text-2xl font-bold text-slate-900">
+                {totalAmount.toLocaleString()}
+              </div>
+            </div>
+            <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
+              <div className="text-xs text-slate-500 mb-1">Pending</div>
+              <div className="text-2xl font-bold text-amber-600">
+                {pendingCount}
+              </div>
+            </div>
+            <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
+              <div className="text-xs text-slate-500 mb-1">Approved</div>
+              <div className="text-2xl font-bold text-emerald-600">
+                {approvedCount}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create Invoice Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+              <h2 className="text-xl font-bold mb-4">Create Invoice</h2>
+              <form
+                onSubmit={handleCreateInvoice}
+                className="space-y-4 text-sm"
+              >
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Vendor
+                  </label>
+                  <select
+                    name="vendorId"
+                    value={formData.vendorId}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm"
+                  >
+                    <option value="">-- Select Vendor --</option>
+                    {vendors.map((vendor) => (
+                      <option key={vendor.id} value={vendor.id}>
+                        {vendor.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Purchase Order (Optional)
+                  </label>
+                  <input
+                    name="poId"
+                    type="text"
+                    value={formData.poId}
+                    onChange={handleFormChange}
+                    placeholder="PO ID"
+                    className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Invoice Date
+                  </label>
+                  <input
+                    name="date"
+                    type="date"
+                    value={formData.date}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Amount
+                  </label>
+                  <input
+                    name="amount"
+                    type="number"
+                    value={formData.amount}
+                    onChange={handleFormChange}
+                    min={0}
+                    step="0.01"
+                    required
+                    className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Notes (optional)
+                  </label>
+                  <textarea
+                    name="notes"
+                    value={formData.notes}
+                    onChange={handleFormChange}
+                    rows={3}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-4 h-9 rounded-lg border border-slate-300 text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm font-semibold"
+                  >
+                    Create
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Invoices Table */}
+        <div className="mt-4">
+          {loading ? (
+            <p className="text-center text-slate-600 mt-6">Loading...</p>
+          ) : (
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left">Invoice Number</th>
+                    <th className="px-4 py-2 text-left">Vendor</th>
+                    <th className="px-4 py-2 text-left">PO Number</th>
+                    <th className="px-4 py-2 text-left">Date</th>
+                    <th className="px-4 py-2 text-right">Amount</th>
+                    <th className="px-4 py-2 text-left">Status</th>
+                    <th className="px-4 py-2 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoices.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-4 py-8 text-center text-slate-600"
+                      >
+                        No invoices found.
+                      </td>
+                    </tr>
+                  ) : (
+                    invoices.map((invoice) => (
+                      <tr
+                        key={invoice.id}
+                        className="border-t hover:bg-slate-50"
+                      >
+                        <td className="px-4 py-2 font-semibold">
+                          {invoice.docNo}
+                        </td>
+                        <td className="px-4 py-2">
+                          {invoice.vendor?.name || 'N/A'}
+                        </td>
+                        <td className="px-4 py-2">
+                          {invoice.po?.poNo || 'N/A'}
+                        </td>
+                        <td className="px-4 py-2">
+                          {new Date(invoice.date).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          {invoice.amount.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2">
+                          {invoice.status === 'Pending' && (
+                            <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                              Pending
+                            </span>
+                          )}
+                          {invoice.status === 'Approved' && (
+                            <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                              Approved
+                            </span>
+                          )}
+                          {invoice.status === 'Rejected' && (
+                            <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                              Rejected
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2">
+                          {invoice.status === 'Pending' && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleUpdateStatus(invoice.id, 'Approved')
+                                }
+                                className="mr-2 px-3 h-8 rounded-md border border-emerald-300 text-xs text-emerald-700 hover:bg-emerald-50"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleUpdateStatus(invoice.id, 'Rejected')
+                                }
+                                className="mr-2 px-3 h-8 rounded-md border border-amber-300 text-xs text-amber-700 hover:bg-amber-50"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(invoice.id)}
+                            className="px-3 h-8 rounded-md border border-red-300 text-xs text-red-600 hover:bg-red-50"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -7,11 +7,16 @@ const quotationService = new QuotationService();
 
 export const createQuotation = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
+
+  // Debug log – helpful while testing
+  console.log('📥 createQuotation body:', JSON.stringify(req.body, null, 2));
+
   const quotation = await quotationService.createQuotation(
     projectId,
     req.body,
-    req.user.id
+    req.user.id // your authMiddleware sets req.user.id
   );
+
   res
     .status(StatusCodes.CREATED)
     .json(

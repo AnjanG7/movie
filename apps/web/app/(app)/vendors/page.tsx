@@ -1,17 +1,46 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, {
+  useState,
+  useEffect,
+  FormEvent,
+  ChangeEvent,
+} from 'react';
 
-const API_BASE_URL = 'http://localhost:4000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 interface Vendor {
   id: string;
   name: string;
   currency: string;
-  bankInfo?: any;
-  contactInfo?: any;
+  bankInfo?: {
+    bankName?: string;
+    accountNumber?: string;
+    swiftCode?: string;
+    iban?: string;
+  } | null;
+  contactInfo?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+  } | null;
   createdAt: string;
   updatedAt?: string;
+}
+
+interface VendorFormData {
+  name: string;
+  currency: string;
+  bankName: string;
+  accountNumber: string;
+  swiftCode: string;
+  iban: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  address: string;
 }
 
 export default function VendorsPage() {
@@ -21,7 +50,7 @@ export default function VendorsPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<VendorFormData>({
     name: '',
     currency: 'USD',
     bankName: '',
@@ -46,7 +75,7 @@ export default function VendorsPage() {
       });
       const result = await response.json();
       if (result.success) {
-        setVendors(result.data.vendors);
+        setVendors(result.data.vendors || []);
       }
     } catch (error) {
       console.error('Error fetching vendors:', error);
@@ -56,34 +85,33 @@ export default function VendorsPage() {
     }
   };
 
-  const handleCreateVendor = async (e: React.FormEvent) => {
+  const buildPayload = () => ({
+    name: formData.name,
+    currency: formData.currency,
+    bankInfo: {
+      bankName: formData.bankName,
+      accountNumber: formData.accountNumber,
+      swiftCode: formData.swiftCode,
+      iban: formData.iban,
+    },
+    contactInfo: {
+      name: formData.contactName,
+      email: formData.email,
+      phone: formData.phone,
+      address: formData.address,
+    },
+  });
+
+  const handleCreateVendor = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    const payload = {
-      name: formData.name,
-      currency: formData.currency,
-      bankInfo: {
-        bankName: formData.bankName,
-        accountNumber: formData.accountNumber,
-        swiftCode: formData.swiftCode,
-        iban: formData.iban,
-      },
-      contactInfo: {
-        name: formData.contactName,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-      },
-    };
-
     try {
+      const payload = buildPayload();
       const response = await fetch(`${API_BASE_URL}/vendors`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(payload),
       });
-
       const result = await response.json();
       if (result.success) {
         alert('Vendor created successfully');
@@ -99,35 +127,20 @@ export default function VendorsPage() {
     }
   };
 
-  const handleUpdateVendor = async (e: React.FormEvent) => {
+  const handleUpdateVendor = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedVendor) return;
-
-    const payload = {
-      name: formData.name,
-      currency: formData.currency,
-      bankInfo: {
-        bankName: formData.bankName,
-        accountNumber: formData.accountNumber,
-        swiftCode: formData.swiftCode,
-        iban: formData.iban,
-      },
-      contactInfo: {
-        name: formData.contactName,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-      },
-    };
-
     try {
-      const response = await fetch(`${API_BASE_URL}/vendors/${selectedVendor.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(payload),
-      });
-
+      const payload = buildPayload();
+      const response = await fetch(
+        `${API_BASE_URL}/vendors/${selectedVendor.id}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload),
+        }
+      );
       const result = await response.json();
       if (result.success) {
         alert('Vendor updated successfully');
@@ -163,13 +176,11 @@ export default function VendorsPage() {
 
   const handleDelete = async (vendorId: string) => {
     if (!confirm('Are you sure you want to delete this vendor?')) return;
-
     try {
       const response = await fetch(`${API_BASE_URL}/vendors/${vendorId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-
       const result = await response.json();
       if (result.success) {
         alert('Vendor deleted successfully');
@@ -198,153 +209,172 @@ export default function VendorsPage() {
     });
   };
 
+  const handleFormChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
   const renderVendorForm = (isEdit: boolean) => (
-    <form onSubmit={isEdit ? handleUpdateVendor : handleCreateVendor}>
-      <h3 style={{ marginBottom: '20px' }}>Basic Information</h3>
-
-      <div style={{ marginBottom: '15px' }}>
-        <label>
-          Vendor Name: *
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            required
-            style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </label>
+    <form
+      onSubmit={isEdit ? handleUpdateVendor : handleCreateVendor}
+      className="space-y-6"
+    >
+      <div>
+        <h3 className="text-sm font-semibold text-slate-800 mb-2">
+          Basic Information
+        </h3>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              Vendor Name *
+            </label>
+            <input
+              name="name"
+              type="text"
+              value={formData.name}
+              onChange={handleFormChange}
+              required
+              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              Currency *
+            </label>
+            <select
+              name="currency"
+              value={formData.currency}
+              onChange={handleFormChange}
+              required
+              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
+            >
+              <option value="USD">USD - US Dollar</option>
+              <option value="EUR">EUR - Euro</option>
+              <option value="GBP">GBP - British Pound</option>
+              <option value="CAD">CAD - Canadian Dollar</option>
+              <option value="AUD">AUD - Australian Dollar</option>
+              <option value="INR">INR - Indian Rupee</option>
+              <option value="NPR">NPR - Nepali Rupee</option>
+            </select>
+          </div>
+        </div>
       </div>
 
-      <div style={{ marginBottom: '15px' }}>
-        <label>
-          Currency: *
-          <select
-            value={formData.currency}
-            onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-            required
-            style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
-          >
-            <option value="USD">USD - US Dollar</option>
-            <option value="EUR">EUR - Euro</option>
-            <option value="GBP">GBP - British Pound</option>
-            <option value="CAD">CAD - Canadian Dollar</option>
-            <option value="AUD">AUD - Australian Dollar</option>
-            <option value="INR">INR - Indian Rupee</option>
-            <option value="NPR">NPR - Nepali Rupee</option>
-          </select>
-        </label>
+      <div>
+        <h3 className="text-sm font-semibold text-slate-800 mb-2">
+          Contact Information
+        </h3>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              Contact Name
+            </label>
+            <input
+              name="contactName"
+              type="text"
+              value={formData.contactName}
+              onChange={handleFormChange}
+              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              Email
+            </label>
+            <input
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleFormChange}
+              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              Phone
+            </label>
+            <input
+              name="phone"
+              type="tel"
+              value={formData.phone}
+              onChange={handleFormChange}
+              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              Address
+            </label>
+            <textarea
+              name="address"
+              value={formData.address}
+              onChange={handleFormChange}
+              rows={3}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
       </div>
 
-      <h3 style={{ marginTop: '30px', marginBottom: '20px' }}>Contact Information</h3>
-
-      <div style={{ marginBottom: '15px' }}>
-        <label>
-          Contact Name:
-          <input
-            type="text"
-            value={formData.contactName}
-            onChange={(e) =>
-              setFormData({ ...formData, contactName: e.target.value })
-            }
-            style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </label>
+      <div>
+        <h3 className="text-sm font-semibold text-slate-800 mb-2">
+          Banking Information
+        </h3>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              Bank Name
+            </label>
+            <input
+              name="bankName"
+              type="text"
+              value={formData.bankName}
+              onChange={handleFormChange}
+              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              Account Number
+            </label>
+            <input
+              name="accountNumber"
+              type="text"
+              value={formData.accountNumber}
+              onChange={handleFormChange}
+              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              SWIFT Code
+            </label>
+            <input
+              name="swiftCode"
+              type="text"
+              value={formData.swiftCode}
+              onChange={handleFormChange}
+              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              IBAN
+            </label>
+            <input
+              name="iban"
+              type="text"
+              value={formData.iban}
+              onChange={handleFormChange}
+              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
+            />
+          </div>
+        </div>
       </div>
 
-      <div style={{ marginBottom: '15px' }}>
-        <label>
-          Email:
-          <input
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </label>
-      </div>
-
-      <div style={{ marginBottom: '15px' }}>
-        <label>
-          Phone:
-          <input
-            type="tel"
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </label>
-      </div>
-
-      <div style={{ marginBottom: '15px' }}>
-        <label>
-          Address:
-          <textarea
-            value={formData.address}
-            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-            rows={3}
-            style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </label>
-      </div>
-
-      <h3 style={{ marginTop: '30px', marginBottom: '20px' }}>Banking Information</h3>
-
-      <div style={{ marginBottom: '15px' }}>
-        <label>
-          Bank Name:
-          <input
-            type="text"
-            value={formData.bankName}
-            onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
-            style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </label>
-      </div>
-
-      <div style={{ marginBottom: '15px' }}>
-        <label>
-          Account Number:
-          <input
-            type="text"
-            value={formData.accountNumber}
-            onChange={(e) =>
-              setFormData({ ...formData, accountNumber: e.target.value })
-            }
-            style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </label>
-      </div>
-
-      <div style={{ marginBottom: '15px' }}>
-        <label>
-          SWIFT Code:
-          <input
-            type="text"
-            value={formData.swiftCode}
-            onChange={(e) =>
-              setFormData({ ...formData, swiftCode: e.target.value })
-            }
-            style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </label>
-      </div>
-
-      <div style={{ marginBottom: '15px' }}>
-        <label>
-          IBAN:
-          <input
-            type="text"
-            value={formData.iban}
-            onChange={(e) => setFormData({ ...formData, iban: e.target.value })}
-            style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </label>
-      </div>
-
-      <div style={{ display: 'flex', gap: '10px', marginTop: '30px' }}>
-        <button type="submit" style={{ padding: '10px 20px' }}>
-          {isEdit ? 'Update Vendor' : 'Create Vendor'}
-        </button>
+      <div className="flex justify-end gap-3 pt-2">
         <button
           type="button"
           onClick={() => {
@@ -356,160 +386,152 @@ export default function VendorsPage() {
             }
             resetForm();
           }}
-          style={{ padding: '10px 20px' }}
+          className="px-4 h-9 rounded-lg border border-slate-300 text-sm"
         >
           Cancel
+        </button>
+        <button
+          type="submit"
+          className="px-4 h-9 rounded-lg bg-slate-900 text-white text-sm font-semibold"
+        >
+          {isEdit ? 'Update Vendor' : 'Create Vendor'}
         </button>
       </div>
     </form>
   );
 
   return (
-    <div style={{ padding: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1>Vendors</h1>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          style={{ padding: '10px 20px' }}
-        >
-          Add New Vendor
-        </button>
-      </div>
-
-      {/* Create Vendor Modal */}
-      {showCreateModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            overflow: 'auto',
-            padding: '20px',
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: 'white',
-              padding: '30px',
-              width: '600px',
-              maxHeight: '90vh',
-              overflow: 'auto',
-            }}
-          >
-            <h2>Create New Vendor</h2>
-            {renderVendorForm(false)}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 lg:p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Vendors</h1>
+            <p className="text-slate-600">
+              Manage production vendors, currencies, and banking details.
+            </p>
           </div>
-        </div>
-      )}
-
-      {/* Edit Vendor Modal */}
-      {showEditModal && selectedVendor && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            overflow: 'auto',
-            padding: '20px',
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: 'white',
-              padding: '30px',
-              width: '600px',
-              maxHeight: '90vh',
-              overflow: 'auto',
+          <button
+            type="button"
+            onClick={() => {
+              resetForm();
+              setShowCreateModal(true);
             }}
+            className="px-4 h-10 rounded-lg bg-slate-900 text-white text-sm font-semibold"
           >
-            <h2>Edit Vendor</h2>
-            {renderVendorForm(true)}
-          </div>
+            Add New Vendor
+          </button>
         </div>
-      )}
 
-      {/* Vendors Table */}
-      {loading ? (
-        <p>Loading vendors...</p>
-      ) : (
-        <div style={{ overflow: 'auto' }}>
-          <table border={1} cellPadding={10} style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f5f5f5' }}>
-                <th>Vendor Name</th>
-                <th>Currency</th>
-                <th>Contact Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Bank Name</th>
-                <th>Created Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {vendors.length === 0 ? (
+        {/* Create Vendor Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+              <h2 className="text-xl font-bold mb-4">Create New Vendor</h2>
+              {renderVendorForm(false)}
+            </div>
+          </div>
+        )}
+
+        {/* Edit Vendor Modal */}
+        {showEditModal && selectedVendor && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+              <h2 className="text-xl font-bold mb-4">Edit Vendor</h2>
+              {renderVendorForm(true)}
+            </div>
+          </div>
+        )}
+
+        {/* Vendors Table */}
+        {loading ? (
+          <p className="text-center text-slate-600 mt-10">Loading vendors...</p>
+        ) : (
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <table className="min-w-full text-sm">
+              <thead className="bg-slate-50">
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '30px' }}>
-                    No vendors found. Click "Add New Vendor" to create one.
-                  </td>
+                  <th className="px-4 py-2 text-left">Vendor Name</th>
+                  <th className="px-4 py-2 text-left">Currency</th>
+                  <th className="px-4 py-2 text-left">Contact Name</th>
+                  <th className="px-4 py-2 text-left">Email</th>
+                  <th className="px-4 py-2 text-left">Phone</th>
+                  <th className="px-4 py-2 text-left">Bank Name</th>
+                  <th className="px-4 py-2 text-left">Created</th>
+                  <th className="px-4 py-2 text-left">Actions</th>
                 </tr>
-              ) : (
-                vendors.map((vendor) => (
-                  <tr key={vendor.id}>
-                    <td>{vendor.name}</td>
-                    <td>{vendor.currency}</td>
-                    <td>{vendor.contactInfo?.name || '-'}</td>
-                    <td>{vendor.contactInfo?.email || '-'}</td>
-                    <td>{vendor.contactInfo?.phone || '-'}</td>
-                    <td>{vendor.bankInfo?.bankName || '-'}</td>
-                    <td>{new Date(vendor.createdAt).toLocaleDateString()}</td>
-                    <td>
-                      <button
-                        onClick={() => handleEditClick(vendor)}
-                        style={{ marginRight: '5px', padding: '5px 10px' }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(vendor.id)}
-                        style={{ padding: '5px 10px' }}
-                      >
-                        Delete
-                      </button>
+              </thead>
+              <tbody>
+                {vendors.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={8}
+                      className="px-4 py-8 text-center text-slate-600"
+                    >
+                      No vendors found. Click “Add New Vendor” to create one.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+                ) : (
+                  vendors.map((vendor) => (
+                    <tr
+                      key={vendor.id}
+                      className="border-t hover:bg-slate-50"
+                    >
+                      <td className="px-4 py-2 font-semibold">
+                        {vendor.name}
+                      </td>
+                      <td className="px-4 py-2">{vendor.currency}</td>
+                      <td className="px-4 py-2">
+                        {vendor.contactInfo?.name || '-'}
+                      </td>
+                      <td className="px-4 py-2">
+                        {vendor.contactInfo?.email || '-'}
+                      </td>
+                      <td className="px-4 py-2">
+                        {vendor.contactInfo?.phone || '-'}
+                      </td>
+                      <td className="px-4 py-2">
+                        {vendor.bankInfo?.bankName || '-'}
+                      </td>
+                      <td className="px-4 py-2">
+                        {new Date(vendor.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEditClick(vendor)}
+                          className="mr-2 px-3 h-8 rounded-md border border-slate-300 text-xs hover:bg-slate-50"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(vendor.id)}
+                          className="px-3 h-8 rounded-md border border-red-300 text-xs text-red-600 hover:bg-red-50"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-      {/* Summary Stats */}
-      {vendors.length > 0 && (
-        <div style={{ marginTop: '30px', padding: '20px', backgroundColor: '#f5f5f5' }}>
-          <h3>Summary</h3>
-          <p>Total Vendors: {vendors.length}</p>
-          <p>
-            Currencies:{' '}
-            {Array.from(new Set(vendors.map((v) => v.currency))).join(', ')}
-          </p>
-        </div>
-      )}
+        {/* Summary */}
+        {vendors.length > 0 && (
+          <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-700">
+            <h3 className="font-semibold mb-1">Summary</h3>
+            <p>Total Vendors: {vendors.length}</p>
+            <p>
+              Currencies:{' '}
+              {Array.from(new Set(vendors.map((v) => v.currency))).join(', ')}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

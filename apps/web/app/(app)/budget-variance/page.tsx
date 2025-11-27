@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 
-const API_BASE_URL = 'http://localhost:4000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 interface Project {
   id: string;
@@ -55,6 +56,8 @@ export default function BudgetVariancePage() {
   useEffect(() => {
     if (selectedProjectId) {
       fetchVarianceReport();
+    } else {
+      setReport(null);
     }
   }, [selectedProjectId]);
 
@@ -65,7 +68,7 @@ export default function BudgetVariancePage() {
       });
       const result = await response.json();
       if (result.success) {
-        setProjects(result.data.projects);
+        setProjects(result.data.projects || []);
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -82,13 +85,17 @@ export default function BudgetVariancePage() {
       );
       const result = await response.json();
       if (result.success) {
-        setReport(result.data);
+        setReport(result.data as VarianceReport);
       }
     } catch (error) {
       console.error('Error fetching variance report:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleProjectChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    setSelectedProjectId(e.target.value);
   };
 
   const formatCurrency = (amount: number) => {
@@ -100,223 +107,265 @@ export default function BudgetVariancePage() {
     })}`;
   };
 
-  const getVarianceColor = (variance: number) => {
-    if (variance < 0) return '#ef4444'; // Over budget - red
-    if (variance > 0) return '#22c55e'; // Under budget - green
-    return '#6b7280'; // Exact - gray
+  const getVarianceColorClass = (variance: number) => {
+    if (variance < 0) return 'text-red-600';
+    if (variance > 0) return 'text-emerald-600';
+    return 'text-slate-500';
   };
 
+  const getVarianceBgClass = (variance: number) => {
+    if (variance < 0) return 'bg-red-50';
+    if (variance > 0) return 'bg-emerald-50';
+    return '';
+  };
+
+  const selectedProject = projects.find((p) => p.id === selectedProjectId);
+
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>Budget vs Actuals - Variance Report</h1>
-
-      {/* Project Selector */}
-      <div style={{ marginBottom: '20px' }}>
-        <label>
-          Select Project:
-          <select
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            style={{ marginLeft: '10px', padding: '5px' }}
-          >
-            <option value="">-- Select Project --</option>
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.title}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      {loading ? (
-        <p>Loading...</p>
-      ) : !report ? (
-        <p>Select a project to view variance report</p>
-      ) : (
-        <>
-          {/* Summary Cards */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '20px',
-              marginBottom: '30px',
-            }}
-          >
-            <div style={{ border: '1px solid #ddd', padding: '20px', borderRadius: '8px' }}>
-              <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>
-                Total Budgeted
-              </h3>
-              <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>
-                {formatCurrency(report.summary.totalBudgeted)}
-              </p>
-            </div>
-
-            <div style={{ border: '1px solid #ddd', padding: '20px', borderRadius: '8px' }}>
-              <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>
-                Total Committed
-              </h3>
-              <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#f59e0b' }}>
-                {formatCurrency(report.summary.totalCommitted)}
-              </p>
-            </div>
-
-            <div style={{ border: '1px solid #ddd', padding: '20px', borderRadius: '8px' }}>
-              <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>
-                Total Spent
-              </h3>
-              <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#ef4444' }}>
-                {formatCurrency(report.summary.totalSpent)}
-              </p>
-            </div>
-
-            <div style={{ border: '1px solid #ddd', padding: '20px', borderRadius: '8px' }}>
-              <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>
-                Total Variance
-              </h3>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: '24px',
-                  fontWeight: 'bold',
-                  color: getVarianceColor(report.summary.totalVariance),
-                }}
-              >
-                {formatCurrency(report.summary.totalVariance)}
-              </p>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-6 lg:p-10">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-8">
+          <div>
+            <p className="text-xs font-semibold tracking-widest text-blue-600 uppercase mb-1">
+              Budget Control
+            </p>
+            <h1 className="text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">
+              Budget vs Actuals – Variance Report
+            </h1>
+            <p className="text-slate-600 mt-2 text-sm lg:text-base">
+              See where your film is over or under budget by phase, department,
+              and line item.
+            </p>
           </div>
-
-          {/* Alerts */}
-          {report.summary.overBudgetLines > 0 && (
-            <div
-              style={{
-                marginBottom: '20px',
-                padding: '15px',
-                backgroundColor: '#fef2f2',
-                border: '1px solid #fecaca',
-                borderRadius: '8px',
-              }}
-            >
-              <p style={{ margin: 0, color: '#dc2626', fontWeight: 'bold' }}>
-                ⚠️ {report.summary.overBudgetLines} budget line(s) are over budget
-              </p>
-            </div>
-          )}
-
-          {/* By Phase Summary */}
-          <h2>Variance by Phase</h2>
-          <table
-            border={1}
-            cellPadding={10}
-            style={{ width: '100%', marginBottom: '30px', borderCollapse: 'collapse' }}
-          >
-            <thead style={{ backgroundColor: '#f5f5f5' }}>
-              <tr>
-                <th>Phase</th>
-                <th style={{ textAlign: 'right' }}>Budgeted</th>
-                <th style={{ textAlign: 'right' }}>Committed</th>
-                <th style={{ textAlign: 'right' }}>Spent</th>
-                <th style={{ textAlign: 'right' }}>Variance</th>
-                <th style={{ textAlign: 'right' }}>Variance %</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(report.byPhase).map(([phase, data]) => {
-                const variancePercent =
-                  data.budgeted > 0 ? ((data.variance / data.budgeted) * 100).toFixed(1) : '0';
-                return (
-                  <tr key={phase}>
-                    <td><strong>{phase}</strong></td>
-                    <td style={{ textAlign: 'right' }}>{formatCurrency(data.budgeted)}</td>
-                    <td style={{ textAlign: 'right', color: '#f59e0b' }}>
-                      {formatCurrency(data.committed)}
-                    </td>
-                    <td style={{ textAlign: 'right', color: '#ef4444' }}>
-                      {formatCurrency(data.spent)}
-                    </td>
-                    <td
-                      style={{
-                        textAlign: 'right',
-                        fontWeight: 'bold',
-                        color: getVarianceColor(data.variance),
-                      }}
-                    >
-                      {formatCurrency(data.variance)}
-                    </td>
-                    <td
-                      style={{
-                        textAlign: 'right',
-                        color: getVarianceColor(data.variance),
-                      }}
-                    >
-                      {variancePercent}%
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          {/* Lines with Significant Variance (>10%) */}
-          <h2>Lines with Significant Variance (&gt;10%)</h2>
-          {report.lines.length === 0 ? (
-            <p>No significant variances detected. All lines are within 10% of budget.</p>
-          ) : (
-            <table
-              border={1}
-              cellPadding={10}
-              style={{ width: '100%', borderCollapse: 'collapse' }}
-            >
-              <thead style={{ backgroundColor: '#f5f5f5' }}>
-                <tr>
-                  <th>Phase</th>
-                  <th>Department</th>
-                  <th>Line Item</th>
-                  <th style={{ textAlign: 'right' }}>Budgeted</th>
-                  <th style={{ textAlign: 'right' }}>Spent</th>
-                  <th style={{ textAlign: 'right' }}>Variance</th>
-                  <th style={{ textAlign: 'right' }}>Variance %</th>
-                </tr>
-              </thead>
-              <tbody>
-                {report.lines.map((line) => (
-                  <tr
-                    key={line.id}
-                    style={{
-                      backgroundColor: line.variance < 0 ? '#fee' : 'transparent',
-                    }}
-                  >
-                    <td>{line.phase}</td>
-                    <td>{line.department || '-'}</td>
-                    <td>{line.name}</td>
-                    <td style={{ textAlign: 'right' }}>{formatCurrency(line.budgeted)}</td>
-                    <td style={{ textAlign: 'right' }}>{formatCurrency(line.spent)}</td>
-                    <td
-                      style={{
-                        textAlign: 'right',
-                        fontWeight: 'bold',
-                        color: getVarianceColor(line.variance),
-                      }}
-                    >
-                      {formatCurrency(line.variance)}
-                    </td>
-                    <td
-                      style={{
-                        textAlign: 'right',
-                        color: getVarianceColor(line.variance),
-                      }}
-                    >
-                      {line.variancePercent.toFixed(1)}%
-                    </td>
-                  </tr>
+          <div className="flex flex-col items-end gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-600">
+                Project
+              </span>
+              <select
+                value={selectedProjectId}
+                onChange={handleProjectChange}
+                className="h-10 min-w-[220px] rounded-lg border border-slate-300 px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">-- Select Project --</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.title}
+                  </option>
                 ))}
-              </tbody>
-            </table>
-          )}
-        </>
-      )}
+              </select>
+            </div>
+            {selectedProject && (
+              <div className="px-3 py-1 rounded-lg bg-white/70 border border-slate-200 text-xs text-slate-600 shadow-sm">
+                Base currency: <span className="font-semibold">{selectedProject.baseCurrency}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Main content */}
+        {loading ? (
+          <p className="text-center text-slate-600 mt-10">Loading report...</p>
+        ) : !report ? (
+          <div className="mt-10 text-center p-10 bg-white/80 rounded-2xl border border-slate-200">
+            <p className="text-base text-slate-700 mb-2">
+              Select a project to view its variance report.
+            </p>
+            <p className="text-sm text-slate-500">
+              You&apos;ll see totals, phase breakdowns, and lines with the biggest
+              overages or savings.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Summary cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                <div className="text-xs text-slate-500 uppercase mb-1">
+                  Total Budgeted
+                </div>
+                <div className="text-2xl font-bold text-slate-900">
+                  {formatCurrency(report.summary.totalBudgeted)}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-amber-200 bg-white shadow-sm p-4">
+                <div className="text-xs text-slate-500 uppercase mb-1">
+                  Total Committed
+                </div>
+                <div className="text-2xl font-bold text-amber-600">
+                  {formatCurrency(report.summary.totalCommitted)}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-red-200 bg-white shadow-sm p-4">
+                <div className="text-xs text-slate-500 uppercase mb-1">
+                  Total Spent
+                </div>
+                <div className="text-2xl font-bold text-red-600">
+                  {formatCurrency(report.summary.totalSpent)}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                <div className="text-xs text-slate-500 uppercase mb-1">
+                  Total Variance
+                </div>
+                <div
+                  className={`text-2xl font-bold ${getVarianceColorClass(
+                    report.summary.totalVariance
+                  )}`}
+                >
+                  {formatCurrency(report.summary.totalVariance)}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1">
+                  Positive = under budget, negative = over budget
+                </div>
+              </div>
+            </div>
+
+            {/* Alert */}
+            {report.summary.overBudgetLines > 0 && (
+              <div className="mb-6 p-4 rounded-2xl border border-red-200 bg-red-50">
+                <p className="text-sm font-semibold text-red-700">
+                  ⚠ {report.summary.overBudgetLines} budget line
+                  {report.summary.overBudgetLines > 1 ? 's are' : ' is'} over
+                  budget. Review the significant variance table below.
+                </p>
+              </div>
+            )}
+
+            {/* By Phase Summary */}
+            <div className="mb-8">
+              <h2 className="text-lg font-semibold text-slate-900 mb-3">
+                Variance by Phase
+              </h2>
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left">Phase</th>
+                      <th className="px-4 py-2 text-right">Budgeted</th>
+                      <th className="px-4 py-2 text-right">Committed</th>
+                      <th className="px-4 py-2 text-right">Spent</th>
+                      <th className="px-4 py-2 text-right">Variance</th>
+                      <th className="px-4 py-2 text-right">Variance %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(report.byPhase).map(([phase, data]) => {
+                      const variancePercent =
+                        data.budgeted > 0
+                          ? (data.variance / data.budgeted) * 100
+                          : 0;
+                      const colorClass = getVarianceColorClass(data.variance);
+                      return (
+                        <tr
+                          key={phase}
+                          className="border-t border-slate-100 hover:bg-slate-50"
+                        >
+                          <td className="px-4 py-2 font-semibold">
+                            {phase}
+                          </td>
+                          <td className="px-4 py-2 text-right">
+                            {formatCurrency(data.budgeted)}
+                          </td>
+                          <td className="px-4 py-2 text-right text-amber-600">
+                            {formatCurrency(data.committed)}
+                          </td>
+                          <td className="px-4 py-2 text-right text-red-600">
+                            {formatCurrency(data.spent)}
+                          </td>
+                          <td
+                            className={`px-4 py-2 text-right font-semibold ${colorClass}`}
+                          >
+                            {formatCurrency(data.variance)}
+                          </td>
+                          <td className={`px-4 py-2 text-right ${colorClass}`}>
+                            {variancePercent.toFixed(1)}%
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Significant Variance Lines */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Lines with Significant Variance (&gt; 10%)
+                </h2>
+                <span className="text-xs text-slate-500">
+                  Over budget lines highlighted in red
+                </span>
+              </div>
+              {report.lines.length === 0 ? (
+                <div className="p-6 rounded-2xl bg-white/80 border border-slate-200 text-sm text-slate-600">
+                  No significant variances detected. All lines are within 10% of
+                  budget.
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left">Phase</th>
+                        <th className="px-4 py-2 text-left">Department</th>
+                        <th className="px-4 py-2 text-left">Line Item</th>
+                        <th className="px-4 py-2 text-right">Budgeted</th>
+                        <th className="px-4 py-2 text-right">Committed</th>
+                        <th className="px-4 py-2 text-right">Spent</th>
+                        <th className="px-4 py-2 text-right">Variance</th>
+                        <th className="px-4 py-2 text-right">Variance %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {report.lines.map((line) => (
+                        <tr
+                          key={line.id}
+                          className={`border-t border-slate-100 hover:bg-slate-50 ${getVarianceBgClass(
+                            line.variance
+                          )}`}
+                        >
+                          <td className="px-4 py-2">{line.phase}</td>
+                          <td className="px-4 py-2">
+                            {line.department || '-'}
+                          </td>
+                          <td className="px-4 py-2">{line.name}</td>
+                          <td className="px-4 py-2 text-right">
+                            {formatCurrency(line.budgeted)}
+                          </td>
+                          <td className="px-4 py-2 text-right text-amber-600">
+                            {formatCurrency(line.committed)}
+                          </td>
+                          <td className="px-4 py-2 text-right text-red-600">
+                            {formatCurrency(line.spent)}
+                          </td>
+                          <td
+                            className={`px-4 py-2 text-right font-semibold ${getVarianceColorClass(
+                              line.variance
+                            )}`}
+                          >
+                            {formatCurrency(line.variance)}
+                          </td>
+                          <td
+                            className={`px-4 py-2 text-right ${getVarianceColorClass(
+                              line.variance
+                            )}`}
+                          >
+                            {line.variancePercent.toFixed(1)}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
