@@ -58,7 +58,53 @@ enum TaskStatus {
   IN_PROGRESS
   COMPLETED
 }
+enum PublicityCategory {
+  TRAILER
+  KEY_ART
+  POSTER
+  DIGITAL_MARKETING
+  SOCIAL_MEDIA
+  PR
+  FESTIVALS
+  SCREENINGS
+  PRINT_ADS
+  OOH
+  TV_SPOTS
+  RADIO
+  PRESS_KIT
+  PREMIERE
+  OTHER
+}
 
+enum PublicityStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum CampaignEventType {
+  TEASER_RELEASE
+  TRAILER_RELEASE
+  POSTER_REVEAL
+  FESTIVAL_SUBMISSION
+  FESTIVAL_SCREENING
+  PREMIERE
+  THEATRICAL_RELEASE
+  STREAMING_RELEASE
+  PRESS_CONFERENCE
+  SOCIAL_MEDIA_CAMPAIGN
+  TV_APPEARANCE
+  PRESS_JUNKET
+  OTHER
+}
+
+enum CampaignStatus {
+  UPCOMING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
 // ---------------------- Core Models ---------------------
 
 model User {
@@ -118,6 +164,9 @@ model Project {
   cashflowForecasts    CashflowForecast[]
   postTasks            PostTask[]
   pAndATasks           PAndATask[]
+
+  publicityBudgets  PublicityBudget[]
+  campaignEvents    CampaignEvent[]
 }
 
 // Phase entity per project
@@ -481,4 +530,74 @@ model Attachment {
   fileUrl    String
   uploadedBy String?
   uploadedAt DateTime @default(now())
+}
+
+
+// NEW: Publicity & P&A Budget Items
+model PublicityBudget {
+  id              String            @id @default(uuid())
+  projectId       String
+  name            String
+  category        PublicityCategory
+  description     String?
+  budgetAmount    Float
+  actualAmount    Float             @default(0)
+  vendor          String?
+  startDate       DateTime?
+  endDate         DateTime?
+  status          PublicityStatus   @default(PLANNED)
+  notes           String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime?         @updatedAt
+
+  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  expenses        PublicityExpense[]
+  campaignEvents  CampaignEvent[]
+
+  @@index([projectId])
+  @@index([category])
+  @@index([status])
+}
+
+// NEW: Publicity Expenses (Actuals tracking)
+model PublicityExpense {
+  id                String          @id @default(uuid())
+  publicityBudgetId String
+  description       String
+  amount            Float
+  expenseDate       DateTime
+  vendor            String?
+  invoiceNumber     String?
+  attachmentUrl     String?
+  notes             String?
+  createdAt         DateTime        @default(now())
+
+  publicityBudget   PublicityBudget @relation(fields: [publicityBudgetId], references: [id], onDelete: Cascade)
+
+  @@index([publicityBudgetId])
+  @@index([expenseDate])
+}
+
+// NEW: Campaign Calendar / Marketing Timeline
+model CampaignEvent {
+  id                String           @id @default(uuid())
+  projectId         String
+  publicityBudgetId String?
+  title             String
+  description       String?
+  eventType         CampaignEventType
+  startDate         DateTime
+  endDate           DateTime?
+  deliverable       String?
+  status            CampaignStatus   @default(UPCOMING)
+  notes             String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime?        @updatedAt
+
+  project           Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  publicityBudget   PublicityBudget? @relation(fields: [publicityBudgetId], references: [id])
+
+  @@index([projectId])
+  @@index([startDate])
+  @@index([status])
 }

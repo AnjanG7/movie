@@ -200,7 +200,7 @@ export default function PostProductionPage() {
         type: task.type || 'EDITING',
         costEstimate: task.costEstimate.toString(),
         actualCost: task.actualCost?.toString() || '',
-        dueDate: task.dueDate && typeof task.dueDate === 'string' ? task.dueDate.split('T')[0] : '',
+        dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
         status: task.status,
         notes: task.notes || '',
         vendorId: task.vendorId || ''

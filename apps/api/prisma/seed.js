@@ -1,236 +1,202 @@
-// prisma/seed.js
-/*import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcrypt';
+
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding database...");
+  console.log('🌱 Starting database seed...\n');
 
-  // ----------------- Users and Roles -----------------
-  const adminRole = await prisma.role.upsert({
-    where: { name: 'Admin' },
-    update: {},
-    create: { name: 'Admin' },
-  });
+  try {
+    // ================== 1. CREATE ROLES ==================
+    console.log('📋 Creating roles...');
+    const roleNames = ['Admin', 'Producer', 'Line Producer', 'Accountant', 'Investor'];
+    const createdRoles = {};
+    
+    for (const roleName of roleNames) {
+      const role = await prisma.role.upsert({
+        where: { name: roleName },
+        update: {},
+        create: { name: roleName },
+      });
+      createdRoles[roleName] = role;
+      console.log(`   ✅ ${roleName}`);
+    }
 
-  const producerRole = await prisma.role.upsert({
-    where: { name: 'Producer' },
-    update: {},
-    create: { name: 'Producer' },
-  });
+    // ================== 2. CREATE ADMIN USER ==================
+    console.log('\n👤 Creating admin user...');
+    const hashedPassword = await bcrypt.hash('Admin123!', 10);
 
-  const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@filmapp.com' },
-    update: {},
-    create: {
-      name: 'Admin User',
-      email: 'admin@filmapp.com',
-      password: 'hashed_password',
-      roles: {
-        create: { roleId: adminRole.id },
+    const adminUser = await prisma.user.upsert({
+      where: { email: 'admin@filmfinance.com' },
+      update: {},
+      create: {
+        name: 'Admin User',
+        email: 'admin@filmfinance.com',
+        password: hashedPassword,
+        status: 'ACTIVE',
+        roleId: createdRoles['Admin'].id,
       },
-    },
-  });
+    });
+    console.log('   ✅ Admin user created');
+    console.log('   📧 Email: admin@filmfinance.com');
+    console.log('   🔑 Password: Admin123!');
 
-  // ----------------- Project 1: Himalayan Dreams -----------------
-  const project1 = await prisma.project.create({
-    data: {
-      title: "Himalayan Dreams",
-      baseCurrency: "USD",
-      ownerId: adminUser.id,
-      phases: {
-        create: [
-          { name: "DEVELOPMENT", orderNo: 1 },
-          { name: "PRODUCTION", orderNo: 2 },
-          { name: "POST", orderNo: 3 },
-          { name: "PUBLICITY", orderNo: 4 },
-        ],
+    // ================== 3. CREATE PRODUCER USER ==================
+    console.log('\n👤 Creating producer user...');
+    const producerPassword = await bcrypt.hash('producer', 10);
+
+    const producerUser = await prisma.user.upsert({
+      where: { email: 'producer@gmail.com' },
+      update: {},
+      create: {
+        name: 'producer',
+        email: 'producer@gmail.com',
+        password: producerPassword,
+        status: 'ACTIVE',
+        roleId: createdRoles['Producer'].id,
       },
-      budgetVersions: {
-        create: {
-          version: "v1",
-          type: "QUOTE",
-          createdBy: adminUser.id,
-          lines: {
-            create: [
-              {
-                phase: "DEVELOPMENT",
-                department: "Script",
-                name: "Script Writer Fee",
-                qty: 1,
-                rate: 5000,
-                taxPercent: 10,
-              },
-              {
-                phase: "PRODUCTION",
-                department: "Camera",
-                name: "Camera Equipment Rental",
-                qty: 30,
-                rate: 150,
-                taxPercent: 13,
-              },
-              {
-                phase: "POST",
-                department: "Editing",
-                name: "Editor Fee",
-                qty: 1,
-                rate: 3000,
-              },
-            ],
-          },
+    });
+    console.log('   ✅ Producer user created');
+    console.log('   📧 Email: producer@filmfinance.com');
+    console.log('   🔑 Password: Producer123!');
+
+    // ================== 4. CREATE SAMPLE PROJECT ==================
+    console.log('\n🎬 Creating sample project...');
+    const sampleProject = await prisma.project.create({
+      data: {
+        title: 'Himalayan Dreams',
+        baseCurrency: 'USD',
+        timezone: 'Asia/Kathmandu',
+        status: 'planning',
+        ownerId: adminUser.id,
+      },
+    });
+    console.log(`   ✅ Project created: ${sampleProject.title}`);
+
+    // ================== 5. CREATE PHASES ==================
+    console.log('\n📅 Creating project phases...');
+    const phases = [
+      { name: 'DEVELOPMENT', orderNo: 1 },
+      { name: 'PRODUCTION', orderNo: 2 },
+      { name: 'POST', orderNo: 3 },
+      { name: 'PUBLICITY', orderNo: 4 },
+    ];
+
+    for (const phase of phases) {
+      await prisma.phaseEntity.create({
+        data: {
+          ...phase,
+          projectId: sampleProject.id,
+        },
+      });
+      console.log(`   ✅ ${phase.name}`);
+    }
+
+    // ================== 6. CREATE SAMPLE BUDGET ==================
+    console.log('\n💰 Creating sample budget...');
+    const budgetVersion = await prisma.budgetVersion.create({
+      data: {
+        projectId: sampleProject.id,
+        version: 'v1.0',
+        type: 'QUOTE',
+        createdBy: adminUser.id,
+        grandTotal: 50000,
+        lines: {
+          create: [
+            {
+              phase: 'DEVELOPMENT',
+              department: 'Script',
+              name: 'Script Writer Fee',
+              qty: 1,
+              rate: 5000,
+              taxPercent: 10,
+            },
+            {
+              phase: 'PRODUCTION',
+              department: 'Camera',
+              name: 'Camera Equipment Rental',
+              qty: 30,
+              rate: 150,
+              taxPercent: 13,
+            },
+            {
+              phase: 'POST',
+              department: 'Editing',
+              name: 'Editor Fee',
+              qty: 1,
+              rate: 3000,
+              taxPercent: 0,
+            },
+            {
+              phase: 'PUBLICITY',
+              department: 'Marketing',
+              name: 'Trailer Production',
+              qty: 1,
+              rate: 8000,
+              taxPercent: 13,
+            },
+          ],
         },
       },
-      financingSources: {
-        create: [
-          { type: "Equity", amount: 50000 },
-          { type: "Loan", amount: 20000, rate: 5 },
-        ],
-      },
-      cashflowForecasts: {
-        create: [
-          { weekStart: new Date("2025-01-01"), inflows: 10000, outflows: 5000, cumulative: 5000 },
-          { weekStart: new Date("2025-01-08"), inflows: 15000, outflows: 8000, cumulative: 12000 },
-        ],
-      },
-      waterfallDefinitions: {
-        create: {
-          tiers: {
-            create: [
-              { tierOrder: 1, pctSplit: 50, description: "Investor Return" },
-              { tierOrder: 2, pctSplit: 50, description: "Producer Profit" },
-            ],
-          },
-          participants: {
-            create: [
-              { name: "Investor A", role: "Investor", pctShare: 50 },
-              { name: "Producer Team", role: "Producer", pctShare: 50 },
-            ],
-          },
-        },
-      },
-      distributionDeals: {
-        create: {
-          territory: "Nepal",
-          window: "Theatrical",
-          feePercent: 15,
-          expensesCap: 1000,
-          minimumGuarantee: 2000,
-          revenueStatements: {
-            create: [
-              {
-                periodStart: new Date("2025-03-01"),
-                periodEnd: new Date("2025-03-31"),
-                gross: 15000,
-                fee: 2250,
-                expenses: 800,
-                net: 11950,
-              },
-            ],
-          },
-        },
-      },
-    },
-  });
+    });
+    console.log(`   ✅ Budget version created: ${budgetVersion.version}`);
 
-  // ----------------- Project 2: Urban Mirage -----------------
-  const project2 = await prisma.project.create({
-    data: {
-      title: "Urban Mirage",
-      baseCurrency: "NPR",
-      ownerId: adminUser.id,
-      phases: {
-        create: [
-          { name: "DEVELOPMENT", orderNo: 1 },
-          { name: "PRODUCTION", orderNo: 2 },
-          { name: "POST", orderNo: 3 },
-          { name: "PUBLICITY", orderNo: 4 },
-        ],
-      },
-      budgetVersions: {
-        create: {
-          version: "v1",
-          type: "BASELINE",
-          createdBy: adminUser.id,
-          lines: {
-            create: [
-              {
-                phase: "DEVELOPMENT",
-                department: "Research",
-                name: "Location Scouting",
-                qty: 5,
-                rate: 5000,
-              },
-              {
-                phase: "PRODUCTION",
-                department: "Cast",
-                name: "Lead Actor Fee",
-                qty: 1,
-                rate: 30000,
-              },
-              {
-                phase: "PUBLICITY",
-                department: "Marketing",
-                name: "Trailer Launch",
-                qty: 1,
-                rate: 10000,
-              },
-            ],
-          },
-        },
-      },
-      financingSources: {
-        create: [
-          { type: "Equity", amount: 80000 },
-          { type: "Incentive", amount: 10000 },
-        ],
-      },
-      cashflowForecasts: {
-        create: [
-          { weekStart: new Date("2025-02-01"), inflows: 20000, outflows: 10000, cumulative: 10000 },
-          { weekStart: new Date("2025-02-08"), inflows: 30000, outflows: 15000, cumulative: 25000 },
-        ],
-      },
-      waterfallDefinitions: {
-        create: {
-          tiers: {
-            create: [
-              { tierOrder: 1, pctSplit: 60, description: "Investors" },
-              { tierOrder: 2, pctSplit: 40, description: "Producers" },
-            ],
-          },
-          participants: {
-            create: [
-              { name: "Investor B", role: "Investor", pctShare: 60 },
-              { name: "Producer Team", role: "Producer", pctShare: 40 },
-            ],
-          },
-        },
-      },
-      distributionDeals: {
-        create: {
-          territory: "India",
-          window: "OTT",
-          feePercent: 20,
-          expensesCap: 1500,
-          minimumGuarantee: 5000,
-          revenueStatements: {
-            create: [
-              {
-                periodStart: new Date("2025-05-01"),
-                periodEnd: new Date("2025-05-31"),
-                gross: 30000,
-                fee: 6000,
-                expenses: 1200,
-                net: 22800,
-              },
-            ],
-          },
-        },
-      },
-    },
-  });
+    // ================== 7. CREATE VENDORS ==================
+    console.log('\n🏢 Creating sample vendors...');
+    const vendors = [
+      { name: 'Camera House Ltd', currency: 'USD', contactInfo: { phone: '555-0001', email: 'contact@camerahouse.com' } },
+      { name: 'Sound Studios Inc', currency: 'USD', contactInfo: { phone: '555-0002', email: 'info@soundstudios.com' } },
+      { name: 'Marketing Pro', currency: 'USD', contactInfo: { phone: '555-0003', email: 'hello@marketingpro.com' } },
+    ];
 
-  console.log("✅ Seeding complete:");
-  console.log({ project1: project1.title, project2: project2.title });
+    for (const vendor of vendors) {
+      await prisma.vendor.create({
+        data: vendor,
+      });
+      console.log(`   ✅ ${vendor.name}`);
+    }
+
+    // ================== 8. CREATE FINANCING SOURCES ==================
+    console.log('\n💵 Creating financing sources...');
+    await prisma.financingSource.create({
+      data: {
+        projectId: sampleProject.id,
+        type: 'EQUITY',
+        amount: 30000,
+        rate: 0,
+      },
+    });
+    console.log('   ✅ Equity financing: $30,000');
+
+    await prisma.financingSource.create({
+      data: {
+        projectId: sampleProject.id,
+        type: 'LOAN',
+        amount: 20000,
+        rate: 5,
+      },
+    });
+    console.log('   ✅ Loan financing: $20,000 @ 5%');
+
+    // ================== SUCCESS ==================
+    console.log('\n' + '='.repeat(50));
+    console.log('✅ SEEDING COMPLETED SUCCESSFULLY!');
+    console.log('='.repeat(50));
+    console.log('\n📝 CREDENTIALS:');
+    console.log('\n👨‍💼 Admin:');
+    console.log('   Email: admin@filmfinance.com');
+    console.log('   Password: Admin123!');
+    console.log('\n🎬 Producer:');
+    console.log('   Email: producer@filmfinance.com');
+    console.log('   Password: Producer123!');
+    console.log('\n🎥 Sample Project: Himalayan Dreams');
+    console.log('='.repeat(50) + '\n');
+
+  } catch (error) {
+    console.error('\n❌ SEEDING FAILED:');
+    console.error(error);
+    throw error;
+  }
 }
 
 main()
@@ -241,22 +207,5 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-*/
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
 
-async function main() {
-  const roles = ["Admin", "Producer", "Investor","Line Producer"];
-  for (const name of roles) {
-    await prisma.role.upsert({
-      where: { name },
-      update: {},
-      create: { name },
-    });
-  }
-  console.log("✅ Roles seeded");
-}
 
-main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect());

@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Users,
   Package,
+  Megaphone, // ✅ ADD THIS IMPORT
 } from 'lucide-react';
 import { Project } from '../../lib/types';
 
@@ -291,7 +292,7 @@ export default function ProjectProfilePage() {
             </div>
           </Link>
 
-          {/* POST PRODUCTION - NEW */}
+          {/* Post Production */}
           <Link
             href={`/projects/${projectId}/post-production`}
             className="group p-6 bg-white border border-gray-200 rounded-xl hover:shadow-lg hover:border-purple-400 transition-all"
@@ -305,6 +306,24 @@ export default function ProjectProfilePage() {
                   Post Production
                 </h3>
                 <p className="text-sm text-gray-600">VFX, Sound, Editing</p>
+              </div>
+            </div>
+          </Link>
+
+          {/* ✅ PUBLICITY & P&A - NEW CARD */}
+          <Link
+            href={`/projects/${projectId}/publicity`}
+            className="group p-6 bg-white border border-gray-200 rounded-xl hover:shadow-lg hover:border-pink-400 transition-all"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-pink-100 rounded-lg group-hover:bg-pink-200 transition-colors">
+                <Megaphone className="w-6 h-6 text-pink-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-1">
+                  Publicity & P&A
+                </h3>
+                <p className="text-sm text-gray-600">Marketing campaigns</p>
               </div>
             </div>
           </Link>

@@ -4,41 +4,86 @@ import { StatusCodes } from 'http-status-codes';
 
 export class QuotationService {
   // Create new quotation
- async createQuotation(projectId, data, userId) {
-  const { template, versionNo } = data; // Changed from 'version' to 'versionNo'
-
-  // Check if version already exists
-  const existing = await prisma.budgetVersion.findFirst({
-    where: { projectId, version: versionNo }, // Use versionNo here
-  });
-
-  if (existing) {
-    throw new ApiError(
-      StatusCodes.BAD_REQUEST,
-      `Version ${versionNo} already exists`
-    );
-  }
-
-  // Initialize assumptions based on template
-  const assumptions = this.getTemplateAssumptions(template);
-
-  const quotation = await prisma.budgetVersion.create({
-    data: {
-      projectId,
-      version: versionNo, // Store as 'version' in DB
-      type: 'QUOTE',
+async createQuotation(projectId, data, userId) {
+    // FRONTEND sends: version, type, template, assumptions, financingPlan, revenueModel, lines
+    const {
+      version,
       template,
       assumptions,
-      createdBy: userId,
-    },
-    include: {
-      project: true,
-      lines: true,
-    },
-  });
+      financingPlan,
+      revenueModel,
+      lines,
+    } = data;
 
-  return quotation;
-}
+    if (!version) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Version is required');
+    }
+
+    // Ensure unique version per project
+    const existing = await prisma.budgetVersion.findFirst({
+      where: { projectId, version },
+    });
+
+    if (existing) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        `Version "${version}" already exists`
+      );
+    }
+
+    // Calculate grandTotal from lines
+    let grandTotal = 0;
+    if (Array.isArray(lines) && lines.length > 0) {
+      grandTotal = lines.reduce((sum, line) => {
+        const qty = Number(line.qty ?? 1);
+        const rate = Number(line.rate ?? 0);
+        const taxPercent = Number(line.taxPercent ?? 0);
+
+        const subtotal = qty * rate;
+        const tax = subtotal * (taxPercent / 100);
+        return sum + subtotal + tax;
+      }, 0);
+    }
+
+    // Create quotation as a BudgetVersion
+    const quotation = await prisma.budgetVersion.create({
+      data: {
+        projectId,
+        version,
+        type: 'QUOTE', // always a quotation
+        createdBy: userId || null,
+        template: template || null,
+        assumptions: assumptions || null,
+        financingPlan: financingPlan || null,
+        revenueModel: revenueModel || null,
+        grandTotal,
+
+        // Create budget line items
+        lines: Array.isArray(lines) && lines.length > 0
+          ? {
+              create: lines.map((line) => ({
+                phase: line.phase || 'PRODUCTION',
+                department: line.department || '',
+                name: line.name || '',
+                qty: Number(line.qty ?? 1),
+                rate: Number(line.rate ?? 0),
+                taxPercent: Number(line.taxPercent ?? 0),
+                vendor: line.vendor || null,
+                notes: line.notes || null,
+              })),
+            }
+          : undefined,
+      },
+      include: {
+        project: {
+          select: { id: true, title: true, baseCurrency: true },
+        },
+        lines: true,
+      },
+    });
+
+    return quotation;
+  }
 
 
   // Get template assumptions

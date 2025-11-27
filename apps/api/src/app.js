@@ -36,6 +36,8 @@ import drawdownRouter from './routes/drawdown.routes.js';
 import budgetLineRouter from './routes/budgetLine.routes.js';
 // Add this import with your other route imports
 import postProductionRouter from './routes/postProduction.routes.js';
+// Import the publicity router
+import publicityRouter from './routes/publicity.routes.js';
 
 // Register all routes
 app.use("/api/auth", authRouter);
@@ -54,6 +56,23 @@ app.use('/api/projects/:projectId/budget-lines', budgetLineRouter);
 
 // Add this route registration with your other routes
 app.use('/api/projects/:projectId/post-production', postProductionRouter);
+
+
+// Register the route (add this with your other routes)
+app.use('/api/projects/:projectId/publicity', publicityRouter);
+
+
+import roiRouter from './routes/roi.routes.js';
+app.use('/api/projects/:projectId/quotations', roiRouter);
+
+import exportRouter from './routes/export.routes.js';
+// Register export routes (add with other routes)
+app.use('/api/projects/:projectId/quotations', exportRouter);
+app.use('/api/projects', exportRouter);
+app.use('/api', exportRouter);
+
+// Serve static exports folder
+app.use('/exports', express.static('exports'));
 
 // Error handler (should be last)
 app.use(errorHandler);

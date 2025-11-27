@@ -1,11 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, {
+  useState,
+  useEffect,
+  FormEvent,
+  ChangeEvent,
+} from 'react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import autoTable, { RowInput } from 'jspdf-autotable';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from 'recharts';
 
-const API_BASE_URL = 'http://localhost:4000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 interface CashflowForecast {
   id: string;
@@ -22,8 +38,10 @@ interface Project {
   baseCurrency: string;
 }
 
+type AlertType = 'SHORTFALL' | 'LOW_BALANCE';
+
 interface Alert {
-  type: 'SHORTFALL' | 'LOW_BALANCE';
+  type: AlertType;
   week: string;
   amount: number;
   message: string;
@@ -39,6 +57,12 @@ interface Summary {
   alerts: Alert[];
 }
 
+interface CashflowForm {
+  weekStart: string;
+  inflows: number;
+  outflows: number;
+}
+
 export default function CashflowPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -48,8 +72,8 @@ export default function CashflowPage() {
   const [weeks, setWeeks] = useState(12);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  const [formData, setFormData] = useState({
-    weekStart: new Date().toISOString().split('T')[0],
+  const [formData, setFormData] = useState<CashflowForm>({
+    weekStart: new Date().toISOString().split('T')[0] as string,
     inflows: 0,
     outflows: 0,
   });
@@ -72,7 +96,7 @@ export default function CashflowPage() {
       });
       const result = await response.json();
       if (result.success) {
-        setProjects(result.data.projects);
+        setProjects(result.data.projects || []);
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -89,7 +113,7 @@ export default function CashflowPage() {
       );
       const result = await response.json();
       if (result.success) {
-        setForecasts(result.data);
+        setForecasts(result.data || []);
       }
     } catch (error) {
       console.error('Error fetching cashflow:', error);
@@ -107,7 +131,7 @@ export default function CashflowPage() {
       );
       const result = await response.json();
       if (result.success) {
-        setSummary(result.data);
+        setSummary(result.data as Summary);
       }
     } catch (error) {
       console.error('Error fetching summary:', error);
@@ -116,7 +140,11 @@ export default function CashflowPage() {
 
   const handleAutoCompute = async () => {
     if (!selectedProjectId) return;
-    if (!confirm('This will auto-compute cashflow from financing and scheduled payments. Continue?'))
+    if (
+      !confirm(
+        'This will auto-compute cashflow from financing and scheduled payments. Continue?'
+      )
+    )
       return;
 
     setLoading(true);
@@ -145,8 +173,9 @@ export default function CashflowPage() {
     }
   };
 
-  const handleAddEntry = async (e: React.FormEvent) => {
+  const handleAddEntry = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!selectedProjectId) return;
 
     try {
       const response = await fetch(
@@ -164,7 +193,7 @@ export default function CashflowPage() {
         alert('Cashflow entry saved');
         setShowAddModal(false);
         setFormData({
-          weekStart: new Date().toISOString().split('T')[0],
+          weekStart: new Date().toISOString().split('T')[0] as string,
           inflows: 0,
           outflows: 0,
         });
@@ -181,6 +210,7 @@ export default function CashflowPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this cashflow entry?')) return;
+    if (!selectedProjectId) return;
 
     try {
       const response = await fetch(
@@ -214,8 +244,27 @@ export default function CashflowPage() {
     })}`;
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString();
+
+  const handleWeeksChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value, 10);
+    setWeeks(Number.isNaN(value) ? 12 : value);
+  };
+
+  const handleProjectChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    setSelectedProjectId(e.target.value);
+  };
+
+  const handleFormChange = (
+    e: ChangeEvent<HTMLInputElement>
+  ) => {
+    const { name, value } = e.target;
+    if (name === 'inflows' || name === 'outflows') {
+      setFormData((prev) => ({ ...prev, [name]: Number(value) }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const exportToExcel = () => {
@@ -227,7 +276,6 @@ export default function CashflowPage() {
     const project = projects.find((p) => p.id === selectedProjectId);
     const currency = project?.baseCurrency || 'USD';
 
-    // Prepare data for Excel
     const excelData = forecasts.map((forecast) => ({
       'Week Starting': formatDate(forecast.weekStart),
       [`Inflows (${currency})`]: forecast.inflows,
@@ -238,11 +286,10 @@ export default function CashflowPage() {
         forecast.cumulative < 0
           ? 'Shortfall'
           : forecast.cumulative < 10000
-            ? 'Low Balance'
-            : 'OK',
+          ? 'Low Balance'
+          : 'OK',
     }));
 
-    // Add summary at the end
     excelData.push({
       'Week Starting': '',
       [`Inflows (${currency})`]: '',
@@ -250,7 +297,7 @@ export default function CashflowPage() {
       [`Net (${currency})`]: '',
       [`Cumulative Balance (${currency})`]: '',
       Status: '',
-    });
+    } as any);
 
     excelData.push({
       'Week Starting': 'SUMMARY',
@@ -259,26 +306,22 @@ export default function CashflowPage() {
       [`Net (${currency})`]: summary?.netCashflow || 0,
       [`Cumulative Balance (${currency})`]: summary?.currentBalance || 0,
       Status: '',
-    });
+    } as any);
 
-    // Create worksheet
     const ws = XLSX.utils.json_to_sheet(excelData);
 
-    // Set column widths
-    ws['!cols'] = [
-      { wch: 15 }, // Week Starting
-      { wch: 15 }, // Inflows
-      { wch: 15 }, // Outflows
-      { wch: 15 }, // Net
-      { wch: 20 }, // Cumulative Balance
-      { wch: 15 }, // Status
+    (ws as any)['!cols'] = [
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 20 },
+      { wch: 15 },
     ];
 
-    // Create workbook
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Cashflow Forecast');
 
-    // Add project info sheet
     const projectInfo = [
       ['Project', project?.title || ''],
       ['Currency', currency],
@@ -293,14 +336,13 @@ export default function CashflowPage() {
       ['Low Balance Weeks', summary?.lowBalanceWeeks || 0],
     ];
 
-    const wsInfo = XLSX.utils.aoa_to_sheet(projectInfo);
+    const wsInfo = XLSX.utils.aoa_to_sheet(projectInfo as any[][]);
     XLSX.utils.book_append_sheet(wb, wsInfo, 'Summary');
 
-    // Generate filename
-    const filename = `Cashflow_${project?.title || 'Report'}_${new Date().toISOString().split('T')[0]
-      }.xlsx`;
+    const filename = `Cashflow_${project?.title || 'Report'}_${
+      new Date().toISOString().split('T')[0]
+    }.xlsx`;
 
-    // Download
     XLSX.writeFile(wb, filename);
   };
 
@@ -315,18 +357,15 @@ export default function CashflowPage() {
 
     const doc = new jsPDF();
 
-    // Add title
     doc.setFontSize(18);
     doc.text('Cashflow Forecast Report', 14, 20);
 
-    // Add project info
     doc.setFontSize(11);
     doc.text(`Project: ${project?.title || 'N/A'}`, 14, 30);
     doc.text(`Currency: ${currency}`, 14, 36);
     doc.text(`Report Date: ${new Date().toLocaleDateString()}`, 14, 42);
     doc.text(`Weeks Covered: ${forecasts.length}`, 14, 48);
 
-    // Add summary box
     doc.setFillColor(240, 240, 240);
     doc.rect(14, 55, 180, 35, 'F');
     doc.setFontSize(10);
@@ -352,10 +391,13 @@ export default function CashflowPage() {
       69
     );
     doc.text(`Shortfall Weeks: ${summary?.shortfalls || 0}`, 120, 76);
-    doc.text(`Low Balance Weeks: ${summary?.lowBalanceWeeks || 0}`, 120, 83);
+    doc.text(
+      `Low Balance Weeks: ${summary?.lowBalanceWeeks || 0}`,
+      120,
+      83
+    );
 
-    // Add forecast table
-    const tableData = forecasts.map((forecast) => [
+    const tableData: RowInput[] = forecasts.map((forecast) => [
       formatDate(forecast.weekStart),
       forecast.inflows.toFixed(2),
       forecast.outflows.toFixed(2),
@@ -364,8 +406,8 @@ export default function CashflowPage() {
       forecast.cumulative < 0
         ? 'Shortfall'
         : forecast.cumulative < 10000
-          ? 'Low'
-          : 'OK',
+        ? 'Low'
+        : 'OK',
     ]);
 
     autoTable(doc, {
@@ -382,26 +424,23 @@ export default function CashflowPage() {
         3: { halign: 'right' },
         4: { halign: 'right' },
       },
-  didParseCell: function (data) {
-  // Highlight shortfall rows
-  if (data.section === 'body' && data.column.index === 5 && data.row.cells) {
-    if (data.cell.raw === 'Shortfall') {
-      const fillColor: [number, number, number] = [255, 200, 200];
-      if (data.row.cells[0]) data.row.cells[0].styles.fillColor = fillColor;
-      if (data.row.cells[1]) data.row.cells[1].styles.fillColor = fillColor;
-      if (data.row.cells[2]) data.row.cells[2].styles.fillColor = fillColor;
-      if (data.row.cells[3]) data.row.cells[3].styles.fillColor = fillColor;
-      if (data.row.cells[4]) data.row.cells[4].styles.fillColor = fillColor;
-      if (data.row.cells[5]) data.row.cells[5].styles.fillColor = fillColor;
-    }
-  }
-},
-
+      didParseCell: (data) => {
+        if (
+          data.section === 'body' &&
+          data.column.index === 5 &&
+          data.cell.raw === 'Shortfall'
+        ) {
+          const fillColor: [number, number, number] = [255, 200, 200];
+          Object.values(data.row.cells).forEach((cell) => {
+            cell.styles.fillColor = fillColor;
+          });
+        }
+      },
     });
 
-    // Add alerts section if any
     if (summary && summary.alerts.length > 0) {
-      const finalY = (doc as any).lastAutoTable.finalY + 10;
+      // @ts-expect-error lastAutoTable is added by autoTable
+      const finalY = doc.lastAutoTable.finalY + 10;
       doc.setFontSize(12);
       doc.setTextColor(220, 38, 38);
       doc.text('⚠ Alerts', 14, finalY);
@@ -428,7 +467,6 @@ export default function CashflowPage() {
       }
     }
 
-    // Add footer
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
@@ -436,386 +474,412 @@ export default function CashflowPage() {
       doc.setTextColor(128, 128, 128);
       doc.text(
         `Page ${i} of ${pageCount}`,
-        doc.internal.pageSize.width / 2,
-        doc.internal.pageSize.height - 10,
+        doc.internal.pageSize.getWidth() / 2,
+        doc.internal.pageSize.getHeight() - 10,
         { align: 'center' }
       );
       doc.text(
         `Generated on ${new Date().toLocaleString()}`,
         14,
-        doc.internal.pageSize.height - 10
+        doc.internal.pageSize.getHeight() - 10
       );
     }
 
-    // Generate filename
-    const filename = `Cashflow_${project?.title || 'Report'}_${new Date().toISOString().split('T')[0]
-      }.pdf`;
+    const filename = `Cashflow_${project?.title || 'Report'}_${
+      new Date().toISOString().split('T')[0]
+    }.pdf`;
 
-    // Download
     doc.save(filename);
   };
 
-  return (
-    <div style={{ padding: '20px' }}>
-      <h1>Cashflow Management</h1>
+  const project = projects.find((p) => p.id === selectedProjectId);
 
-      {/* Project Selector */}
-      <div style={{ marginBottom: '20px', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div>
-          <label>
-            Select Project:
+  const chartData = forecasts.map((f) => ({
+    week: formatDate(f.weekStart),
+    inflows: f.inflows,
+    outflows: f.outflows,
+    net: f.inflows - f.outflows,
+    cumulative: f.cumulative,
+  }));
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-6 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">
+              Cashflow Management
+            </h1>
+            <p className="text-slate-600">
+              Weekly inflows, outflows, and runway visibility.
+            </p>
+          </div>
+          {project && (
+            <div className="px-4 py-2 rounded-xl bg-white/70 border border-slate-200 text-sm text-slate-700 shadow-sm">
+              <div className="font-semibold">{project.title}</div>
+              <div>Currency: {project.baseCurrency}</div>
+            </div>
+          )}
+        </div>
+
+        {/* Controls */}
+        <div className="bg-white/80 rounded-2xl shadow-md border border-slate-200 p-4 mb-6 flex flex-wrap gap-4 items-center">
+          <div>
+            <label className="text-sm font-semibold text-slate-700 mr-2">
+              Project
+            </label>
             <select
               value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              style={{ marginLeft: '10px', padding: '5px' }}
+              onChange={handleProjectChange}
+              className="h-10 rounded-lg border border-slate-300 px-3 text-sm bg-white"
             >
               <option value="">-- Select Project --</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.title}
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
                 </option>
               ))}
             </select>
-          </label>
-        </div>
+          </div>
 
-        <div>
-          <label>
-            Weeks to Show:
+          <div>
+            <label className="text-sm font-semibold text-slate-700 mr-2">
+              Weeks
+            </label>
             <input
               type="number"
+              min={1}
+              max={52}
               value={weeks}
-              onChange={(e) => setWeeks(parseInt(e.target.value) || 12)}
-              min="1"
-              max="52"
-              style={{ marginLeft: '10px', padding: '5px', width: '80px' }}
+              onChange={handleWeeksChange}
+              className="h-10 w-20 rounded-lg border border-slate-300 px-3 text-sm"
             />
-          </label>
+          </div>
+
+          {selectedProjectId && (
+            <>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="px-3 h-10 rounded-lg bg-slate-800 text-white text-sm font-semibold"
+              >
+                Add Manual Entry
+              </button>
+              <button
+                onClick={handleAutoCompute}
+                className="px-3 h-10 rounded-lg bg-blue-600 text-white text-sm font-semibold"
+              >
+                Auto-Compute
+              </button>
+              <a
+                href={`/financing-sources?projectId=${selectedProjectId}`}
+                className="px-3 h-10 rounded-lg border border-slate-300 text-sm flex items-center"
+              >
+                Manage Financing
+              </a>
+              {forecasts.length > 0 && (
+                <>
+                  <button
+                    onClick={exportToExcel}
+                    className="px-3 h-10 rounded-lg bg-emerald-500 text-white text-sm font-semibold"
+                  >
+                    Export Excel
+                  </button>
+                  <button
+                    onClick={exportToPDF}
+                    className="px-3 h-10 rounded-lg bg-red-500 text-white text-sm font-semibold"
+                  >
+                    Export PDF
+                  </button>
+                </>
+              )}
+            </>
+          )}
         </div>
 
+        {/* Add entry modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+              <h2 className="text-xl font-bold mb-4">Add Cashflow Entry</h2>
+              <form onSubmit={handleAddEntry} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Week Start Date
+                  </label>
+                  <input
+                    type="date"
+                    name="weekStart"
+                    value={formData.weekStart}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Inflows
+                  </label>
+                  <input
+                    type="number"
+                    name="inflows"
+                    value={formData.inflows}
+                    onChange={handleFormChange}
+                    min={0}
+                    step="0.01"
+                    required
+                    className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Outflows
+                  </label>
+                  <input
+                    type="number"
+                    name="outflows"
+                    value={formData.outflows}
+                    onChange={handleFormChange}
+                    min={0}
+                    step="0.01"
+                    required
+                    className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm"
+                  />
+                </div>
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="px-4 h-9 rounded-lg border border-slate-300 text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 h-9 rounded-lg bg-blue-600 text-white text-sm font-semibold"
+                  >
+                    Save
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Summary + Chart */}
+        {summary && selectedProjectId && (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+            <div className="border border-slate-200 rounded-xl p-4 bg-white">
+              <div className="text-xs text-slate-500">Total Inflows</div>
+              <div className="text-2xl font-bold text-emerald-600">
+                {formatCurrency(summary.totalInflows)}
+              </div>
+            </div>
+            <div className="border border-slate-200 rounded-xl p-4 bg-white">
+              <div className="text-xs text-slate-500">Total Outflows</div>
+              <div className="text-2xl font-bold text-red-500">
+                {formatCurrency(summary.totalOutflows)}
+              </div>
+            </div>
+            <div className="border border-slate-200 rounded-xl p-4 bg-white">
+              <div className="text-xs text-slate-500">Net Cashflow</div>
+              <div
+                className={`text-2xl font-bold ${
+                  summary.netCashflow >= 0 ? 'text-emerald-600' : 'text-red-500'
+                }`}
+              >
+                {formatCurrency(summary.netCashflow)}
+              </div>
+            </div>
+            <div className="border border-slate-200 rounded-xl p-4 bg-white">
+              <div className="text-xs text-slate-500">Current Balance</div>
+              <div
+                className={`text-2xl font-bold ${
+                  summary.currentBalance >= 0
+                    ? 'text-emerald-600'
+                    : 'text-red-500'
+                }`}
+              >
+                {formatCurrency(summary.currentBalance)}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {chartData.length > 0 && (
+          <div className="mb-8 border border-slate-200 rounded-2xl bg-white p-4 shadow-sm">
+            <h3 className="text-sm font-semibold text-slate-800 mb-3">
+              Weekly Cashflow Trend
+            </h3>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
+                  <XAxis dataKey="week" />
+                  <YAxis />
+                  <Tooltip />
+                  <Area
+                    type="monotone"
+                    dataKey="cumulative"
+                    stroke="#6366f1"
+                    fill="#c7d2fe"
+                    name="Cumulative"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="net"
+                    stroke="#22c55e"
+                    dot={false}
+                    name="Net"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* Alerts */}
+        {summary && summary.alerts.length > 0 && (
+          <div className="mb-6 p-4 rounded-xl border border-red-200 bg-red-50">
+            <h3 className="font-semibold text-red-700 mb-2">
+              Cashflow Alerts ({summary.alerts.length})
+            </h3>
+            <ul className="list-disc ml-5 text-sm text-red-700">
+              {summary.alerts.map((alert, idx) => (
+                <li key={idx}>
+                  <strong>Week of {formatDate(alert.week)}:</strong>{' '}
+                  {alert.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Table */}
         {selectedProjectId && (
           <>
-            <button onClick={() => setShowAddModal(true)} style={{ padding: '8px 15px' }}>
-              Add Manual Entry
-            </button>
-            <button onClick={handleAutoCompute} style={{ padding: '8px 15px' }}>
-              Auto-Compute
-            </button>
-            <a
-              href={`/financing-sources?projectId=${selectedProjectId}`}
-              style={{ padding: '8px 15px', textDecoration: 'none', border: '1px solid #ccc', borderRadius: '4px' }}
-            >
-              Manage Financing
-            </a>
-
-            {/* Export Buttons */}
-            {forecasts.length > 0 && (
-              <>
-                <button
-                  onClick={exportToExcel}
-                  style={{ padding: '8px 15px', backgroundColor: '#22c55e', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
-                >
-                  📊 Export to Excel
-                </button>
-                <button
-                  onClick={exportToPDF}
-                  style={{ padding: '8px 15px', backgroundColor: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
-                >
-                  📄 Export to PDF
-                </button>
-              </>
+            {loading ? (
+              <p className="text-center text-slate-600 mt-6">Loading...</p>
+            ) : forecasts.length === 0 ? (
+              <div className="text-center p-10 bg-white/80 rounded-2xl border border-slate-200">
+                <p className="text-base text-slate-700 mb-2">
+                  No cashflow data yet.
+                </p>
+                <p className="text-sm text-slate-500">
+                  Use Auto-Compute or add manual entries to build your forecast.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-slate-200 rounded-2xl bg-white">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left">Week Starting</th>
+                      <th className="px-4 py-2 text-right">Inflows</th>
+                      <th className="px-4 py-2 text-right">Outflows</th>
+                      <th className="px-4 py-2 text-right">Net</th>
+                      <th className="px-4 py-2 text-right">
+                        Cumulative Balance
+                      </th>
+                      <th className="px-4 py-2 text-left">Status</th>
+                      <th className="px-4 py-2 text-left">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {forecasts.map((f) => {
+                      const net = f.inflows - f.outflows;
+                      const isNegative = f.cumulative < 0;
+                      return (
+                        <tr
+                          key={f.id}
+                          className={`border-t ${
+                            isNegative ? 'bg-red-50' : ''
+                          }`}
+                        >
+                          <td className="px-4 py-2">
+                            {formatDate(f.weekStart)}
+                          </td>
+                          <td className="px-4 py-2 text-right text-emerald-600">
+                            {formatCurrency(f.inflows)}
+                          </td>
+                          <td className="px-4 py-2 text-right text-red-500">
+                            {formatCurrency(f.outflows)}
+                          </td>
+                          <td
+                            className={`px-4 py-2 text-right ${
+                              net >= 0 ? 'text-emerald-600' : 'text-red-500'
+                            }`}
+                          >
+                            {formatCurrency(net)}
+                          </td>
+                          <td
+                            className={`px-4 py-2 text-right font-semibold ${
+                              f.cumulative >= 0
+                                ? 'text-emerald-600'
+                                : 'text-red-500'
+                            }`}
+                          >
+                            {formatCurrency(f.cumulative)}
+                          </td>
+                          <td className="px-4 py-2">
+                            {isNegative ? (
+                              <span className="text-red-600 font-semibold">
+                                Shortfall
+                              </span>
+                            ) : f.cumulative < 10000 ? (
+                              <span className="text-amber-600">Low Balance</span>
+                            ) : (
+                              <span className="text-emerald-600">OK</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2">
+                            <button
+                              onClick={() => handleDelete(f.id)}
+                              className="px-3 h-8 rounded-md border border-slate-300 text-xs hover:bg-slate-50"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="bg-slate-50 font-semibold">
+                    <tr>
+                      <td className="px-4 py-2">Total</td>
+                      <td className="px-4 py-2 text-right text-emerald-600">
+                        {formatCurrency(
+                          forecasts.reduce((sum, f) => sum + f.inflows, 0)
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-right text-red-500">
+                        {formatCurrency(
+                          forecasts.reduce((sum, f) => sum + f.outflows, 0)
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        {formatCurrency(
+                          forecasts.reduce(
+                            (sum, f) => sum + (f.inflows - f.outflows),
+                            0
+                          )
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        {forecasts.length > 0
+                          ? formatCurrency(
+                              forecasts[forecasts.length - 1]!.cumulative
+                            )
+                          : '-'}
+                      </td>
+                      <td colSpan={2}></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             )}
           </>
         )}
       </div>
-
-      {/* Add Entry Modal */}
-      {showAddModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-        >
-          <div style={{ backgroundColor: 'white', padding: '30px', width: '500px', borderRadius: '8px' }}>
-            <h2>Add Cashflow Entry</h2>
-            <form onSubmit={handleAddEntry}>
-              <div style={{ marginBottom: '15px' }}>
-                <label>
-                  Week Start Date:
-                  <input
-                    type="date"
-                    value={formData.weekStart}
-                    onChange={(e) =>
-                      setFormData({ ...formData, weekStart: e.target.value })
-                    }
-                    required
-                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
-                  />
-                </label>
-              </div>
-
-              <div style={{ marginBottom: '15px' }}>
-                <label>
-                  Inflows:
-                  <input
-                    type="number"
-                    value={formData.inflows}
-                    onChange={(e) =>
-                      setFormData({ ...formData, inflows: Number(e.target.value) })
-                    }
-                    min="0"
-                    step="0.01"
-                    required
-                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
-                  />
-                </label>
-              </div>
-
-              <div style={{ marginBottom: '15px' }}>
-                <label>
-                  Outflows:
-                  <input
-                    type="number"
-                    value={formData.outflows}
-                    onChange={(e) =>
-                      setFormData({ ...formData, outflows: Number(e.target.value) })
-                    }
-                    min="0"
-                    step="0.01"
-                    required
-                    style={{ display: 'block', width: '100%', padding: '8px', marginTop: '5px' }}
-                  />
-                </label>
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button type="submit" style={{ padding: '10px 20px', cursor: 'pointer' }}>
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  style={{ padding: '10px 20px', cursor: 'pointer' }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Summary Cards */}
-      {summary && selectedProjectId && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '20px',
-            marginBottom: '30px',
-          }}
-        >
-          <div style={{ border: '1px solid #ddd', padding: '20px', borderRadius: '8px' }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>
-              Total Inflows
-            </h3>
-            <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#22c55e' }}>
-              {formatCurrency(summary.totalInflows)}
-            </p>
-          </div>
-
-          <div style={{ border: '1px solid #ddd', padding: '20px', borderRadius: '8px' }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>
-              Total Outflows
-            </h3>
-            <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#ef4444' }}>
-              {formatCurrency(summary.totalOutflows)}
-            </p>
-          </div>
-
-          <div style={{ border: '1px solid #ddd', padding: '20px', borderRadius: '8px' }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>
-              Net Cashflow
-            </h3>
-            <p
-              style={{
-                margin: 0,
-                fontSize: '24px',
-                fontWeight: 'bold',
-                color: summary.netCashflow >= 0 ? '#22c55e' : '#ef4444',
-              }}
-            >
-              {formatCurrency(summary.netCashflow)}
-            </p>
-          </div>
-
-          <div style={{ border: '1px solid #ddd', padding: '20px', borderRadius: '8px' }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>
-              Current Balance
-            </h3>
-            <p
-              style={{
-                margin: 0,
-                fontSize: '24px',
-                fontWeight: 'bold',
-                color: summary.currentBalance >= 0 ? '#22c55e' : '#ef4444',
-              }}
-            >
-              {formatCurrency(summary.currentBalance)}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Alerts */}
-      {summary && summary.alerts.length > 0 && (
-        <div
-          style={{
-            marginBottom: '20px',
-            padding: '15px',
-            backgroundColor: '#fef2f2',
-            border: '1px solid #fecaca',
-            borderRadius: '8px',
-          }}
-        >
-          <h3 style={{ margin: '0 0 10px 0', color: '#dc2626' }}>
-            ⚠️ Cashflow Alerts ({summary.alerts.length})
-          </h3>
-          <ul style={{ margin: 0, paddingLeft: '20px' }}>
-            {summary.alerts.map((alert, index) => (
-              <li key={index} style={{ marginBottom: '5px' }}>
-                <strong>Week of {formatDate(alert.week)}:</strong> {alert.message}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Cashflow Table */}
-      {selectedProjectId && (
-        <>
-          {loading ? (
-            <p>Loading...</p>
-          ) : forecasts.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
-              <p style={{ fontSize: '16px', color: '#666', marginBottom: '10px' }}>No cashflow data yet.</p>
-              <p style={{ fontSize: '14px', color: '#999' }}>
-                Click "Auto-Compute" to generate from financing sources and scheduled payments,
-                or add manual entries.
-              </p>
-            </div>
-          ) : (
-            <div style={{ overflow: 'auto' }}>
-              <table border={1} cellPadding={10} style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead style={{ backgroundColor: '#f5f5f5' }}>
-                  <tr>
-                    <th>Week Starting</th>
-                    <th style={{ textAlign: 'right' }}>Inflows</th>
-                    <th style={{ textAlign: 'right' }}>Outflows</th>
-                    <th style={{ textAlign: 'right' }}>Net</th>
-                    <th style={{ textAlign: 'right' }}>Cumulative Balance</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {forecasts.map((forecast) => {
-                    const net = forecast.inflows - forecast.outflows;
-                    const isNegative = forecast.cumulative < 0;
-                    return (
-                      <tr
-                        key={forecast.id}
-                        style={{
-                          backgroundColor: isNegative ? '#fee' : 'transparent',
-                        }}
-                      >
-                        <td>{formatDate(forecast.weekStart)}</td>
-                        <td style={{ textAlign: 'right', color: '#22c55e' }}>
-                          {formatCurrency(forecast.inflows)}
-                        </td>
-                        <td style={{ textAlign: 'right', color: '#ef4444' }}>
-                          {formatCurrency(forecast.outflows)}
-                        </td>
-                        <td
-                          style={{
-                            textAlign: 'right',
-                            color: net >= 0 ? '#22c55e' : '#ef4444',
-                          }}
-                        >
-                          {formatCurrency(net)}
-                        </td>
-                        <td
-                          style={{
-                            textAlign: 'right',
-                            fontWeight: 'bold',
-                            color: forecast.cumulative >= 0 ? '#22c55e' : '#ef4444',
-                          }}
-                        >
-                          {formatCurrency(forecast.cumulative)}
-                        </td>
-                        <td>
-                          {isNegative ? (
-                            <span style={{ color: '#ef4444', fontWeight: 'bold' }}>
-                              ⚠️ Shortfall
-                            </span>
-                          ) : forecast.cumulative < 10000 ? (
-                            <span style={{ color: '#f59e0b' }}>⚠️ Low Balance</span>
-                          ) : (
-                            <span style={{ color: '#22c55e' }}>✓ OK</span>
-                          )}
-                        </td>
-                        <td>
-                          <button
-                            onClick={() => handleDelete(forecast.id)}
-                            style={{ padding: '5px 10px', cursor: 'pointer' }}
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot style={{ backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>
-                  <tr>
-                    <td>Total</td>
-                    <td style={{ textAlign: 'right', color: '#22c55e' }}>
-                      {formatCurrency(
-                        forecasts.reduce((sum, f) => sum + f.inflows, 0)
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'right', color: '#ef4444' }}>
-                      {formatCurrency(
-                        forecasts.reduce((sum, f) => sum + f.outflows, 0)
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      {formatCurrency(
-                        forecasts.reduce((sum, f) => sum + (f.inflows - f.outflows), 0)
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      {forecasts.length > 0
-                        ? formatCurrency(forecasts[forecasts.length - 1]!.cumulative)
-                        : '-'}
-                    </td>
-                    <td colSpan={2}></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          )}
-        </>
-      )}
     </div>
   );
 }
