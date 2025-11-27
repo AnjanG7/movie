@@ -175,7 +175,7 @@ model PhaseEntity {
   name      Phase
   orderNo   Int?
   projectId String
-  project   Project @relation(fields: [projectId], references: [id])
+  project   Project @relation(fields: [projectId], references: [id],onDelete: Cascade)
 }
 
 // ---------------------- Budgeting / Quotation -----------------------
@@ -202,7 +202,7 @@ model BudgetVersion {
   updatedAt       DateTime?        @updatedAt
 
   lines           BudgetLineItem[]
-  project         Project          @relation(fields: [projectId], references: [id])
+  project         Project          @relation(fields: [projectId], references: [id] ,onDelete: Cascade)
   changeOrders    ChangeOrder[]
   
   @@unique([projectId, version])   // Ensure unique version numbers per project
@@ -223,7 +223,7 @@ model BudgetLineItem {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime?     @updatedAt
 
-  budgetVersion   BudgetVersion @relation(fields: [budgetVersionId], references: [id])
+  budgetVersion   BudgetVersion @relation(fields: [budgetVersionId], references: [id], onDelete: Cascade)
   purchaseOrders  PurchaseOrder[]
 }
 
@@ -235,7 +235,7 @@ model ChangeOrder {
   newValue  Json?
   createdBy String?
   createdAt DateTime      @default(now())
-  version   BudgetVersion @relation(fields: [versionId], references: [id])
+  version   BudgetVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
 }
 
 // ---------------------- Vendors & Costs -----------------
@@ -266,9 +266,9 @@ model PurchaseOrder {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime? @updatedAt
 
-  vendor     Vendor    @relation(fields: [vendorId], references: [id])
-  project    Project   @relation(fields: [projectId], references: [id])
-  budgetLine BudgetLineItem? @relation(fields: [budgetLineId], references: [id])
+  vendor     Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  project    Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  budgetLine BudgetLineItem? @relation(fields: [budgetLineId], references: [id], onDelete: Cascade)
   invoices   Invoice[]
 }
 
@@ -284,8 +284,8 @@ model Invoice {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime?      @updatedAt
 
-  vendor      Vendor         @relation(fields: [vendorId], references: [id])
-  po          PurchaseOrder? @relation(fields: [poId], references: [id])
+  vendor      Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  po          PurchaseOrder? @relation(fields: [poId], references: [id], onDelete: Cascade)
   payments    Payment[]
 }
 
@@ -298,7 +298,7 @@ model Payment {
   status    String    @default("Paid")
   createdAt DateTime  @default(now())
 
-  invoice   Invoice   @relation(fields: [invoiceId], references: [id])
+  invoice   Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }
 
 model ScheduledPayment {
@@ -319,7 +319,7 @@ model Installment {
   dueDate            DateTime
   amount             Float
   status             String           @default("Pending")
-  scheduledPayment   ScheduledPayment @relation(fields: [scheduledPaymentId], references: [id])
+  scheduledPayment   ScheduledPayment @relation(fields: [scheduledPaymentId], references: [id], onDelete: Cascade)
 }
 
 model Allocation {
@@ -328,7 +328,7 @@ model Allocation {
   phase              Phase
   lineRefId          String?
   amount             Float
-  scheduledPayment   ScheduledPayment @relation(fields: [scheduledPaymentId], references: [id])
+  scheduledPayment   ScheduledPayment @relation(fields: [scheduledPaymentId], references: [id], onDelete: Cascade)
 }
 
 // ---------------------- Financing & Cashflow ------------
@@ -344,7 +344,7 @@ model FinancingSource {
   createdAt DateTime     @default(now())
   updatedAt DateTime?    @updatedAt
 
-  project   Project      @relation(fields: [projectId], references: [id])
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   drawdowns Drawdown[]
   participants Participant[] // optional link to waterfall participants if this source maps to an investor
 }
@@ -354,7 +354,7 @@ model Drawdown {
   sourceId String
   date     DateTime
   amount   Float
-  source   FinancingSource @relation(fields: [sourceId], references: [id])
+  source   FinancingSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
 }
 
 model CashflowForecast {
@@ -364,7 +364,7 @@ model CashflowForecast {
   inflows    Float
   outflows   Float
   cumulative Float
-  project    Project  @relation(fields: [projectId], references: [id])
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 // ---------------------- Post & P&A ----------------------
@@ -385,7 +385,7 @@ model PostTask {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime?     @updatedAt
 
-  project      Project       @relation(fields: [projectId], references: [id])
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model PAndATask {
@@ -403,7 +403,7 @@ model PAndATask {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime? @updatedAt
 
-  project      Project   @relation(fields: [projectId], references: [id])
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 // ---------------------- Distribution --------------------
@@ -420,10 +420,10 @@ model DistributionDeal {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime?          @updatedAt
 
-  project           Project            @relation(fields: [projectId], references: [id])
+  project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   revenueStatements RevenueStatement[]
 
-  waterfall    WaterfallDefinition? @relation(fields: [waterfallId], references: [id])
+  waterfall    WaterfallDefinition? @relation(fields: [waterfallId], references: [id], onDelete: Cascade)
 }
 
 model RevenueStatement {
@@ -440,7 +440,7 @@ model RevenueStatement {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime?        @updatedAt
 
-  deal        DistributionDeal @relation(fields: [dealId], references: [id])
+  deal        DistributionDeal @relation(fields: [dealId], references: [id], onDelete: Cascade)
 }
 
 // ---------------------- Waterfall & Investors ------------
@@ -451,7 +451,7 @@ model WaterfallDefinition {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime?       @updatedAt
 
-  project      Project         @relation(fields: [projectId], references: [id])
+  project      Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tiers        WaterfallTier[]
   participants Participant[]
   periods      WaterfallPeriod[]
@@ -466,7 +466,7 @@ model WaterfallTier {
   cap         Float?
   pctSplit    Float?
   description String?
-  waterfall   WaterfallDefinition @relation(fields: [waterfallId], references: [id])
+  waterfall   WaterfallDefinition @relation(fields: [waterfallId], references: [id], onDelete: Cascade)
 }
 
 model Participant {
@@ -485,9 +485,9 @@ model Participant {
   createdAt          DateTime            @default(now())
   updatedAt          DateTime?           @updatedAt
 
-  waterfall          WaterfallDefinition @relation(fields: [waterfallId], references: [id])
+  waterfall          WaterfallDefinition @relation(fields: [waterfallId], references: [id], onDelete: Cascade)
   payouts            WaterfallPayout[]
-  financingSource    FinancingSource?    @relation(fields: [financingSourceId], references: [id])
+  financingSource    FinancingSource?    @relation(fields: [financingSourceId], references: [id], onDelete: Cascade)
 }
 
 model WaterfallPayout {
@@ -498,7 +498,7 @@ model WaterfallPayout {
   amount        Float
   createdAt     DateTime    @default(now())
 
-  participant   Participant @relation(fields: [participantId], references: [id])
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
 }
 
 // Waterfall revenue periods (a pool to run distribution against)
@@ -510,7 +510,7 @@ model WaterfallPeriod {
   netRevenue  Float
   createdAt   DateTime @default(now())
 
-  waterfall   WaterfallDefinition @relation(fields: [waterfallId], references: [id])
+  waterfall   WaterfallDefinition @relation(fields: [waterfallId], references: [id], onDelete: Cascade)
 }
 
 // ---------------------- Reference Tables -----------------
