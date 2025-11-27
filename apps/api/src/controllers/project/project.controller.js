@@ -19,7 +19,30 @@ export const createProject = asyncHandler(async (req, res) => {
       )
     );
 });
+export const updateProject = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const updated = await projectService.updateProject(projectId, req.body);
 
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(StatusCodes.OK, updated, "Project updated successfully")
+    );
+});
+
+// -------------------------------
+// Delete Project
+// -------------------------------
+export const deleteProject = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const result = await projectService.deleteProject(projectId);
+
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(StatusCodes.OK, result, "Project deleted successfully")
+    );
+});
 // Fetch Single Project
 export const fetchProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params;

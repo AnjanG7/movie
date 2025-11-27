@@ -4,6 +4,8 @@ import {
   assignProject,
   getAllProjects,
   fetchProject,
+  deleteProject,
+  updateProject,
 } from "../controllers/project/project.controller.js";
 import { authMiddleware } from "../middlewares/authmiddleware.js";
 import { authorizeRoles } from "../middlewares/rolemiddleware.js";
@@ -36,7 +38,20 @@ router.get(
   "/:projectId",
   authMiddleware,
   authorizeRoles("Admin", "Producer"),
-  fetchProject   // <-- Add this controller
+  fetchProject  
+);
+router.put(
+  "/:projectId",
+  authMiddleware,
+  authorizeRoles("Admin", "Producer"),
+  updateProject
+);
+
+router.delete(
+  "/:projectId",
+  authMiddleware,
+  authorizeRoles("Admin", "Producer"),
+  deleteProject
 );
 
 

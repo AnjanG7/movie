@@ -12,6 +12,7 @@ import {
   calculateMetrics,
   convertToBaseline,
   deleteQuotation,
+  updateQuotation,
 } from '../controllers/quotation/quotation.controller.js';
 import { authMiddleware } from '../middlewares/authmiddleware.js';
 import { authorizeRoles } from '../middlewares/rolemiddleware.js';
@@ -107,7 +108,13 @@ router.post(
   authorizeRoles('Producer'),
   convertToBaseline
 );
-
+//update quotation
+router.put(
+  '/:id',
+  authMiddleware,
+  authorizeRoles('Producer'),
+  updateQuotation
+);
 router.delete(
   '/:id',
   authMiddleware,

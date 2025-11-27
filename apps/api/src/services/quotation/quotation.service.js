@@ -117,7 +117,89 @@ async createQuotation(projectId, data, userId) {
 
     return templates[template] || templates.FEATURE;
   }
-  
+  async updateQuotation(quotationId, data) {
+  // Fetch existing quotation
+  const existing = await prisma.budgetVersion.findUnique({
+    where: { id: quotationId },
+    include: { lines: true },
+  });
+
+  if (!existing) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Quotation not found');
+  }
+
+  if (existing.type !== 'QUOTE') {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Can only update quotations, not baseline or working budgets'
+    );
+  }
+
+  const {
+    version,
+    template,
+    assumptions,
+    financingPlan,
+    revenueModel,
+    lines,
+  } = data;
+
+  // Check for version uniqueness if version is changed
+  if (version && version !== existing.version) {
+    const duplicate = await prisma.budgetVersion.findFirst({
+      where: { projectId: existing.projectId, version },
+    });
+    if (duplicate) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, `Version "${version}" already exists`);
+    }
+  }
+
+  // Recalculate grandTotal if lines are provided
+  let grandTotal = existing.grandTotal;
+  if (Array.isArray(lines) && lines.length > 0) {
+    grandTotal = lines.reduce((sum, line) => {
+      const qty = Number(line.qty ?? 1);
+      const rate = Number(line.rate ?? 0);
+      const taxPercent = Number(line.taxPercent ?? 0);
+      const subtotal = qty * rate;
+      const tax = subtotal * (taxPercent / 100);
+      return sum + subtotal + tax;
+    }, 0);
+  }
+
+  // Update quotation
+  const updated = await prisma.budgetVersion.update({
+    where: { id: quotationId },
+    data: {
+      version: version ?? existing.version,
+      template: template ?? existing.template,
+      assumptions: assumptions ?? existing.assumptions,
+      financingPlan: financingPlan ?? existing.financingPlan,
+      revenueModel: revenueModel ?? existing.revenueModel,
+      grandTotal,
+      // Update lines if provided
+      lines: Array.isArray(lines)
+        ? {
+            deleteMany: {}, // delete existing lines
+            create: lines.map((line) => ({
+              phase: line.phase || 'PRODUCTION',
+              department: line.department || '',
+              name: line.name || '',
+              qty: Number(line.qty ?? 1),
+              rate: Number(line.rate ?? 0),
+              taxPercent: Number(line.taxPercent ?? 0),
+              vendor: line.vendor || null,
+              notes: line.notes || null,
+            })),
+          }
+        : undefined,
+    },
+    include: { lines: true, project: { select: { id: true, title: true, baseCurrency: true } } },
+  });
+
+  return updated;
+}
+
   // Delete quotation
 async deleteQuotation(quotationId) {
   const quotation = await prisma.budgetVersion.findUnique({
