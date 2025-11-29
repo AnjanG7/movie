@@ -9,7 +9,7 @@ export const createBudgetVersion = asyncHandler(async (req, res) => {
   const version = await budgetService.createBudgetVersion(
     req.params.projectId,
     req.body,
-    req.user.id
+    req.user?.id
   );
   res
     .status(StatusCodes.CREATED)
@@ -21,12 +21,41 @@ export const createBudgetVersion = asyncHandler(async (req, res) => {
       )
     );
 });
+export const updateBudgetVersion = asyncHandler(async (req, res) => {
+  const { versionId } = req.params;
+  const updateData = req.body;
 
+  const updatedVersion = await budgetService.updateBudgetVersion(
+    versionId,
+    updateData,
+    req.user?.id
+  );
+
+  res.status(StatusCodes.OK).json(
+    new ApiResponse(
+      StatusCodes.OK,
+      updatedVersion,
+      "Budget Version updated successfully"
+    )
+  );
+});
+export const deleteBudgetVersion = asyncHandler(async (req, res) => {
+  const { versionId } = req.params;
+
+  const result = await budgetService.deleteBudgetVersion(
+    versionId,
+    req.user?.id
+  );
+
+  res.status(StatusCodes.OK).json(
+    new ApiResponse(StatusCodes.OK, result, "Budget Version deleted successfully")
+  );
+});
 export const getBudgetVersions = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
   const query = req.query; // contains page, limit, type, locked
 
-  const result = await budgetService.getBudgetVersions(projectId, query);
+  const result = await budgetService.getBudgetVersions(projectId,req.user?.id, query);
 
   res
     .status(StatusCodes.OK)

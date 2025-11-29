@@ -7,7 +7,7 @@ const projectService = new ProjectService();
 
 
 export const createProject = asyncHandler(async (req, res) => {
-  const project = await projectService.createProject(req.body, req.user.id);
+  const project = await projectService.createProject(req.body, req.user?.id);
 
   res
     .status(StatusCodes.CREATED)
@@ -21,7 +21,7 @@ export const createProject = asyncHandler(async (req, res) => {
 });
 export const updateProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const updated = await projectService.updateProject(projectId, req.body);
+  const updated = await projectService.updateProject(projectId, req.body, req.user?.id);
 
   res
     .status(StatusCodes.OK)
@@ -35,7 +35,7 @@ export const updateProject = asyncHandler(async (req, res) => {
 // -------------------------------
 export const deleteProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const result = await projectService.deleteProject(projectId);
+  const result = await projectService.deleteProject(projectId,req.user?.id);
 
   res
     .status(StatusCodes.OK)
@@ -71,7 +71,8 @@ export const assignProject = asyncHandler(async (req, res) => {
 
 // Get All Projects
 export const getAllProjects = asyncHandler(async (req, res) => {
-  const data = await projectService.getAllProjects(req.query);
+
+  const data = await projectService.getAllProjects(req.query, req.user?.id);
 
   res
     .status(StatusCodes.OK)
@@ -79,3 +80,4 @@ export const getAllProjects = asyncHandler(async (req, res) => {
       new ApiResponse(StatusCodes.OK, data, "Projects fetched successfully")
     );
 });
+

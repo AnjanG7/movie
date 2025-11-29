@@ -4,12 +4,19 @@ import { StatusCodes } from "http-status-codes";
 import { Phase } from "@prisma/client";
 
 export class BudgetVersionService {
-
   // Create new Budget Version (WORKING / QUOTE)
   async createBudgetVersion(projectId, data, userId) {
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
-
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project)
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    if (user.role !== "Admin" && project.ownerId !== userId) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "You do not have permission to create a budget version for this project"
+      );
+    }
     const versionData = {
       projectId,
       version: data.version,
@@ -24,54 +31,122 @@ export class BudgetVersionService {
 
     return budgetVersion;
   }
+  async updateBudgetVersion(versionId, updateData, userId) {
+    const version = await prisma.budgetVersion.findUnique({
+      where: { id: versionId },
+      include: { project: true }, // include project to check ownership
+    });
 
-  // Get all Budget Versions for a Project
-async getBudgetVersions(projectId, query) {
-  const {
-    page = 1,
-    limit = 10,
-    type,      // optional filter: "BASELINE", "WORKING", "QUOTE"
-    locked,    // optional filter: true/false
-  } = query;
+    if (!version)
+      throw new ApiError(StatusCodes.NOT_FOUND, "Budget Version not found");
 
-  const skip = (Number(page) - 1) * Number(limit);
-  const take = Number(limit);
+    // Only producer can update
+    if (user.role !== "Admin" && version.project.ownerId !== userId) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "You do not have permission to update this budget version"
+      );
+    }
 
-  // Build dynamic where clause
-  const where = { projectId };
+    // Prevent updating locked BASELINE version
+    if (version.type === "BASELINE" && version.lockedAt) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "Cannot update a locked baseline version"
+      );
+    }
 
-  if (type) where.type = type;
-  if (locked !== undefined) {
-    if (locked === "true" || locked === true) where.lockedAt = { not: null };
-    else if (locked === "false" || locked === false) where.lockedAt = null;
+    const updated = await prisma.budgetVersion.update({
+      where: { id: versionId },
+      data: updateData,
+    });
+
+    return updated;
+  }
+  async deleteBudgetVersion(versionId, userId) {
+    const version = await prisma.budgetVersion.findUnique({
+      where: { id: versionId },
+      include: { project: true }, // to check ownership
+    });
+
+    if (!version)
+      throw new ApiError(StatusCodes.NOT_FOUND, "Budget Version not found");
+
+    // Only producer can delete
+    if (user.role !== "Admin" && version.project.ownerId !== userId) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "You do not have permission to delete this budget version"
+      );
+    }
+
+    // Prevent deleting locked BASELINE version
+    if (version.type === "BASELINE" && version.lockedAt) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "Cannot delete a locked baseline version"
+      );
+    }
+
+    await prisma.budgetVersion.delete({
+      where: { id: versionId },
+    });
+
+    return { message: "Budget Version deleted successfully" };
   }
 
-  // Fetch data with pagination
-  const [versions, total] = await Promise.all([
-    prisma.budgetVersion.findMany({
-      where,
-      include: { lines: true },
-      skip,
-      take,
-      orderBy: { createdAt: "asc" },
-    }),
-    prisma.budgetVersion.count({ where }),
-  ]);
+  // Get all Budget Versions for a Project
+  async getBudgetVersions(projectId, userId, query) {
+    const {
+      page = 1,
+      limit = 10,
+      type, // optional filter: "BASELINE", "WORKING", "QUOTE"
+      locked, // optional filter: true/false
+    } = query;
 
-  return {
-    total,
-    page: Number(page),
-    totalPages: Math.ceil(total / limit),
-    versions,
-  };
+    const skip = (Number(page) - 1) * Number(limit);
+    const take = Number(limit);
+
+    // Build dynamic where clause
+    const where = { projectId};
+    const rolesAllowed = ["Admin", "Investor"];
+    if (!rolesAllowed.includes(user.role)) {
+  where.createdBy = userId;
 }
 
+    if (type) where.type = type;
+    if (locked !== undefined) {
+      if (locked === "true" || locked === true) where.lockedAt = { not: null };
+      else if (locked === "false" || locked === false) where.lockedAt = null;
+    }
 
+    // Fetch data with pagination
+    const [versions, total] = await Promise.all([
+      prisma.budgetVersion.findMany({
+        where,
+        include: { lines: true },
+        skip,
+        take,
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.budgetVersion.count({ where }),
+    ]);
+
+    return {
+      total,
+      page: Number(page),
+      totalPages: Math.ceil(total / limit),
+      versions,
+    };
+  }
 
   // Add Line Item
   async addLineItem(versionId, lineData, userId) {
-    const version = await prisma.budgetVersion.findUnique({ where: { id: versionId } });
-    if (!version) throw new ApiError(StatusCodes.NOT_FOUND, "Budget Version not found");
+    const version = await prisma.budgetVersion.findUnique({
+      where: { id: versionId },
+    });
+    if (!version)
+      throw new ApiError(StatusCodes.NOT_FOUND, "Budget Version not found");
 
     const lineItem = await prisma.budgetLineItem.create({
       data: {
@@ -96,9 +171,23 @@ async getBudgetVersions(projectId, query) {
 
   // Update Line Item
   async updateLineItem(lineId, updateData, userId) {
-    const line = await prisma.budgetLineItem.findUnique({ where: { id: lineId } });
-    if (!line) throw new ApiError(StatusCodes.NOT_FOUND, "Line Item not found");
+    const line = await prisma.budgetLineItem.findUnique({
+      where: { id: lineId },
+      include: { budgetVersion: { include: { project: true } } }, // to check ownership
+    });
 
+    if (!line) throw new ApiError(StatusCodes.NOT_FOUND, "Line Item not found");
+    // Only allow the creator of the budget version or producer to update
+    if (
+      user.role !== "Admin" &&
+      line.budgetVersion.createdBy !== userId &&
+      line.budgetVersion.project.ownerId !== userId
+    ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "You do not have permission to update this line item"
+      );
+    }
     const updatedLine = await prisma.budgetLineItem.update({
       where: { id: lineId },
       data: updateData,
@@ -120,9 +209,20 @@ async getBudgetVersions(projectId, query) {
 
   // Delete Line Item
   async deleteLineItem(lineId, userId) {
-    const line = await prisma.budgetLineItem.findUnique({ where: { id: lineId } });
+    const line = await prisma.budgetLineItem.findUnique({
+      where: { id: lineId },
+      include: { budgetVersion: { include: { project: true } } }, // to check ownership
+    });
     if (!line) throw new ApiError(StatusCodes.NOT_FOUND, "Line Item not found");
-
+    if (user.role !== "Admin" && 
+      line.budgetVersion.createdBy !== userId &&
+      line.budgetVersion.project.ownerId !== userId
+    ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "You do not have permission to update this line item"
+      );
+    }
     await prisma.budgetLineItem.delete({ where: { id: lineId } });
 
     // Record ChangeOrder
@@ -141,9 +241,16 @@ async getBudgetVersions(projectId, query) {
 
   // Lock BASELINE version
   async lockBaseline(versionId) {
-    const version = await prisma.budgetVersion.findUnique({ where: { id: versionId } });
-    if (!version) throw new ApiError(StatusCodes.NOT_FOUND, "Budget Version not found");
-    if (version.type !== "BASELINE") throw new ApiError(StatusCodes.BAD_REQUEST, "Only BASELINE can be locked");
+    const version = await prisma.budgetVersion.findUnique({
+      where: { id: versionId },
+    });
+    if (!version)
+      throw new ApiError(StatusCodes.NOT_FOUND, "Budget Version not found");
+    if (version.type !== "BASELINE")
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        "Only BASELINE can be locked"
+      );
 
     return prisma.budgetVersion.update({
       where: { id: versionId },
