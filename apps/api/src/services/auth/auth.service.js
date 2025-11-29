@@ -6,6 +6,18 @@ import { signToken } from "../../utils/helper.js";
 
 export class AuthService {
   async signup({ email, password, name, role: roleName }) { // rename argument to roleName
+      if (roleName === "Admin") {
+    const existingAdmin = await prisma.user.findFirst({
+      where: { role: { name: "Admin" } },
+    });
+    if (existingAdmin) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        "An Admin account already exists"
+      );
+    }
+  }
+
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) throw new ApiError(StatusCodes.BAD_REQUEST, "Email already registered");
 

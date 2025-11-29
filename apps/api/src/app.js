@@ -26,53 +26,53 @@ import projectRouter from "./routes/project.routes.js";
 import budgetRouter from "./routes/budgetversion.routes.js";
 import quotationRouter from "./routes/quotation.routes.js";
 import waterfallRouter from "./routes/waterfall.routes.js";
-import purchaseOrderRouter from './routes/purchaseOrder.routes.js';
-import invoiceRouter from './routes/invoice.routes.js';
-import paymentRouter from './routes/payment.routes.js';
-import vendorRouter from './routes/vendor.routes.js';
-import cashflowRouter from './routes/cashflow.routes.js';
-import financingSourceRouter from './routes/financingSource.routes.js';
-import drawdownRouter from './routes/drawdown.routes.js';
-import budgetLineRouter from './routes/budgetLine.routes.js';
+import purchaseOrderRouter from "./routes/purchaseOrder.routes.js";
+import invoiceRouter from "./routes/invoice.routes.js";
+import paymentRouter from "./routes/payment.routes.js";
+import vendorRouter from "./routes/vendor.routes.js";
+import cashflowRouter from "./routes/cashflow.routes.js";
+import financingSourceRouter from "./routes/financingSource.routes.js";
+import drawdownRouter from "./routes/drawdown.routes.js";
+import budgetLineRouter from "./routes/budgetLine.routes.js";
 // Add this import with your other route imports
-import postProductionRouter from './routes/postProduction.routes.js';
+import postProductionRouter from "./routes/postProduction.routes.js";
 // Import the publicity router
-import publicityRouter from './routes/publicity.routes.js';
-
+import publicityRouter from "./routes/publicity.routes.js";
+import assignRouter from "./routes/assign.routes.js";
 // Register all routes
 app.use("/api/auth", authRouter);
 app.use("/api/projects", projectRouter);
 app.use("/api/projects/:projectId/budget", budgetRouter);
 app.use("/api/projects/:projectId/quotations", quotationRouter);
 app.use("/api/projects/:projectId/waterfalls", waterfallRouter);
-app.use('/api/vendors', vendorRouter);
-app.use('/api/projects/:projectId/purchase-orders', purchaseOrderRouter);
-app.use('/api/invoices', invoiceRouter);
-app.use('/api/payments', paymentRouter);
-app.use('/api/projects/:projectId/cashflow', cashflowRouter);
-app.use('/api/projects/:projectId/financing-sources', financingSourceRouter);
-app.use('/api/projects/:projectId/drawdowns', drawdownRouter);
-app.use('/api/projects/:projectId/budget-lines', budgetLineRouter);
+app.use("/api/vendors", vendorRouter);
+app.use("/api/projects/:projectId/purchase-orders", purchaseOrderRouter);
+app.use("/api/invoices", invoiceRouter);
+app.use("/api/payments", paymentRouter);
+app.use("/api/projects/:projectId/cashflow", cashflowRouter);
+app.use("/api/projects/:projectId/financing-sources", financingSourceRouter);
+app.use("/api/projects/:projectId/drawdowns", drawdownRouter);
+app.use("/api/projects/:projectId/budget-lines", budgetLineRouter);
 
 // Add this route registration with your other routes
-app.use('/api/projects/:projectId/post-production', postProductionRouter);
-
+app.use("/api/projects/:projectId/post-production", postProductionRouter);
 
 // Register the route (add this with your other routes)
-app.use('/api/projects/:projectId/publicity', publicityRouter);
+app.use("/api/projects/:projectId/publicity", publicityRouter);
 
+// ProjectUser routes (assign, update role, list, remove)
+app.use("/api/projects/:projectId/users", assignRouter);
+import roiRouter from "./routes/roi.routes.js";
+app.use("/api/projects/:projectId/quotations", roiRouter);
 
-import roiRouter from './routes/roi.routes.js';
-app.use('/api/projects/:projectId/quotations', roiRouter);
-
-import exportRouter from './routes/export.routes.js';
+import exportRouter from "./routes/export.routes.js";
 // Register export routes (add with other routes)
-app.use('/api/projects/:projectId/quotations', exportRouter);
-app.use('/api/projects', exportRouter);
-app.use('/api', exportRouter);
+app.use("/api/projects/:projectId/quotations", exportRouter);
+app.use("/api/projects", exportRouter);
+app.use("/api", exportRouter);
 
 // Serve static exports folder
-app.use('/exports', express.static('exports'));
+app.use("/exports", express.static("exports"));
 
 // Error handler (should be last)
 app.use(errorHandler);

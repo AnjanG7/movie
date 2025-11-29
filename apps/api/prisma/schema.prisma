@@ -41,7 +41,7 @@ enum FinancingType {
   LOAN
   GRANT
   INCENTIVE
-  MG          // Minimum Guarantee
+  MG // Minimum Guarantee
 }
 
 enum PostTaskType {
@@ -58,6 +58,7 @@ enum TaskStatus {
   IN_PROGRESS
   COMPLETED
 }
+
 enum PublicityCategory {
   TRAILER
   KEY_ART
@@ -105,24 +106,26 @@ enum CampaignStatus {
   COMPLETED
   CANCELLED
 }
+
 // ---------------------- Core Models ---------------------
 
 model User {
-  id        String     @id @default(uuid())
+  id        String        @id @default(uuid())
   name      String
-  email     String     @unique
+  email     String        @unique
   password  String
-  status    UserStatus @default(ACTIVE)
+  status    UserStatus    @default(ACTIVE)
   roleId    String?
-  role      Role?      @relation(fields: [roleId], references: [id])
+  role      Role?         @relation(fields: [roleId], references: [id])
   auditLogs AuditLog[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime?  @updatedAt
+  projectsuser  ProjectUser[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime?     @updatedAt
 }
 
 model Role {
-  id    String   @id @default(uuid())
-  name  String   @unique
+  id    String @id @default(uuid())
+  name  String @unique
   users User[]
 }
 
@@ -146,14 +149,14 @@ model AuditLog {
 // ---------------------- Projects -----------------------
 
 model Project {
-  id                   String                @id @default(uuid())
-  title                String
-  baseCurrency         String
-  timezone             String?               @default("Asia/Kathmandu")
-  status               String?               @default("planning")
-  ownerId              String?
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime?             @updatedAt
+  id           String    @id @default(uuid())
+  title        String
+  baseCurrency String
+  timezone     String?   @default("Asia/Kathmandu")
+  status       String?   @default("planning")
+  ownerId      String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime? @updatedAt
 
   budgetVersions       BudgetVersion[]
   phases               PhaseEntity[]
@@ -164,9 +167,20 @@ model Project {
   cashflowForecasts    CashflowForecast[]
   postTasks            PostTask[]
   pAndATasks           PAndATask[]
+  users                ProjectUser[]
+  publicityBudgets     PublicityBudget[]
+  campaignEvents       CampaignEvent[]
+}
 
-  publicityBudgets  PublicityBudget[]
-  campaignEvents    CampaignEvent[]
+model ProjectUser {
+  id        String  @id @default(uuid())
+  projectId String
+  userId    String
+  role      String // "LineProducer", "Accountant", etc.
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id],onDelete: Restrict)
+
+  @@unique([projectId, userId])
 }
 
 // Phase entity per project
@@ -175,56 +189,55 @@ model PhaseEntity {
   name      Phase
   orderNo   Int?
   projectId String
-  project   Project @relation(fields: [projectId], references: [id],onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 // ---------------------- Budgeting / Quotation -----------------------
 
 model BudgetVersion {
-  id              String           @id @default(uuid())
-  projectId       String
-  version         String           // e.g. "v1.0", "v1.1", "BASELINE", "WORKING-V1"
-  type            BudgetType       // QUOTE | BASELINE | WORKING
-  createdBy       String?
-  lockedAt        DateTime?
-  acceptedAt      DateTime?        // when a quote was accepted/converted
-  sentTo          Json?            // optional: list of recipients (investors / emails)
-  
-  // NEW: Quotation-specific fields
-  template        String?          // FEATURE | SERIES | SHORT
-  assumptions     Json?            // { currency, taxPercent, contingencyPercent, insurancePercent, bondPercent, phases }
-  financingPlan   Json?            // { sources: [{ type, amount, rate }] }
-  revenueModel    Json?            // { grossRevenue, distributionFeePercent, territoryBreakdown, etc }
-  metrics         Json?            // { totalCost, projectedRevenue, roi, irr, npv, breakEven }
-  
-  grandTotal      Float?           // cached total for quick read
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime?        @updatedAt
+  id         String     @id @default(uuid())
+  projectId  String
+  version    String // e.g. "v1.0", "v1.1", "BASELINE", "WORKING-V1"
+  type       BudgetType // QUOTE | BASELINE | WORKING
+  createdBy  String?
+  lockedAt   DateTime?
+  acceptedAt DateTime? // when a quote was accepted/converted
+  sentTo     Json? // optional: list of recipients (investors / emails)
 
-  lines           BudgetLineItem[]
-  project         Project          @relation(fields: [projectId], references: [id] ,onDelete: Cascade)
-  changeOrders    ChangeOrder[]
-  
-  @@unique([projectId, version])   // Ensure unique version numbers per project
+  // NEW: Quotation-specific fields
+  template      String? // FEATURE | SERIES | SHORT
+  assumptions   Json? // { currency, taxPercent, contingencyPercent, insurancePercent, bondPercent, phases }
+  financingPlan Json? // { sources: [{ type, amount, rate }] }
+  revenueModel  Json? // { grossRevenue, distributionFeePercent, territoryBreakdown, etc }
+  metrics       Json? // { totalCost, projectedRevenue, roi, irr, npv, breakEven }
+
+  grandTotal Float? // cached total for quick read
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  lines        BudgetLineItem[]
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  changeOrders ChangeOrder[]
+
+  @@unique([projectId, version]) // Ensure unique version numbers per project
 }
 
-
 model BudgetLineItem {
-  id              String        @id @default(uuid())
+  id              String    @id @default(uuid())
   budgetVersionId String
   phase           Phase
   department      String?
   name            String
-  qty             Int           @default(1)
+  qty             Int       @default(1)
   rate            Float
-  taxPercent      Float?        @default(0)
+  taxPercent      Float?    @default(0)
   vendor          String?
   notes           String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime?     @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime? @updatedAt
 
-  budgetVersion   BudgetVersion @relation(fields: [budgetVersionId], references: [id], onDelete: Cascade)
-  purchaseOrders  PurchaseOrder[]
+  budgetVersion  BudgetVersion   @relation(fields: [budgetVersionId], references: [id], onDelete: Cascade)
+  purchaseOrders PurchaseOrder[]
 }
 
 model ChangeOrder {
@@ -245,7 +258,7 @@ model Vendor {
   name              String
   currency          String
   bankInfo          Json?
-  contactInfo       Json?              // optional phone/email/address
+  contactInfo       Json? // optional phone/email/address
   purchaseOrders    PurchaseOrder[]
   invoices          Invoice[]
   scheduledPayments ScheduledPayment[] // opposite relation
@@ -254,39 +267,39 @@ model Vendor {
 }
 
 model PurchaseOrder {
-  id         String    @id @default(uuid())
-  vendorId   String
-  projectId  String
-  poNo       String    @unique
-  amount     Float
-  status     String    @default("Pending") // consider enum later
-  approvedBy String?
-  approvedAt DateTime?
-  budgetLineId String? 
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime? @updatedAt
+  id           String    @id @default(uuid())
+  vendorId     String
+  projectId    String
+  poNo         String    @unique
+  amount       Float
+  status       String    @default("Pending") // consider enum later
+  approvedBy   String?
+  approvedAt   DateTime?
+  budgetLineId String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime? @updatedAt
 
-  vendor     Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  project    Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  vendor     Vendor          @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  project    Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   budgetLine BudgetLineItem? @relation(fields: [budgetLineId], references: [id], onDelete: Cascade)
   invoices   Invoice[]
 }
 
 model Invoice {
-  id          String         @id @default(uuid())
+  id          String    @id @default(uuid())
   vendorId    String
   poId        String?
   docNo       String
   date        DateTime
   amount      Float
-  status      String         @default("Pending")
+  status      String    @default("Pending")
   attachments Json?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime?      @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime? @updatedAt
 
-  vendor      Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  po          PurchaseOrder? @relation(fields: [poId], references: [id], onDelete: Cascade)
-  payments    Payment[]
+  vendor   Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  po       PurchaseOrder? @relation(fields: [poId], references: [id], onDelete: Cascade)
+  payments Payment[]
 }
 
 model Payment {
@@ -298,7 +311,7 @@ model Payment {
   status    String    @default("Paid")
   createdAt DateTime  @default(now())
 
-  invoice   Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }
 
 model ScheduledPayment {
@@ -334,18 +347,18 @@ model Allocation {
 // ---------------------- Financing & Cashflow ------------
 
 model FinancingSource {
-  id        String       @id @default(uuid())
+  id        String        @id @default(uuid())
   projectId String
   type      FinancingType
   amount    Float
   rate      Float?
   fees      Float?
   schedule  Json?
-  createdAt DateTime     @default(now())
-  updatedAt DateTime?    @updatedAt
+  createdAt DateTime      @default(now())
+  updatedAt DateTime?     @updatedAt
 
-  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  drawdowns Drawdown[]
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  drawdowns    Drawdown[]
   participants Participant[] // optional link to waterfall participants if this source maps to an investor
 }
 
@@ -370,12 +383,12 @@ model CashflowForecast {
 // ---------------------- Post & P&A ----------------------
 
 model PostTask {
-  id           String    @id @default(uuid())
+  id           String        @id @default(uuid())
   projectId    String
   name         String
   type         PostTaskType?
-  assigneeId   String?       // user assigned
-  vendorId     String?       // vendor for the work
+  assigneeId   String? // user assigned
+  vendorId     String? // vendor for the work
   costEstimate Float
   actualCost   Float?
   dueDate      DateTime?
@@ -385,7 +398,7 @@ model PostTask {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime?     @updatedAt
 
-  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model PAndATask {
@@ -403,60 +416,59 @@ model PAndATask {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime? @updatedAt
 
-  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 // ---------------------- Distribution --------------------
 
 model DistributionDeal {
-  id                String             @id @default(uuid())
-  projectId         String
-  territory         String
-  window            String
-  feePercent        Float?
-  expensesCap       Float?
-  minimumGuarantee  Float?
-  waterfallId       String?            // link so revenue can flow into a waterfall
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime?          @updatedAt
+  id               String    @id @default(uuid())
+  projectId        String
+  territory        String
+  window           String
+  feePercent       Float?
+  expensesCap      Float?
+  minimumGuarantee Float?
+  waterfallId      String? // link so revenue can flow into a waterfall
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime? @updatedAt
 
   project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   revenueStatements RevenueStatement[]
 
-  waterfall    WaterfallDefinition? @relation(fields: [waterfallId], references: [id], onDelete: Cascade)
+  waterfall WaterfallDefinition? @relation(fields: [waterfallId], references: [id], onDelete: Cascade)
 }
 
 model RevenueStatement {
-  id          String           @id @default(uuid())
-  dealId      String
-  periodStart DateTime
-  periodEnd   DateTime
-  gross       Float
-  fee         Float
-  expenses    Float
-  net         Float
-  carryForward Float?           // leftover to carry to next period
-  allocated   Json?             // allocation map: { participantId: amount, ... }
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime?        @updatedAt
+  id           String    @id @default(uuid())
+  dealId       String
+  periodStart  DateTime
+  periodEnd    DateTime
+  gross        Float
+  fee          Float
+  expenses     Float
+  net          Float
+  carryForward Float? // leftover to carry to next period
+  allocated    Json? // allocation map: { participantId: amount, ... }
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime? @updatedAt
 
-  deal        DistributionDeal @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  deal DistributionDeal @relation(fields: [dealId], references: [id], onDelete: Cascade)
 }
 
 // ---------------------- Waterfall & Investors ------------
 
 model WaterfallDefinition {
-  id           String          @id @default(uuid())
-  projectId    String
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime?       @updatedAt
+  id        String    @id @default(uuid())
+  projectId String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
 
-  project      Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  tiers        WaterfallTier[]
-  participants Participant[]
-  periods      WaterfallPeriod[]
-    distributionDeals DistributionDeal[]   // ← Add this line
-
+  project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tiers             WaterfallTier[]
+  participants      Participant[]
+  periods           WaterfallPeriod[]
+  distributionDeals DistributionDeal[] // ← Add this line
 }
 
 model WaterfallTier {
@@ -470,35 +482,35 @@ model WaterfallTier {
 }
 
 model Participant {
-  id                 String              @id @default(uuid())
-  waterfallId        String
-  name               String
-  role               String
-  pctShare           Float?
-  investmentAmount   Float?              // how much the participant invested
-  recoupedAmount     Float?              @default(0) // amount recouped so far
-  preferredReturn    Float?              // preferred interest/premium (if any)
-  capAmount          Float?              // cap on returns (optional)
-  type               FinancingType?      // EQUITY | LOAN | MG etc.
-  orderNo            Int?                // priority/order in the waterfall
-  financingSourceId  String?             // optional link to FinancingSource
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime?           @updatedAt
+  id                String         @id @default(uuid())
+  waterfallId       String
+  name              String
+  role              String
+  pctShare          Float?
+  investmentAmount  Float? // how much the participant invested
+  recoupedAmount    Float?         @default(0) // amount recouped so far
+  preferredReturn   Float? // preferred interest/premium (if any)
+  capAmount         Float? // cap on returns (optional)
+  type              FinancingType? // EQUITY | LOAN | MG etc.
+  orderNo           Int? // priority/order in the waterfall
+  financingSourceId String? // optional link to FinancingSource
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime?      @updatedAt
 
-  waterfall          WaterfallDefinition @relation(fields: [waterfallId], references: [id], onDelete: Cascade)
-  payouts            WaterfallPayout[]
-  financingSource    FinancingSource?    @relation(fields: [financingSourceId], references: [id], onDelete: Cascade)
+  waterfall       WaterfallDefinition @relation(fields: [waterfallId], references: [id], onDelete: Cascade)
+  payouts         WaterfallPayout[]
+  financingSource FinancingSource?    @relation(fields: [financingSourceId], references: [id], onDelete: Cascade)
 }
 
 model WaterfallPayout {
-  id            String      @id @default(uuid())
+  id            String   @id @default(uuid())
   participantId String
   periodStart   DateTime
   periodEnd     DateTime
   amount        Float
-  createdAt     DateTime    @default(now())
+  createdAt     DateTime @default(now())
 
-  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
 }
 
 // Waterfall revenue periods (a pool to run distribution against)
@@ -510,7 +522,7 @@ model WaterfallPeriod {
   netRevenue  Float
   createdAt   DateTime @default(now())
 
-  waterfall   WaterfallDefinition @relation(fields: [waterfallId], references: [id], onDelete: Cascade)
+  waterfall WaterfallDefinition @relation(fields: [waterfallId], references: [id], onDelete: Cascade)
 }
 
 // ---------------------- Reference Tables -----------------
@@ -532,27 +544,26 @@ model Attachment {
   uploadedAt DateTime @default(now())
 }
 
-
 // NEW: Publicity & P&A Budget Items
 model PublicityBudget {
-  id              String            @id @default(uuid())
-  projectId       String
-  name            String
-  category        PublicityCategory
-  description     String?
-  budgetAmount    Float
-  actualAmount    Float             @default(0)
-  vendor          String?
-  startDate       DateTime?
-  endDate         DateTime?
-  status          PublicityStatus   @default(PLANNED)
-  notes           String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime?         @updatedAt
+  id           String            @id @default(uuid())
+  projectId    String
+  name         String
+  category     PublicityCategory
+  description  String?
+  budgetAmount Float
+  actualAmount Float             @default(0)
+  vendor       String?
+  startDate    DateTime?
+  endDate      DateTime?
+  status       PublicityStatus   @default(PLANNED)
+  notes        String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime?         @updatedAt
 
-  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  expenses        PublicityExpense[]
-  campaignEvents  CampaignEvent[]
+  project        Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  expenses       PublicityExpense[]
+  campaignEvents CampaignEvent[]
 
   @@index([projectId])
   @@index([category])
@@ -561,7 +572,7 @@ model PublicityBudget {
 
 // NEW: Publicity Expenses (Actuals tracking)
 model PublicityExpense {
-  id                String          @id @default(uuid())
+  id                String   @id @default(uuid())
   publicityBudgetId String
   description       String
   amount            Float
@@ -570,9 +581,9 @@ model PublicityExpense {
   invoiceNumber     String?
   attachmentUrl     String?
   notes             String?
-  createdAt         DateTime        @default(now())
+  createdAt         DateTime @default(now())
 
-  publicityBudget   PublicityBudget @relation(fields: [publicityBudgetId], references: [id], onDelete: Cascade)
+  publicityBudget PublicityBudget @relation(fields: [publicityBudgetId], references: [id], onDelete: Cascade)
 
   @@index([publicityBudgetId])
   @@index([expenseDate])
@@ -580,7 +591,7 @@ model PublicityExpense {
 
 // NEW: Campaign Calendar / Marketing Timeline
 model CampaignEvent {
-  id                String           @id @default(uuid())
+  id                String            @id @default(uuid())
   projectId         String
   publicityBudgetId String?
   title             String
@@ -589,13 +600,13 @@ model CampaignEvent {
   startDate         DateTime
   endDate           DateTime?
   deliverable       String?
-  status            CampaignStatus   @default(UPCOMING)
+  status            CampaignStatus    @default(UPCOMING)
   notes             String?
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime?        @updatedAt
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime?         @updatedAt
 
-  project           Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  publicityBudget   PublicityBudget? @relation(fields: [publicityBudgetId], references: [id])
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  publicityBudget PublicityBudget? @relation(fields: [publicityBudgetId], references: [id])
 
   @@index([projectId])
   @@index([startDate])

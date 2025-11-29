@@ -12,12 +12,22 @@ export class BudgetLineService {
         type: 'WORKING',
       },
       include: {
+        project:true,
         lines: {
           orderBy: [{ phase: 'asc' }, { department: 'asc' }],
         },
       },
     });
-
+  if (
+    user.role !== 'Admin' &&
+    workingBudget.project.ownerId !== user.id &&
+    budgetVersion.createdBy !== user.id
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'You do not have permission to view this budget'
+    );
+  }
     if (!workingBudget) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'No working budget found for this project');
     }

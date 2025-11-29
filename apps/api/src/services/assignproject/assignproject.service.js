@@ -1,0 +1,112 @@
+import prisma from "../../utils/prismaClient.js";
+import { ApiError } from "../../utils/ApiError.js";
+import { StatusCodes } from "http-status-codes";
+
+export class ProjectUserService {
+ async assignUser(req, res, next) {
+  try {
+    const { projectId } = req.params;
+    const { email, role } = req.body; // use email instead of userId
+
+    if (!email || !role) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, "Email and role are required");
+    }
+
+    // Find the user by email
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    }
+
+    const result = await projectUserService.assignUser(projectId, user.id, role);
+    res.status(StatusCodes.CREATED).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+  // Get all users in a project with pagination
+  async getAll(projectId, page = 1, limit = 10, filters = {}) {
+    const skip = (page - 1) * limit;
+  if (filters.email) {
+    // Filter by user's email (case-insensitive)
+    where.user = {
+      email: { contains: filters.email, mode: "insensitive" },
+    };
+  }
+    const [total, users] = await prisma.$transaction([
+      prisma.projectUser.count({ where: { projectId } }),
+      prisma.projectUser.findMany({
+        where: { projectId },
+        include: { user: true },
+        skip,
+        take: limit,
+        orderBy: { role: "asc" },
+      }),
+    ]);
+
+    return {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      data: users,
+    };
+  }
+
+// Update role of a user in a project using email
+async updateRoleByEmail(projectId, email, role) {
+  // Find the user by email
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  // Find the assignment in the project
+  const assignment = await prisma.projectUser.findUnique({
+    where: { projectId_userId: { projectId, userId: user.id } },
+  });
+  if (!assignment) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not assigned to this project");
+  }
+
+  // Update the role
+  const updated = await prisma.projectUser.update({
+    where: { projectId_userId: { projectId, userId: user.id } },
+    data: { role },
+    include: { user: true },
+  });
+
+  return updated;
+}
+
+
+async removeUserByEmail(projectId, email) {
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+
+  const assignment = await prisma.projectUser.findUnique({
+    where: { projectId_userId: { projectId, userId: user.id } },
+  });
+  if (!assignment) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not assigned to this project");
+  }
+
+
+  await prisma.projectUser.delete({
+    where: { projectId_userId: { projectId, userId: user.id } },
+  });
+
+  return { message: "User removed from project successfully" };
+}
+
+
+}

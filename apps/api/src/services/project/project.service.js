@@ -6,7 +6,7 @@ import { Phase } from "@prisma/client";
 export class ProjectService {
   // Create Project + Default Phases + Baseline Budget
   async createProject(data, userId) {
-    const { title, baseCurrency, timezone, ownerId, status } = data;
+    const { title, baseCurrency, timezone, status } = data;
 
     // Default phases
     const phases = [
@@ -27,7 +27,7 @@ export class ProjectService {
         baseCurrency,
         timezone: timezone || "Asia/Kathmandu",
         status: status || "planning",
-        ownerId: ownerId || userId,
+        ownerId: userId,
         phases: {
           create: phaseEntities,
         },
@@ -44,12 +44,19 @@ export class ProjectService {
 
   // Update Project hai
 
-  async updateProject(projectId, data) {
+  async updateProject(projectId, data, userId) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project) {
       throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    if (user.role !== "Admin" && project.ownerId !== userId) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "You do not have permission to delete this project"
+      );
     }
 
     const { title, baseCurrency, timezone, status, ownerId } = data;
@@ -71,23 +78,29 @@ export class ProjectService {
 
     return updated;
   }
-//delete hai
-async deleteProject(projectId) {
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-  });
+  //delete hai
+  async deleteProject(projectId, userId) {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
 
-  if (!project) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    if (user.role !== "Admin" && project.ownerId !== userId) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "You do not have permission to delete this project"
+      );
+    }
+
+    await prisma.project.delete({
+      where: { id: projectId },
+    });
+
+    return { message: "Project deleted successfully" };
   }
-
-
-  await prisma.project.delete({
-    where: { id: projectId },
-  });
-
-  return { message: "Project deleted successfully" };
-}
 
   // Assign Project Owner hai
   async assignProject(projectId, ownerId) {
@@ -109,15 +122,16 @@ async deleteProject(projectId) {
 
     return updated;
   }
-
-  async getAllProjects(query) {
-    let { page = 1, limit = 10, status, baseCurrency, ownerId, search } = query;
+  async getAllProjects(query, userId) {
+    let { page = 1, limit = 10, status, baseCurrency, search } = query;
 
     const where = {};
+    if (user.role !== "Admin") {
+      where.ownerId = userId;
+    }
 
     if (status) where.status = status;
     if (baseCurrency) where.baseCurrency = baseCurrency;
-    if (ownerId) where.ownerId = ownerId;
 
     if (search) {
       where.OR = [
@@ -151,6 +165,7 @@ async deleteProject(projectId) {
       projects,
     };
   }
+
   // Fetch single project by ID
   async fetchProject(projectId) {
     const project = await prisma.project.findUnique({
