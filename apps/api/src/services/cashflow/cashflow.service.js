@@ -4,19 +4,19 @@ import { StatusCodes } from "http-status-codes";
 
 export class CashflowService {
   // Get cashflow forecast for a project
-  async getCashflowForecast(projectId, userId, query = {}) {
+  async getCashflowForecast(projectId, user, query = {}) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project)
       throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
-
+    const isAdmin = user.roles?.includes("Admin");
     // Only Admin or Project Owner
     if (
-      user.role !== "Admin" &&
-      project.ownerId !== userId &&
+      !isAdmin &&
+      project.ownerId !== user?.id &&
       !(await prisma.projectUser.findFirst({
-        where: { projectId, userId: userId },
+        where: { projectId, userId: user?.id },
       }))
     ) {
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
@@ -44,19 +44,19 @@ export class CashflowService {
   }
 
   // Create or update cashflow entry
-  async upsertCashflowEntry(projectId, userId, data) {
+  async upsertCashflowEntry(projectId, user, data) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project)
       throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
-
+  const isAdmin = user.roles?.includes("Admin");
     // Only Admin or Project Owner
     if (
-      user.role !== "Admin" &&
-      project.ownerId !== userId &&
+      !isAdmin&&
+      project.ownerId !== user?.id &&
       !(await prisma.projectUser.findFirst({
-        where: { projectId, userId: userId },
+        where: { projectId, userId: user?.id },
       }))
     ) {
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
@@ -110,19 +110,19 @@ export class CashflowService {
   }
 
   // Auto-compute cashflow from financing and scheduled payments
-  async autoComputeCashflow(projectId, userId, weeks = 12) {
+  async autoComputeCashflow(projectId, user, weeks = 12) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project)
       throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
-
+  const isAdmin = user.roles?.includes("Admin");
     // Only Admin or Project Owner
     if (
-      user.role !== "Admin" &&
-      project.ownerId !== userId &&
+      !isAdmin&&
+      project.ownerId !== user?.id&&
       !(await prisma.projectUser.findFirst({
-        where: { projectId, userId: userId },
+        where: { projectId, userId: user?.id },
       }))
     ) {
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
@@ -197,19 +197,19 @@ export class CashflowService {
   }
 
   // Get cashflow summary
-  async getCashflowSummary(projectId, userId) {
+  async getCashflowSummary(projectId, user) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project)
       throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
-
+  const isAdmin = user.roles?.includes("Admin");
     // Only Admin or Project Owner
     if (
-      user.role !== "Admin" &&
-      project.ownerId !== userId &&
+     !isAdmin &&
+      project.ownerId !== user?.id &&
       !(await prisma.projectUser.findFirst({
-        where: { projectId, userId: userId },
+        where: { projectId, userId: user?.id },
       }))
     ) {
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
@@ -259,19 +259,19 @@ export class CashflowService {
   }
 
   // Recalculate all cumulatives
-  async recalculateCumulatives(projectId, userId) {
+  async recalculateCumulatives(projectId, user) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project)
       throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
-
+  const isAdmin = user.roles?.includes("Admin");
     // Only Admin or Project Owner
     if (
-      user.role !== "Admin" &&
-      project.ownerId !== userId &&
+      !isAdmin &&
+      project.ownerId !== user?.id&&
       !(await prisma.projectUser.findFirst({
-        where: { projectId, userId: userId },
+        where: { projectId, userId: user?.id },
       }))
     ) {
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");

@@ -4,7 +4,7 @@ import { StatusCodes } from 'http-status-codes';
 
 export class BudgetLineService {
   // Get budget lines for a project's working budget
-  async getBudgetLines(projectId) {
+  async getBudgetLines(projectId,user) {
     // Get the working budget version for this project
     const workingBudget = await prisma.budgetVersion.findFirst({
       where: {
@@ -18,10 +18,11 @@ export class BudgetLineService {
         },
       },
     });
+     const isAdmin = user.roles?.includes("Admin");
   if (
-    user.role !== 'Admin' &&
-    workingBudget.project.ownerId !== user.id &&
-    budgetVersion.createdBy !== user.id
+    !isAdmin &&
+    workingBudget.project.ownerId !== user?.id &&
+    budgetVersion.createdBy !== user?.id
   ) {
     throw new ApiError(
       StatusCodes.FORBIDDEN,
@@ -80,8 +81,8 @@ export class BudgetLineService {
   }
 
   // Get variance report
-  async getVarianceReport(projectId) {
-    const { lines } = await this.getBudgetLines(projectId);
+  async getVarianceReport(projectId,user) {
+    const { lines } = await this.getBudgetLines(projectId,user);
 
     const summary = {
       totalBudgeted: lines.reduce((sum, line) => sum + line.budgeted, 0),

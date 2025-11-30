@@ -7,7 +7,7 @@ const cashflowService = new CashflowService();
 
 export const getCashflowForecast = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
-    const forecasts = await cashflowService.getCashflowForecast(projectId, req.query,req.user?.id);
+    const forecasts = await cashflowService.getCashflowForecast(projectId, req.query,req.user);
     res
         .status(StatusCodes.OK)
         .json(
@@ -17,7 +17,7 @@ export const getCashflowForecast = asyncHandler(async (req, res) => {
 
 export const upsertCashflowEntry = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
-    const forecast = await cashflowService.upsertCashflowEntry(projectId, req.body,req.user?.id);
+    const forecast = await cashflowService.upsertCashflowEntry(projectId, req.body,req.user);
     res
         .status(StatusCodes.OK)
         .json(
@@ -30,7 +30,7 @@ export const autoComputeCashflow = asyncHandler(async (req, res) => {
     const { weeks } = req.query;
     const forecasts = await cashflowService.autoComputeCashflow(
         projectId,
-        req.user?.id,
+        req.user,
         parseInt(weeks) || 12
     );
     res
@@ -46,7 +46,7 @@ export const autoComputeCashflow = asyncHandler(async (req, res) => {
 
 export const getCashflowSummary = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
-    const summary = await cashflowService.getCashflowSummary(projectId,req.user?.id);
+    const summary = await cashflowService.getCashflowSummary(projectId,req.user);
     res
         .status(StatusCodes.OK)
         .json(
@@ -56,7 +56,7 @@ export const getCashflowSummary = asyncHandler(async (req, res) => {
 
 export const recalculateCumulatives = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
-    const forecasts = await cashflowService.recalculateCumulatives(projectId,req.user?.id);
+    const forecasts = await cashflowService.recalculateCumulatives(projectId,req.user);
     res
         .status(StatusCodes.OK)
         .json(

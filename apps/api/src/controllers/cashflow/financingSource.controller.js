@@ -9,7 +9,8 @@ export const createFinancingSource = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
     const source = await financingSourceService.createFinancingSource(
         projectId,
-        req.body
+        req.body,
+        req.user
     );
     res
         .status(StatusCodes.CREATED)
@@ -24,7 +25,7 @@ export const createFinancingSource = asyncHandler(async (req, res) => {
 
 export const getFinancingSources = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
-    const sources = await financingSourceService.getFinancingSources(projectId);
+    const sources = await financingSourceService.getFinancingSources(projectId,req.user);
     res
         .status(StatusCodes.OK)
         .json(

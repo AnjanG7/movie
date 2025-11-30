@@ -8,17 +8,27 @@ export class PostProductionService {
   /**
    * Create a new post-production task
    */
-  async createPostTask(projectId, data) {
+  async createPostTask(projectId, data,user) {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project)
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    const isAdmin = user.roles?.includes("Admin");
+    // Only Admin or Project Owner
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
     const { name, type, assigneeId, vendorId, costEstimate, dueDate, notes } = data;
 
-    // Verify project exists
-    const project = await prisma.project.findUnique({
-      where: { id: projectId }
-    });
-    
-    if (!project) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Project not found');
-    }
+ 
 
     // Verify vendor if provided
     if (vendorId) {
@@ -52,7 +62,24 @@ export class PostProductionService {
   /**
    * Get all post tasks for a project
    */
-  async getPostTasks(projectId, query = {}) {
+  async getPostTasks(projectId, query = {},user) {
+        const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project)
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    const isAdmin = user.roles?.includes("Admin");
+    // Only Admin or Project Owner
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
     const { page = 1, limit = 20, type, status, vendorId } = query;
     const skip = (Number(page) - 1) * Number(limit);
     const take = Number(limit);
@@ -164,8 +191,25 @@ export class PostProductionService {
   /**
    * Get all POST phase budget line items for a project
    */
-  async getPostBudgetLines(projectId) {
+  async getPostBudgetLines(projectId,user) {
     // Get working budget version
+        const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project)
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    const isAdmin = user.roles?.includes("Admin");
+    // Only Admin or Project Owner
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
     const workingBudget = await prisma.budgetVersion.findFirst({
       where: {
         projectId,
@@ -201,8 +245,25 @@ export class PostProductionService {
   /**
    * Add POST phase budget line item
    */
-  async addPostBudgetLine(projectId, data) {
+  async addPostBudgetLine(projectId, data,user) {
     // Get working budget
+        const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project)
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    const isAdmin = user.roles?.includes("Admin");
+    // Only Admin or Project Owner
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
     const workingBudget = await prisma.budgetVersion.findFirst({
       where: {
         projectId,
@@ -237,14 +298,31 @@ export class PostProductionService {
   /**
    * Get post-production cost forecast and summary
    */
-  async getPostProductionForecast(projectId) {
+  async getPostProductionForecast(projectId,user) {
     // Get POST tasks
+        const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project)
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    const isAdmin = user.roles?.includes("Admin");
+    // Only Admin or Project Owner
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
     const postTasks = await prisma.postTask.findMany({
       where: { projectId }
     });
 
     // Get POST budget lines
-    const postBudget = await this.getPostBudgetLines(projectId);
+    const postBudget = await this.getPostBudgetLines(projectId,user);
 
     // Calculate totals
     const taskEstimated = postTasks.reduce((sum, task) => sum + task.costEstimate, 0);
@@ -340,8 +418,25 @@ export class PostProductionService {
   /**
    * Update project ROI forecast with post-production data
    */
-  async updateROIWithPostProduction(projectId) {
+  async updateROIWithPostProduction(projectId,user) {
     // Get latest quotation metrics
+        const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project)
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    const isAdmin = user.roles?.includes("Admin");
+    // Only Admin or Project Owner
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
     const quotation = await prisma.budgetVersion.findFirst({
       where: {
         projectId,

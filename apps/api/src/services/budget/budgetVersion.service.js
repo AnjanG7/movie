@@ -5,13 +5,14 @@ import { Phase } from "@prisma/client";
 
 export class BudgetVersionService {
   // Create new Budget Version (WORKING / QUOTE)
-  async createBudgetVersion(projectId, data, userId) {
+  async createBudgetVersion(projectId, data, user) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project)
       throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
-    if (user.role !== "Admin" && project.ownerId !== userId) {
+    const isAdmin = user.roles?.includes("Admin");
+    if (!isAdmin && project.ownerId !== user?.id) {
       throw new ApiError(
         StatusCodes.FORBIDDEN,
         "You do not have permission to create a budget version for this project"
@@ -31,7 +32,7 @@ export class BudgetVersionService {
 
     return budgetVersion;
   }
-  async updateBudgetVersion(versionId, updateData, userId) {
+  async updateBudgetVersion(versionId, updateData, user) {
     const version = await prisma.budgetVersion.findUnique({
       where: { id: versionId },
       include: { project: true }, // include project to check ownership
@@ -39,9 +40,9 @@ export class BudgetVersionService {
 
     if (!version)
       throw new ApiError(StatusCodes.NOT_FOUND, "Budget Version not found");
-
+    const isAdmin = user.roles?.includes("Admin");
     // Only producer can update
-    if (user.role !== "Admin" && version.project.ownerId !== userId) {
+    if (!isAdmin && version.project.ownerId !== user?.id) {
       throw new ApiError(
         StatusCodes.FORBIDDEN,
         "You do not have permission to update this budget version"
@@ -63,7 +64,7 @@ export class BudgetVersionService {
 
     return updated;
   }
-  async deleteBudgetVersion(versionId, userId) {
+  async deleteBudgetVersion(versionId, user) {
     const version = await prisma.budgetVersion.findUnique({
       where: { id: versionId },
       include: { project: true }, // to check ownership
@@ -71,9 +72,9 @@ export class BudgetVersionService {
 
     if (!version)
       throw new ApiError(StatusCodes.NOT_FOUND, "Budget Version not found");
-
+    const isAdmin = user.roles?.includes("Admin");
     // Only producer can delete
-    if (user.role !== "Admin" && version.project.ownerId !== userId) {
+    if (!isAdmin && version.project.ownerId !== user?.id) {
       throw new ApiError(
         StatusCodes.FORBIDDEN,
         "You do not have permission to delete this budget version"
@@ -96,7 +97,7 @@ export class BudgetVersionService {
   }
 
   // Get all Budget Versions for a Project
-  async getBudgetVersions(projectId, userId, query) {
+  async getBudgetVersions(projectId, user, query) {
     const {
       page = 1,
       limit = 10,
@@ -108,11 +109,13 @@ export class BudgetVersionService {
     const take = Number(limit);
 
     // Build dynamic where clause
-    const where = { projectId};
-    const rolesAllowed = ["Admin", "Investor"];
-    if (!rolesAllowed.includes(user.role)) {
-  where.createdBy = userId;
-}
+    const where = { projectId };
+    const allowedRoles = ["Admin", "Investor"];
+    const hasAccess = user.roles?.some((role) => allowedRoles.includes(role));
+
+    if (!hasAccess) {
+      where.createdBy = user?.id;
+    }
 
     if (type) where.type = type;
     if (locked !== undefined) {
@@ -141,7 +144,7 @@ export class BudgetVersionService {
   }
 
   // Add Line Item
-  async addLineItem(versionId, lineData, userId) {
+  async addLineItem(versionId, lineData, user) {
     const version = await prisma.budgetVersion.findUnique({
       where: { id: versionId },
     });
@@ -162,7 +165,7 @@ export class BudgetVersionService {
         reason: "Added Line Item",
         oldValue: null,
         newValue: lineData,
-        createdBy: userId,
+        createdBy: user?.id,
       },
     });
 
@@ -170,7 +173,7 @@ export class BudgetVersionService {
   }
 
   // Update Line Item
-  async updateLineItem(lineId, updateData, userId) {
+  async updateLineItem(lineId, updateData, user) {
     const line = await prisma.budgetLineItem.findUnique({
       where: { id: lineId },
       include: { budgetVersion: { include: { project: true } } }, // to check ownership
@@ -178,10 +181,11 @@ export class BudgetVersionService {
 
     if (!line) throw new ApiError(StatusCodes.NOT_FOUND, "Line Item not found");
     // Only allow the creator of the budget version or producer to update
+    const isAdmin = user.roles?.includes("Admin");
     if (
-      user.role !== "Admin" &&
-      line.budgetVersion.createdBy !== userId &&
-      line.budgetVersion.project.ownerId !== userId
+      !isAdmin &&
+      line.budgetVersion.createdBy !== user?.id &&
+      line.budgetVersion.project.ownerId !== user?.id
     ) {
       throw new ApiError(
         StatusCodes.FORBIDDEN,
@@ -200,7 +204,7 @@ export class BudgetVersionService {
         reason: "Updated Line Item",
         oldValue: line,
         newValue: updateData,
-        createdBy: userId,
+        createdBy: user?.id,
       },
     });
 
@@ -208,15 +212,17 @@ export class BudgetVersionService {
   }
 
   // Delete Line Item
-  async deleteLineItem(lineId, userId) {
+  async deleteLineItem(lineId, user) {
     const line = await prisma.budgetLineItem.findUnique({
       where: { id: lineId },
       include: { budgetVersion: { include: { project: true } } }, // to check ownership
     });
     if (!line) throw new ApiError(StatusCodes.NOT_FOUND, "Line Item not found");
-    if (user.role !== "Admin" && 
-      line.budgetVersion.createdBy !== userId &&
-      line.budgetVersion.project.ownerId !== userId
+    const isAdmin = user.roles?.includes("Admin");
+    if (
+      !isAdmin &&
+      line.budgetVersion.createdBy !== user?.id &&
+      line.budgetVersion.project.ownerId !== user?.id
     ) {
       throw new ApiError(
         StatusCodes.FORBIDDEN,
