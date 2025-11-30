@@ -5,7 +5,7 @@ import { Phase } from "@prisma/client";
 
 export class ProjectService {
   // Create Project + Default Phases + Baseline Budget
-  async createProject(data, userId) {
+  async createProject(data, user) {
     const { title, baseCurrency, timezone, status } = data;
 
     // Default phases
@@ -15,6 +15,7 @@ export class ProjectService {
       Phase.POST,
       Phase.PUBLICITY,
     ];
+
     const phaseEntities = phases.map((phase, index) => ({
       name: phase,
       orderNo: index + 1,
@@ -27,7 +28,7 @@ export class ProjectService {
         baseCurrency,
         timezone: timezone || "Asia/Kathmandu",
         status: status || "planning",
-        ownerId: userId,
+        ownerId: user?.id,
         phases: {
           create: phaseEntities,
         },
@@ -44,7 +45,7 @@ export class ProjectService {
 
   // Update Project hai
 
-  async updateProject(projectId, data, userId) {
+  async updateProject(projectId, data, user) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -52,7 +53,9 @@ export class ProjectService {
       throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
     }
 
-    if (user.role !== "Admin" && project.ownerId !== userId) {
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (!isAdmin && project.ownerId !== user?.id) {
       throw new ApiError(
         StatusCodes.FORBIDDEN,
         "You do not have permission to delete this project"
@@ -87,8 +90,8 @@ export class ProjectService {
     if (!project) {
       throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
     }
-
-    if (user.role !== "Admin" && project.ownerId !== userId) {
+    const isAdmin = user.roles?.includes("Admin");
+    if (!isAdmin && project.ownerId !== userId) {
       throw new ApiError(
         StatusCodes.FORBIDDEN,
         "You do not have permission to delete this project"
@@ -122,12 +125,12 @@ export class ProjectService {
 
     return updated;
   }
-  async getAllProjects(query, userId) {
+  async getAllProjects(query, user) {
     let { page = 1, limit = 10, status, baseCurrency, search } = query;
-
+    const isAdmin = user.roles?.includes("Admin");
     const where = {};
-    if (user.role !== "Admin") {
-      where.ownerId = userId;
+    if (!isAdmin) {
+      where.ownerId = user?.id;
     }
 
     if (status) where.status = status;

@@ -295,9 +295,10 @@ export default function QuotationsPage() {
                     </div>
                     <div>
                       <p className="text-sm text-gray-600 mb-1">IRR</p>
-                      <p className="text-lg font-bold text-blue-600">
-                        {quotation.metrics.irr.toFixed(2)}%
-                      </p>
+                    <p className="text-lg font-bold text-blue-600">
+  {(quotation.metrics?.irr ?? 0).toFixed(2)}%
+</p>
+
                     </div>
                     <div>
                       <p className="text-sm text-gray-600 mb-1 flex items-center gap-1">

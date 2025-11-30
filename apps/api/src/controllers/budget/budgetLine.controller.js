@@ -7,7 +7,7 @@ const budgetLineService = new BudgetLineService();
 
 export const getBudgetLines = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const result = await budgetLineService.getBudgetLines(projectId);
+  const result = await budgetLineService.getBudgetLines(projectId,req.user);
   res
     .status(StatusCodes.OK)
     .json(
@@ -17,7 +17,7 @@ export const getBudgetLines = asyncHandler(async (req, res) => {
 
 export const getVarianceReport = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const report = await budgetLineService.getVarianceReport(projectId);
+  const report = await budgetLineService.getVarianceReport(projectId,req.user);
   res
     .status(StatusCodes.OK)
     .json(

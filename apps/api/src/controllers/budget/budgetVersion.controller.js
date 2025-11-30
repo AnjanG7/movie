@@ -9,7 +9,7 @@ export const createBudgetVersion = asyncHandler(async (req, res) => {
   const version = await budgetService.createBudgetVersion(
     req.params.projectId,
     req.body,
-    req.user?.id
+    req.user
   );
   res
     .status(StatusCodes.CREATED)
@@ -28,34 +28,43 @@ export const updateBudgetVersion = asyncHandler(async (req, res) => {
   const updatedVersion = await budgetService.updateBudgetVersion(
     versionId,
     updateData,
-    req.user?.id
+    req.user
   );
 
-  res.status(StatusCodes.OK).json(
-    new ApiResponse(
-      StatusCodes.OK,
-      updatedVersion,
-      "Budget Version updated successfully"
-    )
-  );
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(
+        StatusCodes.OK,
+        updatedVersion,
+        "Budget Version updated successfully"
+      )
+    );
 });
 export const deleteBudgetVersion = asyncHandler(async (req, res) => {
   const { versionId } = req.params;
 
-  const result = await budgetService.deleteBudgetVersion(
-    versionId,
-    req.user?.id
-  );
+  const result = await budgetService.deleteBudgetVersion(versionId, req.user);
 
-  res.status(StatusCodes.OK).json(
-    new ApiResponse(StatusCodes.OK, result, "Budget Version deleted successfully")
-  );
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(
+        StatusCodes.OK,
+        result,
+        "Budget Version deleted successfully"
+      )
+    );
 });
 export const getBudgetVersions = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
   const query = req.query; // contains page, limit, type, locked
 
-  const result = await budgetService.getBudgetVersions(projectId,req.user?.id, query);
+  const result = await budgetService.getBudgetVersions(
+    projectId,
+    req.user,
+    query
+  );
 
   res
     .status(StatusCodes.OK)
@@ -72,7 +81,7 @@ export const addLineItem = asyncHandler(async (req, res) => {
   const line = await budgetService.addLineItem(
     req.params.versionId,
     req.body,
-    req.user.id
+    req.user
   );
   res
     .status(StatusCodes.CREATED)
@@ -85,7 +94,7 @@ export const updateLineItem = asyncHandler(async (req, res) => {
   const line = await budgetService.updateLineItem(
     req.params.lineId,
     req.body,
-    req.user.id
+    req.user
   );
   res
     .status(StatusCodes.OK)
@@ -97,7 +106,7 @@ export const updateLineItem = asyncHandler(async (req, res) => {
 export const deleteLineItem = asyncHandler(async (req, res) => {
   const result = await budgetService.deleteLineItem(
     req.params.lineId,
-    req.user.id
+    req.user
   );
   res
     .status(StatusCodes.OK)

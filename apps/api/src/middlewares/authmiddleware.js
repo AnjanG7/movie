@@ -15,10 +15,12 @@ export const authMiddleware = async (req, res, next) => {
 
     const decoded = verifyToken(token);
 
+
     const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
+      where: { id: decoded?.id },
       include: { role: true },
     });
+
 
     if (!user) {
       throw new ApiError(StatusCodes.UNAUTHORIZED, "User not found");

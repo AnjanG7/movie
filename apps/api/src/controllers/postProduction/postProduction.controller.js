@@ -1,7 +1,7 @@
-import asyncHandler from 'express-async-handler';
-import { PostProductionService } from '../../services/postProduction/postProduction.service.js';
-import { ApiResponse } from '../../utils/ApiResponse.js';
-import { StatusCodes } from 'http-status-codes';
+import asyncHandler from "express-async-handler";
+import { PostProductionService } from "../../services/postProduction/postProduction.service.js";
+import { ApiResponse } from "../../utils/ApiResponse.js";
+import { StatusCodes } from "http-status-codes";
 
 const postProductionService = new PostProductionService();
 
@@ -9,28 +9,36 @@ const postProductionService = new PostProductionService();
 
 export const createPostTask = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const postTask = await postProductionService.createPostTask(projectId, req.body);
+  const postTask = await postProductionService.createPostTask(
+    projectId,
+    req.body,
+    req.user
+  );
   res
     .status(StatusCodes.CREATED)
     .json(
       new ApiResponse(
         StatusCodes.CREATED,
         postTask,
-        'Post-production task created successfully'
+        "Post-production task created successfully"
       )
     );
 });
 
 export const getPostTasks = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const result = await postProductionService.getPostTasks(projectId, req.query);
+  const result = await postProductionService.getPostTasks(
+    projectId,
+    req.query,
+    req.user
+  );
   res
     .status(StatusCodes.OK)
     .json(
       new ApiResponse(
         StatusCodes.OK,
         result,
-        'Post-production tasks fetched successfully'
+        "Post-production tasks fetched successfully"
       )
     );
 });
@@ -44,7 +52,7 @@ export const getPostTask = asyncHandler(async (req, res) => {
       new ApiResponse(
         StatusCodes.OK,
         postTask,
-        'Post-production task fetched successfully'
+        "Post-production task fetched successfully"
       )
     );
 });
@@ -58,7 +66,7 @@ export const updatePostTask = asyncHandler(async (req, res) => {
       new ApiResponse(
         StatusCodes.OK,
         updated,
-        'Post-production task updated successfully'
+        "Post-production task updated successfully"
       )
     );
 });
@@ -68,35 +76,44 @@ export const deletePostTask = asyncHandler(async (req, res) => {
   const result = await postProductionService.deletePostTask(id);
   res
     .status(StatusCodes.OK)
-    .json(new ApiResponse(StatusCodes.OK, result, 'Post-production task deleted'));
+    .json(
+      new ApiResponse(StatusCodes.OK, result, "Post-production task deleted")
+    );
 });
 
 // ==================== POST BUDGET LINES ====================
 
 export const getPostBudgetLines = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const result = await postProductionService.getPostBudgetLines(projectId);
+  const result = await postProductionService.getPostBudgetLines(
+    projectId,
+    req.user
+  );
   res
     .status(StatusCodes.OK)
     .json(
       new ApiResponse(
         StatusCodes.OK,
         result,
-        'Post-production budget lines fetched successfully'
+        "Post-production budget lines fetched successfully"
       )
     );
 });
 
 export const addPostBudgetLine = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const line = await postProductionService.addPostBudgetLine(projectId, req.body);
+  const line = await postProductionService.addPostBudgetLine(
+    projectId,
+    req.body,
+    req.user
+  );
   res
     .status(StatusCodes.CREATED)
     .json(
       new ApiResponse(
         StatusCodes.CREATED,
         line,
-        'Post-production budget line added successfully'
+        "Post-production budget line added successfully"
       )
     );
 });
@@ -105,28 +122,34 @@ export const addPostBudgetLine = asyncHandler(async (req, res) => {
 
 export const getPostProductionForecast = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const forecast = await postProductionService.getPostProductionForecast(projectId);
+  const forecast = await postProductionService.getPostProductionForecast(
+    projectId,
+    req.user
+  );
   res
     .status(StatusCodes.OK)
     .json(
       new ApiResponse(
         StatusCodes.OK,
         forecast,
-        'Post-production forecast fetched successfully'
+        "Post-production forecast fetched successfully"
       )
     );
 });
 
 export const updateROIWithPostProduction = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const metrics = await postProductionService.updateROIWithPostProduction(projectId);
+  const metrics = await postProductionService.updateROIWithPostProduction(
+    projectId,
+    req.user
+  );
   res
     .status(StatusCodes.OK)
     .json(
       new ApiResponse(
         StatusCodes.OK,
         metrics,
-        'ROI updated with post-production data successfully'
+        "ROI updated with post-production data successfully"
       )
     );
 });
