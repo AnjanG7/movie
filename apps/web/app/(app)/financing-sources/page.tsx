@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = "force-dynamic";
+
 import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { DollarSign, TrendingUp, Plus, Trash2, PiggyBank } from 'lucide-react';

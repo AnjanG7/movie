@@ -56,3 +56,23 @@ export const logout = asyncHandler(async (req, res) => {
     .status(StatusCodes.OK)
     .json(new ApiResponse(StatusCodes.OK, null, "Logged out successfully"));
 });
+
+export const getAllUsers = asyncHandler(async (req, res) => {
+  const users = await authService.getAllUsers();
+
+  res
+    .status(StatusCodes.OK)
+    .json(new ApiResponse(StatusCodes.OK, { users }, "Users fetched successfully"));
+});
+
+
+export const deleteUser = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  await authService.deleteUser(id);
+
+  res
+    .status(StatusCodes.OK)
+    .json(new ApiResponse(StatusCodes.OK, null, "User deleted successfully"));
+});
+
