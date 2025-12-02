@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "../lib/store";
 import StatsCard from "../components/StatsCard";
 import ProjectCard from "../components/ProjectCard";
@@ -21,6 +21,16 @@ export default function DashboardPage() {
     fetchInvestors,
     fetchPhases,
   } = useStore();
+  const { user } = useStore();
+  const [userCount, setUserCount] = useState(0);
+  useEffect(() => {
+    const loadUsers = async () => {
+      const count = await fetchUser();
+      setUserCount(count);
+    };
+
+    loadUsers();
+  }, []);
 
   useEffect(() => {
     fetchProjects();
@@ -58,6 +68,25 @@ export default function DashboardPage() {
     );
   }
 
+  const fetchUser = async () => {
+    try {
+      const response = await fetch(`http://localhost:4000/api/auth/allUsers`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+
+      const result = await response.json();
+
+      return result?.data?.users?.length || 0;
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      return 0;
+    }
+  };
+
   return (
     <div className="p-8">
       {/* Header */}
@@ -75,6 +104,19 @@ export default function DashboardPage() {
           iconColor="text-blue-600"
           iconBg="bg-blue-100"
         />
+        {user?.role?.toLowerCase() === "admin" && (
+          <Link href="/all-users" className="block">
+            <StatsCard
+              title="Total Users"
+              value={userCount}
+              change={2}
+              icon={Film}
+              iconColor="text-blue-600"
+              iconBg="bg-blue-100"
+            />
+          </Link>
+        )}
+
         <StatsCard
           title="Active Projects"
           value={stats?.activeProjects || 0}
@@ -144,38 +186,6 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-      {/* Features Grid */}
-      {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
-            <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
-              <DollarSign className="w-7 h-7 text-blue-600" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Budget Management</h3>
-            <p className="text-gray-600">
-              Track expenses, manage financing sources, and monitor project budgets in real-time.
-            </p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
-            <div className="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
-              <Users className="w-7 h-7 text-purple-600" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Investor Portal</h3>
-            <p className="text-gray-600">
-              Manage investors, track equity shares, and handle waterfall distributions.
-            </p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
-            <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mb-4">
-              <TrendingUp className="w-7 h-7 text-green-600" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Analytics & Reports</h3>
-            <p className="text-gray-600">
-              Visualize project data with charts, forecasts, and comprehensive reporting.
-            </p>
-          </div>
-        </div> */}
     </div>
   );
 }

@@ -71,4 +71,46 @@ const user = await prisma.user.create({
       },
     };
   }
+
+  async deleteUser(userId) {
+  const existingUser = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { role: true },
+  });
+
+  if (!existingUser) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  // Prevent deleting the only admin
+  if (existingUser.role?.name === "Admin") {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      "Admin account cannot be deleted"
+    );
+  }
+
+  await prisma.user.delete({
+    where: { id: userId },
+  });
+
+  return true;
+}
+
+async getAllUsers() {
+  const users = await prisma.user.findMany({
+    include: { role: true },
+    orderBy: { createdAt: 'desc' }, // optional: newest first
+  });
+
+  return users.map((user) => ({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role ? user.role.name : null,
+    createdAt: user.createdAt,
+  }));
+}
+
+
 }
