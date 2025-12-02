@@ -3,27 +3,40 @@ import { ApiError } from "../../utils/ApiError.js";
 import { StatusCodes } from "http-status-codes";
 
 export class ProjectUserService {
- async assignUser(req, res, next) {
-  try {
-    const { projectId } = req.params;
-    const { email, role } = req.body; // use email instead of userId
+  async assignUser(projectId, userId, role) {
+    // Check if already assigned
+    const exists = await prisma.projectUser.findUnique({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
+      },
+    });
 
-    if (!email || !role) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, "Email and role are required");
+    if (exists) {
+      throw new ApiError(
+        StatusCodes.CONFLICT,
+        "User is already assigned to this project"
+      );
     }
 
-    // Find the user by email
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
-    }
+    // Create assignment
+    const assignment = await prisma.projectUser.create({
+      data: {
+        projectId,
+        userId,
+        role,
+      },
+      include: {
+        user: true,
+        project: true,
+      },
+    });
 
-    const result = await projectUserService.assignUser(projectId, user.id, role);
-    res.status(StatusCodes.CREATED).json(result);
-  } catch (err) {
-    next(err);
+    return assignment;
   }
-};
+
 
   // Get all users in a project with pagination
   async getAll(projectId, page = 1, limit = 10, filters = {}) {
@@ -94,7 +107,7 @@ async removeUserByEmail(projectId, email) {
 
 
   const assignment = await prisma.projectUser.findUnique({
-    where: { projectId_userId: { projectId, userId: user.id } },
+    where: { projectId_userId: { projectId, userId: user?.id } },
   });
   if (!assignment) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not assigned to this project");
