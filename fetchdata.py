@@ -47,7 +47,7 @@ def main():
         all_files.extend(read_code_files_in_folder(folder))
 
     # Save output in project root
-    output_file = '/home/parrot/Desktop/Film-Finance-App/allfiles.txt'
+    output_file = '/home/parrot/Desktop/movie/Film-Finance-App/allfiles.txt'
 
     with open(output_file, 'w', encoding='utf-8') as out:
         for f in all_files:

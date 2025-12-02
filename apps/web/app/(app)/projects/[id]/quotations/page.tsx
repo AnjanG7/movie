@@ -243,11 +243,8 @@ export default function QuotationsPage() {
                   </Link>
                   {!quotation.lockedAt && (
                     <>
-                      <Link
-                        href={`/projects/${projectId}/quotations/${quotation.id}/edit`}
-                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Edit"
-                      >
+                <Link href={`/projects/${projectId}/quotations/${quotation.id}/edit`}>
+
                         <Edit2 className="w-5 h-5" />
                       </Link>
                       <button
