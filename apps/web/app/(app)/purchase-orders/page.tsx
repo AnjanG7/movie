@@ -1,87 +1,24 @@
 'use client';
 
-export const dynamic = "force-dynamic";
-
-import React, {
-  useState,
-  useEffect,
-  FormEvent,
-  ChangeEvent,
-} from 'react';
+import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
-interface PurchaseOrder {
-  id: string;
-  poNo: string;
-  projectId: string;
-  vendorId: string;
-  amount: number;
-  status: string;
-  approvedBy?: string;
-  approvedAt?: string;
-  createdAt: string;
-  budgetLineId?: string;
-  vendor?: {
-    name: string;
-    currency: string;
-  };
-  project?: {
-    title: string;
-  };
-  budgetLine?: {
-    name: string;
-    phase: string;
-  };
-}
-
-interface Vendor {
-  id: string;
-  name: string;
-  currency: string;
-}
-
-interface Project {
-  id: string;
-  title: string;
-}
-
-interface BudgetLine {
-  id: string;
-  name: string;
-  phase: string;
-  department: string | null;
-  budgeted: number;
-  committed: number;
-  spent: number;
-  remaining: number;
-}
-
-interface POFormData {
-  vendorId: string;
-  amount: number;
-  notes: string;
-  budgetLineId: string;
-}
-
-export default function PurchaseOrdersPage() {
+// Client Component that uses useSearchParams
+function PurchaseOrdersContent() {
   const searchParams = useSearchParams();
   const projectIdParam = searchParams.get('projectId');
 
-  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [vendors, setVendors] = useState<any[]>([]);
+  const [budgetLines, setBudgetLines] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-
-  const [selectedProjectId, setSelectedProjectId] = useState(
-    projectIdParam || ''
-  );
-
-  const [formData, setFormData] = useState<POFormData>({
+  const [selectedProjectId, setSelectedProjectId] = useState(projectIdParam || '');
+  const [formData, setFormData] = useState<any>({
     vendorId: '',
     amount: 0,
     notes: '',
@@ -107,7 +44,7 @@ export default function PurchaseOrdersPage() {
       });
       const result = await response.json();
       if (result.success) {
-        setProjects(result.data.projects || []);
+        setProjects(result.data.projects);
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -121,7 +58,7 @@ export default function PurchaseOrdersPage() {
       });
       const result = await response.json();
       if (result.success) {
-        setVendors(result.data.vendors || []);
+        setVendors(result.data.vendors);
       }
     } catch (error) {
       console.error('Error fetching vendors:', error);
@@ -199,12 +136,11 @@ export default function PurchaseOrdersPage() {
   };
 
   const handleUpdateStatus = async (poId: string, status: string) => {
-    if (!confirm(`Are you sure you want to ${status.toLowerCase()} this PO?`))
-      return;
+    if (!confirm(`Are you sure you want to ${status.toLowerCase()} this PO?`)) return;
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/projects/${selectedProjectId}/purchase-orders/${poId}/status`,
+        `${API_BASE_URL}/projects/${selectedProjectId}/purchase-orders/${poId}`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -215,7 +151,7 @@ export default function PurchaseOrdersPage() {
 
       const result = await response.json();
       if (result.success) {
-        alert(`PO ${status.toLowerCase()} successfully`);
+        alert(`PO ${status.toLowerCase()}d successfully`);
         fetchPurchaseOrders();
         fetchBudgetLines();
       } else {
@@ -262,13 +198,13 @@ export default function PurchaseOrdersPage() {
   ) => {
     const { name, value } = e.target;
     if (name === 'amount') {
-      setFormData((prev) => ({ ...prev, [name]: Number(value) }));
+      setFormData((prev: any) => ({ ...prev, [name]: Number(value) || 0 }));
     } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
+      setFormData((prev: any) => ({ ...prev, [name]: value }));
     }
   };
 
-  const selectedProject = projects.find((p) => p.id === selectedProjectId);
+  const selectedProject = projects.find((p: any) => p.id === selectedProjectId);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6 lg:p-8">
@@ -276,9 +212,7 @@ export default function PurchaseOrdersPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">
-              Purchase Orders
-            </h1>
+            <h1 className="text-3xl font-bold text-slate-900">Purchase Orders</h1>
             <p className="text-slate-600">
               Create and manage POs linked to your budget lines.
             </p>
@@ -290,134 +224,35 @@ export default function PurchaseOrdersPage() {
           )}
         </div>
 
-        {/* Project selector and create button */}
-        <div className="bg-white/80 rounded-2xl border border-slate-200 shadow-md p-4 mb-6 flex flex-wrap gap-4 items-center">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-slate-700">
-              Select Project
-            </label>
-            <select
-              value={selectedProjectId}
-              onChange={handleProjectChange}
-              className="h-10 min-w-[220px] rounded-lg border border-slate-300 px-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">-- Select Project --</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.title}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            type="button"
-            disabled={!selectedProjectId}
-            onClick={() => setShowCreateModal(true)}
-            className="ml-auto px-4 h-10 rounded-lg bg-blue-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-semibold"
+        {/* Project Selector */}
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-slate-700 mb-2">
+            Select Project
+          </label>
+          <select
+            value={selectedProjectId}
+            onChange={handleProjectChange}
+            className="w-full max-w-md h-10 border border-slate-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            Create New PO
-          </button>
+            <option value="">-- Select a Project --</option>
+            {projects.map((project: any) => (
+              <option key={project.id} value={project.id}>
+                {project.title}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Create PO Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-              <h2 className="text-xl font-bold mb-4">Create Purchase Order</h2>
-              <form onSubmit={handleCreatePO} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Vendor
-                  </label>
-                  <select
-                    name="vendorId"
-                    value={formData.vendorId}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm"
-                  >
-                    <option value="">-- Select Vendor --</option>
-                    {vendors.map((vendor) => (
-                      <option key={vendor.id} value={vendor.id}>
-                        {vendor.name} ({vendor.currency})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Amount
-                  </label>
-                  <input
-                    name="amount"
-                    type="number"
-                    value={formData.amount}
-                    onChange={handleFormChange}
-                    min={0}
-                    step="0.01"
-                    required
-                    className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Budget Line (Optional)
-                  </label>
-                  <select
-                    name="budgetLineId"
-                    value={formData.budgetLineId}
-                    onChange={handleFormChange}
-                    className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm"
-                  >
-                    <option value="">-- Select Budget Line --</option>
-                    {budgetLines.map((line) => (
-                      <option key={line.id} value={line.id}>
-                        {line.phase} - {line.department || 'General'} -{' '}
-                        {line.name} (Remaining:{' '}
-                        {line.remaining.toLocaleString()})
-                      </option>
-                    ))}
-                  </select>
-                  {budgetLines.length === 0 && (
-                    <p className="text-xs text-slate-400 mt-1">
-                      No budget lines available for this project.
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Notes
-                  </label>
-                  <textarea
-                    name="notes"
-                    value={formData.notes}
-                    onChange={handleFormChange}
-                    rows={3}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="px-4 h-9 rounded-lg border border-slate-300 text-sm"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 h-9 rounded-lg bg-blue-600 text-white text-sm font-semibold"
-                  >
-                    Create
-                  </button>
-                </div>
-              </form>
-            </div>
+        {/* Create Button */}
+        {selectedProjectId && (
+          <div className="mb-6">
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center gap-2 px-5 h-10 rounded-lg bg-blue-600 text-white text-sm font-semibold shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all"
+            >
+              + Create Purchase Order
+            </button>
           </div>
         )}
 
@@ -425,77 +260,98 @@ export default function PurchaseOrdersPage() {
         {selectedProjectId && (
           <div className="mt-4">
             {loading ? (
-              <p className="text-center text-slate-600 mt-6">Loading...</p>
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              </div>
             ) : (
               <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <table className="min-w-full text-sm">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-4 py-2 text-left">PO Number</th>
-                      <th className="px-4 py-2 text-left">Vendor</th>
-                      <th className="px-4 py-2 text-right">Amount</th>
-                      <th className="px-4 py-2 text-left">Budget Line</th>
-                      <th className="px-4 py-2 text-left">Status</th>
-                      <th className="px-4 py-2 text-left">Created</th>
-                      <th className="px-4 py-2 text-left">Actions</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        PO Number
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        Vendor
+                      </th>
+                      <th className="px-6 py-4 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        Amount
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        Budget Line
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        Created
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-200">
                     {purchaseOrders.length === 0 ? (
                       <tr>
-                        <td
-                          colSpan={7}
-                          className="px-4 py-8 text-center text-slate-600"
-                        >
-                          No purchase orders found.
+                        <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
+                          <div className="flex flex-col items-center space-y-2">
+                            <svg className="w-12 h-12 text-slate-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h4z" />
+                            </svg>
+                            <p className="text-lg font-medium text-slate-900">No purchase orders</p>
+                            <p className="text-sm text-slate-500">Create your first purchase order to get started.</p>
+                          </div>
                         </td>
                       </tr>
                     ) : (
-                      purchaseOrders.map((po) => (
-                        <tr
-                          key={po.id}
-                          className="border-t hover:bg-slate-50"
-                        >
-                          <td className="px-4 py-2 font-semibold">
-                            {po.poNo}
+                      purchaseOrders.map((po: any) => (
+                        <tr key={po.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-6 py-4 font-semibold text-slate-900">{po.poNo}</td>
+                          <td className="px-6 py-4">
+                            <span className="font-medium text-slate-900">{po.vendor?.name || 'N/A'}</span>
                           </td>
-                          <td className="px-4 py-2">
-                            {po.vendor?.name || 'N/A'}
+                          <td className="px-6 py-4 text-right font-semibold text-slate-900">
+                            {po.vendor?.currency || 'USD'} {po.amount?.toLocaleString() || '0'}
                           </td>
-                          <td className="px-4 py-2 text-right">
-                            {po.vendor?.currency} {po.amount.toLocaleString()}
-                          </td>
-                          <td className="px-4 py-2">
+                          <td className="px-6 py-4">
                             {po.budgetLine ? (
-                              <span>
+                              <span className="text-sm text-slate-900">
                                 {po.budgetLine.phase} - {po.budgetLine.name}
                               </span>
                             ) : (
-                              <span className="text-slate-400">Not linked</span>
+                              <span className="text-sm text-slate-400 font-medium">Not linked</span>
                             )}
                           </td>
-                          <td className="px-4 py-2">{po.status}</td>
-                          <td className="px-4 py-2">
-                            {new Date(po.createdAt).toLocaleDateString()}
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              po.status === 'Approved' 
+                                ? 'bg-emerald-100 text-emerald-800' 
+                                : po.status === 'Rejected' 
+                                ? 'bg-red-100 text-red-800' 
+                                : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {po.status}
+                            </span>
                           </td>
-                          <td className="px-4 py-2">
+                          <td className="px-6 py-4 text-sm text-slate-500">
+                            {po.createdAt ? new Date(po.createdAt).toLocaleDateString() : 'N/A'}
+                          </td>
+                          <td className="px-6 py-4 text-right space-x-2">
                             {po.status === 'Pending' && (
                               <>
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    handleUpdateStatus(po.id, 'Approved')
-                                  }
-                                  className="mr-2 px-3 h-8 rounded-md border border-emerald-300 text-xs text-emerald-700 hover:bg-emerald-50"
+                                  onClick={() => handleUpdateStatus(po.id, 'Approved')}
+                                  className="px-3 py-1.5 rounded-md border border-emerald-300 text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
                                 >
                                   Approve
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    handleUpdateStatus(po.id, 'Rejected')
-                                  }
-                                  className="mr-2 px-3 h-8 rounded-md border border-amber-300 text-xs text-amber-700 hover:bg-amber-50"
+                                  onClick={() => handleUpdateStatus(po.id, 'Rejected')}
+                                  className="px-3 py-1.5 rounded-md border border-amber-300 text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
                                 >
                                   Reject
                                 </button>
@@ -504,7 +360,7 @@ export default function PurchaseOrdersPage() {
                             <button
                               type="button"
                               onClick={() => handleDelete(po.id)}
-                              className="px-3 h-8 rounded-md border border-red-300 text-xs text-red-600 hover:bg-red-50"
+                              className="px-3 py-1.5 rounded-md border border-red-300 text-xs text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
                             >
                               Delete
                             </button>
@@ -518,7 +374,121 @@ export default function PurchaseOrdersPage() {
             )}
           </div>
         )}
+
+        {/* Create PO Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-slate-200">
+                <h2 className="text-xl font-bold text-slate-900">Create Purchase Order</h2>
+              </div>
+              <form onSubmit={handleCreatePO} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">
+                    Vendor *
+                  </label>
+                  <select
+                    name="vendorId"
+                    value={formData.vendorId}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full h-11 border border-slate-300 rounded-lg px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">-- Select Vendor --</option>
+                    {vendors.map((vendor: any) => (
+                      <option key={vendor.id} value={vendor.id}>
+                        {vendor.name} ({vendor.currency})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">
+                    Amount *
+                  </label>
+                  <input
+                    name="amount"
+                    type="number"
+                    value={formData.amount}
+                    onChange={handleFormChange}
+                    min={0}
+                    step={0.01}
+                    required
+                    className="w-full h-11 border border-slate-300 rounded-lg px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">
+                    Budget Line
+                  </label>
+                  <select
+                    name="budgetLineId"
+                    value={formData.budgetLineId}
+                    onChange={handleFormChange}
+                    className="w-full h-11 border border-slate-300 rounded-lg px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">-- Select Budget Line (Optional) --</option>
+                    {budgetLines.map((line: any) => (
+                      <option key={line.id} value={line.id}>
+                        {line.phase} - {line.name} (Remaining: {line.remaining?.toFixed(2) || 0})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">
+                    Notes
+                  </label>
+                  <textarea
+                    name="notes"
+                    value={formData.notes}
+                    onChange={handleFormChange}
+                    rows={3}
+                    className="w-full border border-slate-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+                    placeholder="Additional notes or description..."
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="flex-1 h-11 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 h-11 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all font-semibold"
+                  >
+                    Create PO
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+// Server Component wrapper with Suspense
+export default function PurchaseOrdersPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading Purchase Orders...</p>
+        </div>
+      </div>
+    }>
+      <PurchaseOrdersContent />
+    </Suspense>
   );
 }

@@ -13579,7 +13579,7 @@ export default function PostProductionPage() {
         type: task.type || 'EDITING',
         costEstimate: task.costEstimate.toString(),
         actualCost: task.actualCost?.toString() || '',
-        dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
+        dueDate: task.dueDate?.split('T')[0] ?? "",
         status: task.status,
         notes: task.notes || '',
         vendorId: task.vendorId || ''
@@ -17389,27 +17389,6 @@ function Step5ReviewCalculate({
     </div>
   );
 }
-
-============================================================
-
-File: /home/parrot/Desktop/Film-Finance-App/apps/web/app/(app)/projects/[id]/budget/[versionId]/page.tsx
-============================================================
-// import { downloadFile } from '../../../../lib/download';
-// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-
-
-
-// const handleDownloadBudgetPdf = async () => {
-//   try {
-//     await downloadFile(
-//       `${API_BASE_URL}/projects/${projectId}/budget/${versionId}/export/pdf`,
-//       `budget-${versionId}.pdf`
-//     );
-//   } catch (err: any) {
-//     alert(err.message || 'Failed to download budget PDF');
-//   }
-// };
-
 
 ============================================================
 

@@ -22,7 +22,9 @@
     "packages/*"
   ],
   "dependencies": {
+    "@prisma/client": "^4.16.2",
     "bcryptjs": "^3.0.3",
+    "prisma": "^4.16.2",
     "recharts": "^3.5.0"
   }
 }

@@ -4,34 +4,59 @@ import { StatusCodes } from "http-status-codes";
 
 export class FinancingSourceService {
   // Create financing source
-  async createFinancingSource(projectId, data, user) {
-    const { type, amount, rate, fees, schedule } = data;
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-    });
-    if (!project)
-      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
-    const isAdmin = user.roles?.includes("Admin");
-    // Only Admin or Project Owner
-    if (
-      !isAdmin &&
-      project.ownerId !== user?.id &&
-      !(await prisma.projectUser.findFirst({
-        where: { projectId, userId: user?.id },
-      }))
-    ) {
-      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+  async createFinancingSource(projectId, data) {
+    try {
+      const { type, amount, rate, fees, schedule } = data;
+
+      // Basic validation
+      if (!type) {
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          'Financing type is required'
+        );
+      }
+
+      if (amount === undefined || amount === null || isNaN(Number(amount))) {
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          'Valid amount is required'
+        );
+      }
+
+      // Build payload without nulls so Prisma gets `undefined` instead
+  const payload = {
+  projectId,
+  type,
+  amount: Number(amount),
+};
+
+      if (rate !== undefined && rate !== null && !isNaN(Number(rate))) {
+        payload.rate = Number(rate);
+      }
+
+      if (fees !== undefined && fees !== null && !isNaN(Number(fees))) {
+        payload.fees = Number(fees);
+      }
+
+      // Only include schedule if a real value is provided
+      if (schedule !== undefined && schedule !== null) {
+        payload.schedule = schedule;
+      }
+
+      const source = await prisma.financingSource.create({
+        data: payload,
+      });
+
+      return source;
+    } catch (err) {
+      if (err instanceof ApiError) {
+        throw err;
+      }
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to create financing source'
+      );
     }
-    return await prisma.financingSource.create({
-      data: {
-        projectId,
-        type,
-        amount,
-        rate: rate || null,
-        fees: fees || null,
-        schedule: schedule || null,
-      },
-    });
   }
 
   // Get financing sources for project

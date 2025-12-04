@@ -12,7 +12,7 @@
     "seed": "node prisma/seed.js"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.0",
+    "@prisma/client": "^4.16.2",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
@@ -23,7 +23,7 @@
     "http-status-codes": "^2.3.0",
     "jsonwebtoken": "^9.0.2",
     "pdfkit": "^0.17.2",
-    "prisma": "^6.19.0",
+    "prisma": "^4.16.2",
     "puppeteer": "^24.31.0"
   },
   "devDependencies": {
