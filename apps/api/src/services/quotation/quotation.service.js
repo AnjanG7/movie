@@ -308,7 +308,7 @@ async deleteQuotation(quotationId) {
     const quotations = await prisma.budgetVersion.findMany({
       where: {
         projectId,
-        type: 'QUOTE',
+      
       },
       orderBy: { createdAt: 'desc' },
       include: {
