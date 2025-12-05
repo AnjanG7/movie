@@ -38,7 +38,7 @@ router.put(
 
 // Remove user from project
 router.delete(
-  "/:email",
+  "/:userId",
   authMiddleware,
   authorizeRoles("Admin", "Producer"),
   removeUser

@@ -41,24 +41,6 @@ async function main() {
     console.log('   📧 Email: admin@filmfinance.com');
     console.log('   🔑 Password: Admin123!');
 
-    // ================== 3. CREATE PRODUCER USER ==================
-    console.log('\n👤 Creating producer user...');
-    const producerPassword = await bcrypt.hash('producer', 10);
-
-    const producerUser = await prisma.user.upsert({
-      where: { email: 'producer@gmail.com' },
-      update: {},
-      create: {
-        name: 'producer',
-        email: 'producer@gmail.com',
-        password: producerPassword,
-        status: 'ACTIVE',
-        roleId: createdRoles['Producer'].id,
-      },
-    });
-    console.log('   ✅ Producer user created');
-    console.log('   📧 Email: producer@filmfinance.com');
-    console.log('   🔑 Password: Producer123!');
 
     // ================== 4. CREATE SAMPLE PROJECT ==================
     console.log('\n🎬 Creating sample project...');
@@ -182,13 +164,6 @@ async function main() {
     console.log('\n' + '='.repeat(50));
     console.log('✅ SEEDING COMPLETED SUCCESSFULLY!');
     console.log('='.repeat(50));
-    console.log('\n📝 CREDENTIALS:');
-    console.log('\n👨‍💼 Admin:');
-    console.log('   Email: admin@filmfinance.com');
-    console.log('   Password: Admin123!');
-    console.log('\n🎬 Producer:');
-    console.log('   Email: producer@filmfinance.com');
-    console.log('   Password: Producer123!');
     console.log('\n🎥 Sample Project: Himalayan Dreams');
     console.log('='.repeat(50) + '\n');
 
