@@ -1,6 +1,7 @@
 import { ProjectUserService } from "../../services/assignproject/assignproject.service.js";
 import { StatusCodes } from "http-status-codes";
 import { ApiError } from "../../utils/ApiError.js";
+import prisma from "../../utils/prismaClient.js";
 
 const projectUserService = new ProjectUserService();
 export const assignUser = async (req, res, next) => {
@@ -8,21 +9,24 @@ export const assignUser = async (req, res, next) => {
     const { projectId } = req.params;
     const { email, role } = req.body;
 
-    if (!email || !role) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, "Email and role are required");
+     if (!email) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, "Email is required");
     }
 
+
     // Find the user by email
-    const user = await prisma.user.findUnique({
+   const user = await prisma.user.findUnique({
       where: { email },
+      include: { role: true }, // get the system role
     });
+
 
     if (!user) {
       throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
     }
 
     // Assign the user to the project
-    const result = await projectUserService.assignUser(projectId, user.id, role);
+    const result = await projectUserService.assignUser(projectId, user.id, user.role.name);
 
     res.status(StatusCodes.CREATED).json(result);
   } catch (err) {

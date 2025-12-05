@@ -3,45 +3,75 @@ import prisma from "../../utils/prismaClient.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { StatusCodes } from "http-status-codes";
 import { signToken } from "../../utils/helper.js";
-
+import{ROLE_CREATION_RULES} from "../../constant.js"
 export class AuthService {
-  async signup({ email, password, name, role: roleName }) { // rename argument to roleName
-      if (roleName === "Admin") {
-    const existingAdmin = await prisma.user.findFirst({
-      where: { role: { name: "Admin" } },
+  async addingUser({ email, password, name, role: roleName, requestedBy }) {
+    
+  
+    const creator = await prisma.user.findUnique({
+      where: { id: requestedBy },
+      include: { role: true },
     });
-    if (existingAdmin) {
+
+    if (!creator) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, "Unauthorized");
+    }
+
+    const creatorRole = creator.role?.name;
+
+
+    const allowedRoles = ROLE_CREATION_RULES[creatorRole] || [];
+
+    if (!allowedRoles.includes(roleName)) {
       throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        "An Admin account already exists"
+        StatusCodes.FORBIDDEN,
+        `Users with role '${creatorRole}' cannot create '${roleName}'`
       );
     }
-  }
 
+
+    if (roleName === "Admin") {
+      const existingAdmin = await prisma.user.findFirst({
+        where: { role: { name: "Admin" } },
+      });
+      if (existingAdmin) {
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          "An Admin account already exists"
+        );
+      }
+    }
+
+    // 4. Email check
     const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) throw new ApiError(StatusCodes.BAD_REQUEST, "Email already registered");
+    if (existingUser) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, "Email already registered");
+    }
+
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
- let roleRecord = null;
-if (roleName) {
-  roleRecord = await prisma.role.findUnique({ where: { name: roleName } });
-  if (!roleRecord) throw new ApiError(StatusCodes.BAD_REQUEST, "Role not found");
-}
 
-const user = await prisma.user.create({
-  data: {
-    name,                  
-    email,
-    password: hashedPassword,
-    role: roleRecord ? { connect: { id: roleRecord.id } } : undefined,
-  },
-  include: { role: true },
-});
+    const roleRecord = await prisma.role.findUnique({
+      where: { name: roleName },
+    });
+    if (!roleRecord) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, "Role not found");
+    }
+
+  
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role: { connect: { id: roleRecord.id } },
+      },
+      include: { role: true },
+    });
 
     return user;
   }
-
 
 
   async login({ email, password }) {

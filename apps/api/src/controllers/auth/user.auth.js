@@ -2,15 +2,22 @@ import asyncHandler from "express-async-handler";
 import { AuthService } from "../../services/auth/auth.service.js";
 import { StatusCodes } from "http-status-codes";
 import { ApiResponse } from "../../utils/ApiResponse.js";
-
 const authService = new AuthService();
 
-export const signup = asyncHandler(async (req, res) => {
- const { email, password, name, role } = req.body;
-const user = await authService.signup({ email, password, name, role });
+export const addUser = asyncHandler(async (req, res) => {
+  const { email, password, name, role } = req.body;
 
+  const requestedBy = req.user?.id; 
 
-  res.status(StatusCodes.CREATED).json(
+  const user = await authService.addingUser({
+    email,
+    password,
+    name,
+    role,
+    requestedBy,
+  });
+
+  return res.status(StatusCodes.CREATED).json(
     new ApiResponse(
       StatusCodes.CREATED,
       {
@@ -18,10 +25,10 @@ const user = await authService.signup({ email, password, name, role });
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role ? user.role.name : null,
+          role: user.role?.name || null,
         },
       },
-      "User registered successfully"
+      "User created successfully"
     )
   );
 });
