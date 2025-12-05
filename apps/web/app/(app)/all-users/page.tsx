@@ -16,13 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  createdAt: string;
-}
+import { User } from "../lib/types";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -145,7 +139,7 @@ export default function AdminUsersPage() {
             <div>
               <p className="text-sm text-gray-600 mb-1">Admins</p>
               <p className="text-2xl font-bold text-red-600">
-                {users.filter((u) => u.role === "admin").length}
+                {users.filter((u) => u.role.toLowerCase() === "admin").length}
               </p>
             </div>
             <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
@@ -174,21 +168,13 @@ export default function AdminUsersPage() {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">All Roles</option>
-            <option value="admin">Admin</option>
-            <option value="producer">Producer</option>
-            <option value="investor">Investor</option>
-            <option value="viewer">Viewer</option>
+            <option value="Admin">Admin</option>
+            <option value="Producer">Producer</option>
+            <option value="Investor">Investor</option>
+            <option value="Line Producer">Line Producer</option>
+            <option value="Accountant">Accountant</option>
           </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="suspended">Suspended</option>
-          </select>
+          
         </div>
 
         {selectedUsers.size > 0 && (
@@ -302,12 +288,12 @@ export default function AdminUsersPage() {
 
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <button
+                      {/* <button
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Edit user"
                       >
                         <Edit className="w-4 h-4" />
-                      </button>
+                      </button> */}
                       <button
                         onClick={() => {
                           setUserToDelete(user.id);

@@ -1,12 +1,12 @@
-// components/SettingsPanel.tsx - Settings dropdown
+// components/SettingsPanel.tsx - Updated with proper routes
 
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  Moon, Sun, Globe, Bell, Lock, Palette, 
-  Database, Download, Trash2, Shield 
+  Moon, Sun, Globe, Bell, Lock, 
+  Download, Trash2, Shield 
 } from 'lucide-react';
 
 export default function SettingsPanel() {
@@ -53,15 +53,6 @@ export default function SettingsPanel() {
               />
             </button>
           </div>
-
-          {/* Theme */}
-          <button
-            onClick={() => router.push('/settings/theme')}
-            className="w-full flex items-center gap-3 py-2 hover:bg-gray-50 rounded-lg transition-colors"
-          >
-            <Palette className="w-4 h-4 text-gray-600" />
-            <span className="text-sm text-gray-700">Theme Customization</span>
-          </button>
         </div>
 
         <div className="border-t border-gray-100 my-2"></div>
@@ -92,47 +83,26 @@ export default function SettingsPanel() {
             </button>
           </div>
 
-          {/* Auto Save Toggle */}
-          <div className="flex items-center justify-between py-2">
-            <div className="flex items-center gap-3">
-              <Database className="w-4 h-4 text-gray-600" />
-              <span className="text-sm text-gray-700">Auto-save</span>
-            </div>
-            <button
-              onClick={() => setAutoSave(!autoSave)}
-              className={`relative w-11 h-6 rounded-full transition-colors ${
-                autoSave ? 'bg-blue-600' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                  autoSave ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
-
           {/* Language */}
           <button
-            onClick={() => router.push('/settings/language')}
+            onClick={() => router.push('/settings')}
             className="w-full flex items-center gap-3 py-2 hover:bg-gray-50 rounded-lg transition-colors"
           >
             <Globe className="w-4 h-4 text-gray-600" />
-            <span className="text-sm text-gray-700">Language</span>
-            <span className="ml-auto text-xs text-gray-500">English</span>
+            <span className="text-sm text-gray-700">Language & Region</span>
           </button>
         </div>
 
         <div className="border-t border-gray-100 my-2"></div>
 
-        {/* Data & Security */}
+        {/* Security */}
         <div className="px-4 py-2">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            Data & Security
+            Account & Security
           </p>
           
           <button
-            onClick={() => router.push('/settings/security')}
+            onClick={() => router.push('/settings')}
             className="w-full flex items-center gap-3 py-2 hover:bg-gray-50 rounded-lg transition-colors"
           >
             <Lock className="w-4 h-4 text-gray-600" />
@@ -140,32 +110,11 @@ export default function SettingsPanel() {
           </button>
 
           <button
-            onClick={() => router.push('/settings/backup')}
+            onClick={() => router.push('/settings')}
             className="w-full flex items-center gap-3 py-2 hover:bg-gray-50 rounded-lg transition-colors"
           >
             <Download className="w-4 h-4 text-gray-600" />
-            <span className="text-sm text-gray-700">Backup & Export</span>
-          </button>
-
-          <button
-            onClick={() => router.push('/settings/security')}
-            className="w-full flex items-center gap-3 py-2 hover:bg-gray-50 rounded-lg transition-colors"
-          >
-            <Shield className="w-4 h-4 text-gray-600" />
-            <span className="text-sm text-gray-700">Two-Factor Auth</span>
-          </button>
-        </div>
-
-        <div className="border-t border-gray-100 my-2"></div>
-
-        {/* Danger Zone */}
-        <div className="px-4 py-2">
-          <button
-            onClick={() => router.push('/settings/danger')}
-            className="w-full flex items-center gap-3 py-2 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <Trash2 className="w-4 h-4 text-red-600" />
-            <span className="text-sm text-red-600">Delete Account</span>
+            <span className="text-sm text-gray-700">Download Data</span>
           </button>
         </div>
       </div>
