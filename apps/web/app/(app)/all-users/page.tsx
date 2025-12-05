@@ -124,6 +124,7 @@ export default function AdminUsersPage() {
           name: name,
           role: selectedRole,
         }),
+        credentials: "include",
       });
 
       const data = await response.json();
