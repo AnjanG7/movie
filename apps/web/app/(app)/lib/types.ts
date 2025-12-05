@@ -7,12 +7,15 @@ export enum Phase {
   PUBLICITY = 'PUBLICITY'
 }
 
-// User & Auth Types (from Prisma schema)
 export interface User {
   id: string;
   name: string;
   email: string;
   role: string;
+  phone?: string;
+  avatar?: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Role {
@@ -109,3 +112,6 @@ export interface DashboardStats {
   totalInvestors: number;
   projectsByPhase: Record<Phase, number>;
 }
+
+
+

@@ -68,6 +68,7 @@ const user = await prisma.user.create({
         email: user.email,
         name: user.name,
         role: user.role ? user.role.name : null,
+        createdAt: user.createdAt,
       },
     };
   }
