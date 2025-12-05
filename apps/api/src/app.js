@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet"
+import xss from "xss"
 import { errorHandler } from "./middlewares/errormiddleware.js";
 import dotenv from "dotenv";
 
@@ -19,7 +21,8 @@ app.use(
 );
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-
+app.use(helmet());
+app.use(xss())
 // Import all routes
 import authRouter from "./routes/auth.routes.js";
 import projectRouter from "./routes/project.routes.js";
