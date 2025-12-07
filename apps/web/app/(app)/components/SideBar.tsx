@@ -15,7 +15,8 @@ import {
   Receipt,
   Wallet,
   Package,
-  
+  Clapperboard,  // Add this import for Post-Production icon
+  Megaphone,     // Add this import for Publicity icon
 } from 'lucide-react';
 
 const menuItems = [
@@ -99,7 +100,9 @@ const menuItems = [
   label: 'Budget Variance',
   href: '/budget-variance',
 },
-
+  { section: 'Production & Post' },
+  { icon: Clapperboard, label: 'Post-Production', href: '/post-production' },
+  { icon: Megaphone, label: 'Publicity', href: '/publicity' }, 
 ];
 
 export default function Sidebar() {

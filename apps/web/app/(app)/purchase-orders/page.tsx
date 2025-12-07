@@ -5,6 +5,69 @@ import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Download } from 'lucide-react';
+
+const exportPOToPDF = (po: any) => {
+  const doc = new jsPDF();
+
+  // Header
+  doc.setFontSize(20);
+  doc.text('Purchase Order', 14, 20);
+  
+  doc.setFontSize(11);
+  doc.text(`PO Number: ${po.poNumber}`, 14, 35);
+  doc.text(`Date: ${new Date(po.poDate).toLocaleDateString()}`, 14, 41);
+  doc.text(`Vendor: ${po.vendor?.name || 'N/A'}`, 14, 47);
+  doc.text(`Status: ${po.status}`, 14, 53);
+
+  // Line Items
+  if (po.lineItems && po.lineItems.length > 0) {
+    doc.setFontSize(14);
+    doc.text('Items', 14, 65);
+
+    const itemData = po.lineItems.map((item: any) => [
+      item.description,
+      item.qty.toString(),
+      item.unitPrice.toLocaleString(),
+      (item.qty * item.unitPrice).toLocaleString()
+    ]);
+
+    autoTable(doc, {
+      startY: 70,
+      head: [['Description', 'Qty', 'Unit Price', 'Total']],
+      body: itemData,
+      theme: 'striped',
+      headStyles: { fillColor: [249, 115, 22] },
+      columnStyles: {
+        1: { halign: 'right' },
+        2: { halign: 'right' },
+        3: { halign: 'right' }
+      }
+    });
+
+    // Total
+    const total = po.lineItems.reduce((sum: number, item: any) => sum + (item.qty * item.unitPrice), 0);
+    const finalY = (doc as any).lastAutoTable.finalY + 5;
+    doc.setFontSize(12);
+    doc.setFont("Helvetica", 'bold');
+    doc.text(`Total: ${total.toLocaleString()}`, 14, finalY);
+  }
+
+  // Notes
+  if (po.notes) {
+    const notesY = (doc as any).lastAutoTable?.finalY + 15 || 120;
+    doc.setFontSize(10);
+    doc.text('Notes:', 14, notesY);
+    doc.setFont("Helvetica", 'normal');
+    doc.text(po.notes, 14, notesY + 6, { maxWidth: 180 });
+  }
+
+  // Save
+  const filename = `PO_${po.poNumber}_${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(filename);
+};
 
 // Client Component that uses useSearchParams
 function PurchaseOrdersContent() {
@@ -364,6 +427,13 @@ function PurchaseOrdersContent() {
                             >
                               Delete
                             </button>
+                            <button
+                            onClick={() => exportPOToPDF(po)}
+                            className="text-green-600 hover:text-green-900"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+
                           </td>
                         </tr>
                       ))

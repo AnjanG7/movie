@@ -19,6 +19,9 @@ import {
   DollarSign,
   Loader2,
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Download } from 'lucide-react';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
@@ -249,6 +252,174 @@ export default function QuotationsContent() {
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
+const exportToPDF = (quotation: any) => {
+  const doc = new jsPDF();
+
+  // Header
+  doc.setFontSize(20);
+  doc.text('QUOTATION', 14, 20);
+  
+  doc.setFontSize(11);
+  doc.text(`Version: ${quotation.version}`, 14, 32);
+  doc.text(`Type: ${quotation.type}`, 14, 38);
+  doc.text(`Template: ${quotation.template || 'N/A'}`, 14, 44);
+  doc.text(`Created: ${new Date(quotation.createdAt).toLocaleDateString()}`, 14, 50);
+
+  if (quotation.lockedAt) {
+    doc.setTextColor(220, 38, 38);
+    doc.text('LOCKED', 14, 56);
+    doc.setTextColor(0, 0, 0);
+  }
+
+  // Total Summary Box
+  doc.setFillColor(240, 248, 255);
+  doc.rect(14, 65, 180, 15, 'F');
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Total: ${formatCurrency(quotation.total || 0)}`, 16, 75);
+  doc.setFont('helvetica', 'normal');
+
+  // Assumptions
+  if (quotation.assumptions) {
+    doc.setFontSize(12);
+    doc.text('Assumptions', 14, 92);
+    doc.setFontSize(9);
+    doc.text(`Currency: ${quotation.assumptions.currency || 'USD'}`, 16, 98);
+    doc.text(`Tax: ${quotation.assumptions.taxPercent || 0}%`, 16, 104);
+    doc.text(`Contingency: ${quotation.assumptions.contingencyPercent || 0}%`, 60, 98);
+    doc.text(`Insurance: ${quotation.assumptions.insurancePercent || 0}%`, 60, 104);
+  }
+
+  // Budget Lines
+  if (quotation.lines && quotation.lines.length > 0) {
+    doc.setFontSize(14);
+    doc.text('Budget Lines', 14, 118);
+
+    const lineData = quotation.lines.map((line: any) => {
+      const subtotal = line.qty * line.rate;
+      const tax = subtotal * ((line.taxPercent || 0) / 100);
+      const total = subtotal + tax;
+      
+      return [
+        line.phase,
+        line.department || '-',
+        line.name,
+        line.qty.toString(),
+        line.rate.toLocaleString(),
+        `${line.taxPercent || 0}%`,
+        total.toLocaleString()
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 123,
+      head: [['Phase', 'Dept', 'Item', 'Qty', 'Rate', 'Tax', 'Total']],
+      body: lineData,
+      foot: [['', '', '', '', '', 'GRAND TOTAL:', (quotation.total || 0).toLocaleString()]],
+      theme: 'striped',
+      headStyles: { fillColor: [59, 130, 246] },
+      footStyles: { fillColor: [241, 245, 249], textColor: [0, 0, 0], fontStyle: 'bold' },
+      styles: { fontSize: 8 },
+      columnStyles: {
+        3: { halign: 'right' },
+        4: { halign: 'right' },
+        5: { halign: 'right' },
+        6: { halign: 'right' }
+      }
+    });
+  }
+
+  // ROI Metrics
+  if (quotation.metrics) {
+    const finalY = (doc as any).lastAutoTable?.finalY + 15 || 180;
+    doc.setFontSize(14);
+    doc.text('ROI Metrics', 14, finalY);
+
+    const metricsData = [
+      ['Total Cost', formatCurrency(quotation.metrics.totalCost || 0)],
+      ['Projected Revenue', formatCurrency(quotation.metrics.projectedRevenue || 0)],
+      ['Distribution Fees', formatCurrency(quotation.metrics.distributionFees || 0)],
+      ['Net Revenue', formatCurrency(quotation.metrics.netRevenue || 0)],
+      ['Profit', formatCurrency(quotation.metrics.profit || 0)],
+      ['ROI', `${quotation.metrics.roi?.toFixed(1) || 0}%`],
+      ['Profit Margin', `${quotation.metrics.profitMargin?.toFixed(1) || 0}%`],
+    ];
+
+    autoTable(doc, {
+      startY: finalY + 5,
+      body: metricsData,
+      theme: 'plain',
+      styles: { fontSize: 10, cellPadding: 2 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 60 },
+        1: { halign: 'right' }
+      }
+    });
+  }
+
+  // Financing Plan
+  if (quotation.financingPlan?.sources && quotation.financingPlan.sources.length > 0) {
+    const currentY = (doc as any).lastAutoTable?.finalY + 15 || 200;
+    
+let startY: number;
+
+if (currentY > 250) {
+  doc.addPage();
+  doc.setFontSize(14);
+  doc.text('Financing Plan', 14, 20);
+  startY = 25;
+} else {
+  doc.setFontSize(14);
+  doc.text('Financing Plan', 14, currentY);
+  startY = currentY + 5;
+}
+
+
+    const financingData = quotation.financingPlan.sources.map((source: any) => [
+      source.type,
+      source.description || '-',
+      formatCurrency(source.amount || 0),
+      source.rate ? `${source.rate}%` : '-'
+    ]);
+
+    autoTable(doc, {
+      startY: startY,
+      head: [['Type', 'Description', 'Amount', 'Rate']],
+      body: financingData,
+      theme: 'striped',
+      headStyles: { fillColor: [34, 197, 94] },
+      columnStyles: {
+        2: { halign: 'right' },
+        3: { halign: 'right' }
+      }
+    });
+  }
+
+  // Footer
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text(
+      `Page ${i} of ${pageCount}`,
+      doc.internal.pageSize.width / 2,
+      doc.internal.pageSize.height - 10,
+      { align: 'center' }
+    );
+    doc.text(
+      `Generated on ${new Date().toLocaleDateString()}`,
+      14,
+      doc.internal.pageSize.height - 10
+    );
+  }
+
+  // Save
+  const filename = `Quotation_${quotation.version}_${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(filename);
+};
+
+
   // ------- Render -------
 
   return (
@@ -313,6 +484,7 @@ export default function QuotationsContent() {
             )}
           </div>
         </div>
+
 
         {/* Search & summary */}
         {selectedProjectId && (
@@ -410,56 +582,70 @@ export default function QuotationsContent() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">
-                {filteredQuotations.map((q) => (
-                  <tr key={q.id} className="hover:bg-slate-50">
-                    <td className="px-6 py-4 font-semibold text-gray-900">
-                      {q.version}
-                    </td>
-                    <td className="px-6 py-4 text-gray-700">
-                      {q.template ?? '-'}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span>
-                          {new Date(q.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {q.type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right font-semibold text-gray-900">
-                      {q.total != null ? formatCurrency(q.total) : '-'}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            router.push(
-                              `/quotations/${q.id}/view?projectId=${selectedProjectId}`
-                            )
-                          }
-                          className="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50"
-                          title="View"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteQuotation(q.id)}
-                          className="p-2 rounded-lg text-red-600 hover:bg-red-50"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+             {filteredQuotations.map((q) => ( 
+  <tr key={q.id} className="hover:bg-slate-50">
+    <td className="px-6 py-4 font-semibold text-gray-900">
+      {q.version}
+    </td>
+    <td className="px-6 py-4 text-gray-700">
+      {q.template ?? '-'}
+    </td>
+    <td className="px-6 py-4 text-gray-600">
+      <div className="flex items-center gap-2">
+        <Calendar className="w-4 h-4 text-gray-400" />
+        <span>
+          {new Date(q.createdAt).toLocaleDateString()}
+        </span>
+      </div>
+    </td>
+    <td className="px-6 py-4">
+      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+        {q.type}
+      </span>
+    </td>
+    <td className="px-6 py-4 text-right font-semibold text-gray-900">
+      {q.total != null ? formatCurrency(q.total) : '-'}
+    </td>
+    <td className="px-6 py-4">
+      <div className="flex items-center gap-2">
+        {/* View Button */}
+        <button
+          type="button"
+          onClick={() =>
+            router.push(
+              `/quotations/${q.id}/view?projectId=${selectedProjectId}`
+            )
+          }
+          className="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors"
+          title="View Quotation"
+        >
+          <Eye className="w-4 h-4" />
+        </button>
+
+        {/* Download PDF Button */}
+        <button
+          type="button"
+          onClick={() => exportToPDF(q)}
+          className="p-2 rounded-lg text-green-600 hover:bg-green-50 transition-colors"
+          title="Download PDF"
+        >
+          <Download className="w-4 h-4" />
+        </button>
+
+        {/* Delete Button */}
+        <button
+          type="button"
+          onClick={() => handleDeleteQuotation(q.id)}
+          className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+          title="Delete Quotation"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    </td>
+  </tr>
+))}
+
               </tbody>
             </table>
           </div>

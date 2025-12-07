@@ -27,11 +27,12 @@ router.get(
   getWaterfallById
 );
 router.get(
-  "/project",
+  "/",
   authMiddleware,
   authorizeRoles("Producer", "Investor"),
   getWaterfallByProject
 );
+
 
 // Add tiers to a waterfall
 router.post("/:id/tiers", authMiddleware, authorizeRoles("Producer"), addTiers);

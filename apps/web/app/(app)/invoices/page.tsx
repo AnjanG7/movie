@@ -6,6 +6,9 @@ import React, {
   FormEvent,
   ChangeEvent,
 } from 'react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Download } from 'lucide-react';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
@@ -196,6 +199,38 @@ export default function InvoicesPage() {
   const pendingCount = invoices.filter((i) => i.status === 'Pending').length;
   const approvedCount = invoices.filter((i) => i.status === 'Approved').length;
   const rejectedCount = invoices.filter((i) => i.status === 'Rejected').length;
+ 
+  const exportInvoiceToPDF = (invoice: any) => {
+  const doc = new jsPDF();
+
+  // Header
+  doc.setFontSize(20);
+  doc.text('INVOICE', 14, 20);
+  
+  doc.setFontSize(11);
+  doc.text(`Invoice #: ${invoice.invoiceNumber}`, 14, 35);
+  doc.text(`Date: ${new Date(invoice.invoiceDate).toLocaleDateString()}`, 14, 41);
+  doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, 14, 47);
+  doc.text(`Vendor: ${invoice.vendor?.name || 'N/A'}`, 14, 53);
+  doc.text(`Status: ${invoice.status}`, 14, 59);
+
+  // Amount
+  doc.setFontSize(16);
+  doc.setFont("Helvetica", 'bold');
+  doc.text(`Amount: ${invoice.amount.toLocaleString()}`, 14, 75);
+
+  // Description
+  if (invoice.description) {
+    doc.setFontSize(10);
+    doc.setFont("Helvetica", 'normal');
+    doc.text('Description:', 14, 90);
+    doc.text(invoice.description, 14, 96, { maxWidth: 180 });
+  }
+
+  // Save
+  const filename = `Invoice_${invoice.invoiceNumber}_${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(filename);
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-6 lg:p-8">
@@ -449,6 +484,13 @@ export default function InvoicesPage() {
                           >
                             Delete
                           </button>
+                                  <button
+          onClick={() => exportInvoiceToPDF(invoice)}
+          className="p-2 rounded-lg text-green-600 hover:bg-green-50 transition-colors"
+          title="Download PDF"
+        >
+          <Download className="w-4 h-4" />
+        </button>
                         </td>
                       </tr>
                     ))

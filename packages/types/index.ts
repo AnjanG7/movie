@@ -1,7 +1,25 @@
-// Instead of importing Prisma client directly, import Prisma namespace for typing only
-import { Prisma } from '@prisma/client';
+// packages/types/index.ts
+// Standalone app/domain types – no Prisma dependency
 
-// Export only the types you need
-export type User = Prisma.UserGetPayload<{}>;
-export type Role = Prisma.RoleGetPayload<{}>;
-export type AuditLog = Prisma.AuditLogGetPayload<{}>;
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+}
+
+export interface AuditLog {
+  id: string;
+  entity: string;
+  action: string;
+  recordId?: string;
+  beforeData?: any;
+  afterData?: any;
+  userId?: string;
+  timestamp: string;
+}

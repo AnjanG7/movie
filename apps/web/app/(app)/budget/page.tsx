@@ -8,6 +8,9 @@ import React, {
 } from 'react';
 import { useRouter } from 'next/navigation';
 import { Film, Plus, Edit2, Trash2 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Download } from 'lucide-react';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
@@ -274,6 +277,85 @@ export default function BudgetPage() {
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
+  const exportToPDF = () => {
+  if (!selectedVersion) {
+    alert('No budget version selected');
+    return;
+  }
+
+  const project = projects.find(p => p.id === selectedProjectId);
+  const doc = new jsPDF();
+
+  // Header
+  doc.setFontSize(18);
+  doc.text('Budget Report', 14, 20);
+  
+  doc.setFontSize(11);
+  doc.text(`Project: ${project?.title || 'N/A'}`, 14, 30);
+  doc.text(`Version: ${selectedVersion.version} (${selectedVersion.type})`, 14, 36);
+  doc.text(`Created: ${new Date(selectedVersion.createdAt).toLocaleDateString()}`, 14, 42);
+  if (selectedVersion.lockedAt) {
+    doc.setTextColor(220, 38, 38);
+    doc.text('LOCKED', 14, 48);
+    doc.setTextColor(0, 0, 0);
+  }
+
+  // Summary by Phase
+  doc.setFontSize(14);
+  doc.text('Summary by Phase', 14, 60);
+
+  const phaseData = Object.entries(calculateTotalsByPhase()).map(([phase, total]) => [
+    phase,
+    formatCurrency(total),
+    `${((total / calculateGrandTotal()) * 100).toFixed(1)}%`
+  ]);
+
+  autoTable(doc, {
+    startY: 65,
+    head: [['Phase', 'Total', '% of Budget']],
+    body: phaseData,
+    foot: [['TOTAL', formatCurrency(calculateGrandTotal()), '100%']],
+    theme: 'striped',
+    headStyles: { fillColor: [37, 99, 235] },
+    footStyles: { fillColor: [241, 245, 249], textColor: [0, 0, 0], fontStyle: 'bold' }
+  });
+
+  // Budget Lines
+  const finalY = (doc as any).lastAutoTable.finalY + 10;
+  doc.setFontSize(14);
+  doc.text('Budget Lines', 14, finalY);
+
+  const lineData = selectedVersion.lines.map(line => [
+    line.phase,
+    line.department || '-',
+    line.name,
+    line.qty.toString(),
+    line.rate.toLocaleString(),
+    `${line.taxPercent || 0}%`,
+    formatCurrency(calculateLineTotal(line))
+  ]);
+
+  autoTable(doc, {
+    startY: finalY + 5,
+    head: [['Phase', 'Dept', 'Line Item', 'Qty', 'Rate', 'Tax', 'Total']],
+    body: lineData,
+    theme: 'striped',
+    headStyles: { fillColor: [37, 99, 235] },
+    styles: { fontSize: 8 },
+    columnStyles: {
+      3: { halign: 'right' },
+      4: { halign: 'right' },
+      5: { halign: 'right' },
+      6: { halign: 'right' }
+    }
+  });
+
+  // Save
+  const filename = `Budget_${project?.title}_${selectedVersion.version}_${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(filename);
+};
+
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
@@ -321,6 +403,7 @@ export default function BudgetPage() {
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.title}
+
                 </option>
               ))}
             </select>
@@ -344,9 +427,21 @@ export default function BudgetPage() {
                 ))}
               </select>
             </div>
+            
           )}
-
+<div className="flex items-center gap-3">
+  {selectedProjectId && selectedVersion && (
+    <button
+      onClick={exportToPDF}
+      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+    >
+      <Download className="w-5 h-5" />
+      Download PDF
+    </button>
+  )}
+</div>
           {selectedVersion && !selectedVersion.lockedAt && (
+            
             <button
               type="button"
               onClick={() => {
@@ -359,8 +454,11 @@ export default function BudgetPage() {
               <Plus className="w-4 h-4" />
               Add Budget Line
             </button>
-          )}
+            
+          )
+          }
         </div>
+
 
         {/* Modal */}
         {showAddLineModal && (

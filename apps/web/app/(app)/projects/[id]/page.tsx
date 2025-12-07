@@ -457,7 +457,23 @@ export default function ProjectProfilePage() {
                 </div>
               </div>
             </Link>
-
+           {/* Post Production Card */}
+    <Link
+      href={`/projects/${projectId}/post-production`}
+      className="group p-6 bg-white border border-gray-200 rounded-xl hover:shadow-lg hover:border-purple-400 transition-all"
+    >
+      <div className="flex items-center gap-4">
+        <div className="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+          <Package className="w-6 h-6 text-purple-600" />
+        </div>
+        <div>
+          <h3 className="font-semibold text-gray-900 mb-1">
+            Post Production
+          </h3>
+          <p className="text-sm text-gray-600">VFX, Sound, Editing</p>
+        </div>
+      </div>
+    </Link>
             {/* Publicity */}
             <Link
               href={`/projects/${projectId}/publicity`}
