@@ -204,7 +204,7 @@ model BudgetVersion {
   acceptedAt DateTime? // when a quote was accepted/converted
   sentTo     Json? // optional: list of recipients (investors / emails)
 
-  // NEW: Quotation-specific fields
+  // Quotation-specific fields
   template      String? // FEATURE | SERIES | SHORT
   assumptions   Json? // { currency, taxPercent, contingencyPercent, insurancePercent, bondPercent, phases }
   financingPlan Json? // { sources: [{ type, amount, rate }] }
@@ -215,12 +215,15 @@ model BudgetVersion {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime? @updatedAt
 
-  lines        BudgetLineItem[]
-  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  changeOrders ChangeOrder[]
+  // Relations
+  lines            BudgetLineItem[]
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  changeOrders     ChangeOrder[]
+  financingSources FinancingSource[] // ← ADD THIS LINE (reverse relation)
 
   @@unique([projectId, version]) // Ensure unique version numbers per project
 }
+
 
 model BudgetLineItem {
   id              String    @id @default(uuid())
@@ -347,20 +350,29 @@ model Allocation {
 // ---------------------- Financing & Cashflow ------------
 
 model FinancingSource {
-  id        String        @id @default(uuid())
+  id        String   @id @default(uuid())
   projectId String
-  type      FinancingType
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  type      String   // EQUITY, LOAN, GRANT, INCENTIVE, MG
   amount    Float
   rate      Float?
-  fees      Float?
+  fees      Float?   @default(0)
   schedule  Json?
-  createdAt DateTime      @default(now())
-  updatedAt DateTime?     @updatedAt
-
-  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  drawdowns    Drawdown[]
-  participants Participant[] // optional link to waterfall participants if this source maps to an investor
+  
+  // Link to quotation that created it (removed @unique)
+  sourceQuotationId String?
+  sourceQuotation   BudgetVersion? @relation(fields: [sourceQuotationId], references: [id], onDelete: SetNull)
+  
+  drawdowns     Drawdown[]
+  participants  Participant[]  // ✅ ADD THIS LINE - reverse relation
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
+
+
+
 
 model Drawdown {
   id       String          @id @default(uuid())

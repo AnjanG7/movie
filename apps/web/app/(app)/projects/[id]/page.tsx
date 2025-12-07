@@ -394,7 +394,7 @@ export default function ProjectProfilePage() {
 
             {/* Budget */}
             <Link
-              href={`/projects/${projectId}/budget`}
+              href={`/budget?projectId=${projectId}`}
               className="group p-6 bg-white border border-gray-200 rounded-xl hover:shadow-lg hover:border-green-400 transition-all"
             >
               <div className="flex items-center gap-4">
@@ -428,7 +428,7 @@ export default function ProjectProfilePage() {
 
             {/* Cashflow */}
             <Link
-              href={`/projects/${projectId}/cashflow`}
+              href={`/cashflow?projectId=${projectId}`}
               className="group p-6 bg-white border border-gray-200 rounded-xl hover:shadow-lg hover:border-teal-400 transition-all"
             >
               <div className="flex items-center gap-4">

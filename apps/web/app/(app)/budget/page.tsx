@@ -92,6 +92,12 @@ export default function BudgetPage() {
       const result = await response.json();
       if (result.success) {
         setProjects(result.data.projects || []);
+
+         const params = new URLSearchParams(window.location.search);
+      const projectId = params.get('projectId');
+      if (projectId) {
+        setSelectedProjectId(projectId);
+      }
       }
     } catch (error) {
       console.error('Error fetching projects:', error);

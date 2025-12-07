@@ -33,6 +33,9 @@ router.get(
     getPurchaseOrder
 );
 
+router.patch('/:id', authMiddleware, authorizeRoles('Producer', 'Line Producer'), updatePOStatus);
+
+
 router.patch(
     '/:id/status',
     authMiddleware,

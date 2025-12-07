@@ -4,83 +4,103 @@ import { StatusCodes } from 'http-status-codes';
 
 export class QuotationService {
   // Create new quotation
- async createQuotation(projectId, data, userId) {
-    const {
-      version,
-      type = 'QUOTE',
-      template,
-      assumptions,
-      financingPlan,
-      revenueModel,
-      lines,
-    } = data;
+async createQuotation(projectId, data, userId) {
+  const {
+    version,
+    type = 'QUOTE',
+    template,
+    assumptions,
+    financingPlan,
+    revenueModel,
+    lines,
+  } = data;
 
-    if (!version) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        'Quotation version is required'
-      );
-    }
-
-    const payload = {
-      projectId,
-      version,
-      type,
-      createdBy: userId || null,
-      template: template || null,
-      grandTotal: 0,
-    };
-
-    // Only attach JSON fields when present – never send null
-    if (assumptions !== undefined && assumptions !== null) {
-      payload.assumptions = assumptions;
-    }
-    if (financingPlan !== undefined && financingPlan !== null) {
-      payload.financingPlan = financingPlan;
-    }
-    if (revenueModel !== undefined && revenueModel !== null) {
-      payload.revenueModel = revenueModel;
-    }
-
-    // Only add nested lines if provided
-    if (Array.isArray(lines) && lines.length > 0) {
-      payload.lines = {
-        create: lines.map((line) => ({
-          phase: line.phase,
-          department: line.department || null,
-          name: line.name,
-          qty: Number(line.qty ?? 1),
-          rate: Number(line.rate ?? 0),
-          taxPercent: Number(line.taxPercent ?? 0),
-          vendor: line.vendor || null,
-          notes: line.notes || null,
-        })),
-      };
-    }
-
-    try {
-      const quotation = await prisma.budgetVersion.create({
-        data: payload,
-        include: {
-          project: {
-            select: {
-              id: true,
-              title: true,
-              baseCurrency: true,
-            },
-          },
-          lines: true,
-        },
-      });
-
-      return quotation;
-    } catch (err) {
-      throw new ApiError(
-        StatusCodes.INTERNAL_SERVER_ERROR,
-        'Failed to create quotation'
-      );
-    }
+  if (!version) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Quotation version is required'
+    );
   }
+
+  const payload = {
+    projectId,
+    version,
+    type,
+    createdBy: userId || null,
+    template: template || null,
+    grandTotal: 0,
+  };
+
+  // Only attach JSON fields when present – never send null
+  if (assumptions !== undefined && assumptions !== null) {
+    payload.assumptions = assumptions;
+  }
+  if (financingPlan !== undefined && financingPlan !== null) {
+    payload.financingPlan = financingPlan;
+  }
+  if (revenueModel !== undefined && revenueModel !== null) {
+    payload.revenueModel = revenueModel;
+  }
+
+  // Only add nested lines if provided
+  if (Array.isArray(lines) && lines.length > 0) {
+    payload.lines = {
+      create: lines.map((line) => ({
+        phase: line.phase,
+        department: line.department || null,
+        name: line.name,
+        qty: Number(line.qty ?? 1),
+        rate: Number(line.rate ?? 0),
+        taxPercent: Number(line.taxPercent ?? 0),
+        vendor: line.vendor || null,
+        notes: line.notes || null,
+      })),
+    };
+  }
+
+  try {
+    const quotation = await prisma.budgetVersion.create({
+      data: payload,
+      include: {
+        project: {
+          select: {
+            id: true,
+            title: true,
+            baseCurrency: true,
+          },
+        },
+        lines: true,
+      },
+    });
+
+    // ✅ AUTO-CREATE FINANCING SOURCES from quotation
+    if (financingPlan?.sources && Array.isArray(financingPlan.sources)) {
+      for (const source of financingPlan.sources) {
+        if (source.amount > 0) { // Only create if amount is valid
+          await prisma.financingSource.create({
+            data: {
+              projectId,
+              type: source.type,
+              amount: Number(source.amount),
+              rate: source.rate ? Number(source.rate) : null,
+              fees: 0,
+              sourceQuotationId: quotation.id, // ← Link to quotation
+            },
+          });
+        }
+      }
+    }
+
+    return quotation;
+  } catch (err) {
+    console.error('Error creating quotation:', err);
+    throw new ApiError(
+      StatusCodes.INTERNAL_SERVER_ERROR,
+      `Failed to create quotation: ${err.message}`
+    );
+  }
+}
+
 
 
 
@@ -115,11 +135,14 @@ export class QuotationService {
 
     return templates[template] || templates.FEATURE;
   }
-  async updateQuotation(quotationId, data) {
+async updateQuotation(quotationId, data) {
   // Fetch existing quotation
   const existing = await prisma.budgetVersion.findUnique({
     where: { id: quotationId },
-    include: { lines: true },
+    include: { 
+      lines: true,
+      financingSources: true, // ← Include linked financing sources
+    },
   });
 
   if (!existing) {
@@ -165,6 +188,32 @@ export class QuotationService {
     }, 0);
   }
 
+  // ✅ UPDATE FINANCING SOURCES if financingPlan changed
+  if (financingPlan !== undefined) {
+    // Delete old financing sources linked to this quotation
+    await prisma.financingSource.deleteMany({
+      where: { sourceQuotationId: quotationId },
+    });
+
+    // Create new ones if sources provided
+    if (financingPlan?.sources && Array.isArray(financingPlan.sources)) {
+      for (const source of financingPlan.sources) {
+        if (source.amount > 0) {
+          await prisma.financingSource.create({
+            data: {
+              projectId: existing.projectId,
+              type: source.type,
+              amount: Number(source.amount),
+              rate: source.rate ? Number(source.rate) : null,
+              fees: 0,
+              sourceQuotationId: quotationId,
+            },
+          });
+        }
+      }
+    }
+  }
+
   // Update quotation
   const updated = await prisma.budgetVersion.update({
     where: { id: quotationId },
@@ -192,11 +241,16 @@ export class QuotationService {
           }
         : undefined,
     },
-    include: { lines: true, project: { select: { id: true, title: true, baseCurrency: true } } },
+    include: { 
+      lines: true, 
+      project: { select: { id: true, title: true, baseCurrency: true } },
+      financingSources: true, // ← Include in response
+    },
   });
 
   return updated;
 }
+
 
   // Delete quotation
 async deleteQuotation(quotationId) {
@@ -216,7 +270,12 @@ async deleteQuotation(quotationId) {
     );
   }
 
-  // Delete all lines first
+  // ✅ DELETE linked financing sources first
+  await prisma.financingSource.deleteMany({
+    where: { sourceQuotationId: quotationId },
+  });
+
+  // Delete all lines
   await prisma.budgetLineItem.deleteMany({
     where: { budgetVersionId: quotationId },
   });
@@ -228,6 +287,7 @@ async deleteQuotation(quotationId) {
 
   return { message: 'Quotation deleted successfully' };
 }
+
 
   // Update assumptions
   async updateAssumptions(quotationId, assumptions) {
@@ -485,7 +545,6 @@ async deleteQuotation(quotationId) {
     return metrics;
   }
 
-  // Convert quotation to baseline budget
 // Convert quotation to baseline budget
 async convertToBaseline(quotationId) {
   const quotation = await prisma.budgetVersion.findUnique({
@@ -519,24 +578,23 @@ async convertToBaseline(quotationId) {
     );
   }
 
-  // Create baseline
-// Helper to strip null JSON fields
-const safeJson = (value) => (value == null ? undefined : value);
+  // Helper to strip null JSON fields
+  const safeJson = (value) => (value == null ? undefined : value);
 
-// Create baseline
-const baseline = await prisma.budgetVersion.create({
-  data: {
-    projectId: quotation.projectId,
-    version: 'BASELINE',
-    type: 'BASELINE',
-    template: quotation.template ?? undefined,
-    assumptions: safeJson(quotation.assumptions),
-    financingPlan: safeJson(quotation.financingPlan),
-    revenueModel: safeJson(quotation.revenueModel),
-    metrics: safeJson(quotation.metrics),
-    createdBy: quotation.createdBy ?? undefined,
-  },
-});
+  // Create baseline
+  const baseline = await prisma.budgetVersion.create({
+    data: {
+      projectId: quotation.projectId,
+      version: 'BASELINE',
+      type: 'BASELINE',
+      template: quotation.template ?? undefined,
+      assumptions: safeJson(quotation.assumptions),
+      financingPlan: safeJson(quotation.financingPlan),
+      revenueModel: safeJson(quotation.revenueModel),
+      metrics: safeJson(quotation.metrics),
+      createdBy: quotation.createdBy ?? undefined,
+    },
+  });
 
   // Copy all lines to baseline
   for (const line of quotation.lines) {
@@ -556,19 +614,19 @@ const baseline = await prisma.budgetVersion.create({
   }
 
   // Create working budget from baseline
-const working = await prisma.budgetVersion.create({
-  data: {
-    projectId: quotation.projectId,
-    version: 'WORKING-V1',
-    type: 'WORKING',
-    template: quotation.template ?? undefined,
-    assumptions: safeJson(quotation.assumptions),
-    financingPlan: safeJson(quotation.financingPlan),
-    revenueModel: safeJson(quotation.revenueModel),
-    metrics: safeJson(quotation.metrics),
-    createdBy: quotation.createdBy ?? undefined,
-  },
-});
+  const working = await prisma.budgetVersion.create({
+    data: {
+      projectId: quotation.projectId,
+      version: 'WORKING-V1',
+      type: 'WORKING',
+      template: quotation.template ?? undefined,
+      assumptions: safeJson(quotation.assumptions),
+      financingPlan: safeJson(quotation.financingPlan),
+      revenueModel: safeJson(quotation.revenueModel),
+      metrics: safeJson(quotation.metrics),
+      createdBy: quotation.createdBy ?? undefined,
+    },
+  });
 
   // Copy lines to working budget
   for (const line of quotation.lines) {
@@ -587,13 +645,47 @@ const working = await prisma.budgetVersion.create({
     });
   }
 
+  // ✅ ENSURE financing sources exist (if not already created)
+  let financingCount = 0;
+  if (quotation.financingPlan?.sources && Array.isArray(quotation.financingPlan.sources)) {
+    for (const source of quotation.financingPlan.sources) {
+      // Check if already exists (might have been auto-created earlier)
+      const existing = await prisma.financingSource.findFirst({
+        where: {
+          sourceQuotationId: quotationId,
+          type: source.type,
+          amount: Number(source.amount),
+        },
+      });
+
+      if (!existing && source.amount > 0) {
+        await prisma.financingSource.create({
+          data: {
+            projectId: quotation.projectId,
+            type: source.type,
+            amount: Number(source.amount),
+            rate: source.rate ? Number(source.rate) : null,
+            fees: 0,
+            sourceQuotationId: quotationId,
+          },
+        });
+        financingCount++;
+      }
+    }
+  }
+
   // Mark quotation as accepted
   await prisma.budgetVersion.update({
     where: { id: quotationId },
     data: { acceptedAt: new Date() },
   });
 
-  return { baseline, working };
+  return { 
+    baseline, 
+    working,
+    financingSourcesCreated: financingCount, // Return count for feedback
+  };
 }
+
 
 }
