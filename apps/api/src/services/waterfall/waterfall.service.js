@@ -14,47 +14,50 @@ export class WaterfallService {
   }
 
   // Add tiers to a waterfall
-  async addTiers(waterfallId, tiers) {
-    return prisma.waterfallTier.createMany({
-      data: tiers.map(t => ({
-        waterfallId,
-        tierOrder: t.tierOrder,
-        pctSplit: t.pctSplit,
-        cap: t.cap,
-        description: t.description
-      }))
-    });
-  }
+async addTiers(waterfallId, tiers) {
+  return prisma.waterfallTier.createMany({
+    data: tiers.map(t => ({
+      waterfallId,
+      tierOrder: t.tierOrder,
+      pctSplit: t.pctSplit,
+      cap: t.cap,
+      description: t.description
+    }))
+  });
+}
+
 
   // Add participants to a waterfall
-  async addParticipants(waterfallId, participants) {
-    return prisma.participant.createMany({
-      data: participants.map(p => ({
-        waterfallId,
-        name: p.name,
-        role: p.role,
-        pctShare: p.pctShare,
-        investmentAmount: p.investmentAmount,
-        preferredReturn: p.preferredReturn,
-        capAmount: p.capAmount,
-        type: p.type,
-        orderNo: p.orderNo,
-        financingSourceId: p.financingSourceId
-      }))
-    });
-  }
+async addParticipants(waterfallId, participants) {
+  return prisma.participant.createMany({
+    data: participants.map(p => ({
+      waterfallId,
+      name: p.name,
+      role: p.role,
+      pctShare: p.pctShare,
+      investmentAmount: p.investmentAmount,
+      preferredReturn: p.preferredReturn,
+      capAmount: p.capAmount,
+      type: p.type,
+      orderNo: p.orderNo,
+      financingSourceId: p.financingSourceId
+    }))
+  });
+}
+
 
   // Add a revenue period
-  async addPeriod(waterfallId, period) {
-    return prisma.waterfallPeriod.create({
-      data: {
-        waterfallId,
-        periodStart: period.periodStart,
-        periodEnd: period.periodEnd,
-        netRevenue: period.netRevenue
-      }
-    });
-  }
+async addPeriod(waterfallId, period) {
+  return prisma.waterfallPeriod.create({
+    data: {
+      waterfallId,
+      periodStart: new Date(period.periodStart), // convert string -> Date
+      periodEnd: new Date(period.periodEnd),
+      netRevenue: period.netRevenue
+    }
+  });
+}
+
 
   // Calculate payouts for a waterfall
   async calculateDistribution(waterfallId) {
@@ -122,6 +125,14 @@ export class WaterfallService {
     }
 
     return payouts;
+  }
+  // Get already stored payouts
+  async getPayouts(waterfallId) {
+    return prisma.waterfallPayout.findMany({
+      where: { participant: { waterfallId } },
+      include: { participant: true },
+      orderBy: { periodStart: 'asc' }
+    });
   }
 
   async getWaterfallById(waterfallId) {

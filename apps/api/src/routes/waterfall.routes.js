@@ -13,6 +13,7 @@ import {
   getWaterfallById,
   deleteTier,
   deletePeriod,
+  getPayouts
 } from "../controllers/waterfall/waterfall.controller.js";
 import { authMiddleware } from "../middlewares/authmiddleware.js";
 import { authorizeRoles } from "../middlewares/rolemiddleware.js";
@@ -102,11 +103,13 @@ router.delete(
 );
 
 // Calculate distributions
-router.get(
+router.post(
   "/:id/distribution",
   authMiddleware,
   authorizeRoles("Producer", "Investor"),
   calculateDistribution
 );
+
+router.get("/:id/payouts", authMiddleware, authorizeRoles("Producer", "Investor"), getPayouts);
 
 export default router;

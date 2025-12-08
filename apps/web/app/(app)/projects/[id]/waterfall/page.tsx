@@ -27,6 +27,7 @@ import {
   WaterfallParticipant,
   WaterfallPeriod,
   WaterfallPayout,
+  getPayouts,
 } from '../../../lib/api/waterfall';
 
 export default function WaterfallPage() {
@@ -77,26 +78,32 @@ periodEnd: (new Date().toISOString().split('T')[0] ?? ""),
     fetchWaterfall();
   }, [projectId]);
 
-  const fetchWaterfall = async () => {
-    setLoading(true);
-    try {
-      const response = await getWaterfall(projectId);
-      
-      if (response.success && response.data) {
-        setWaterfall(response.data);
-      } else {
-        // No waterfall exists, create one
-        const createResponse = await createWaterfall(projectId);
-        if (createResponse.success) {
-          setWaterfall(createResponse.data);
-        }
+const fetchWaterfall = async () => {
+  setLoading(true);
+  try {
+    const response = await getWaterfall(projectId);
+
+    if (response.success && response.data) {
+      setWaterfall(response.data);
+
+      // Fetch payouts for this waterfall
+      const payoutResponse = await getPayouts(projectId, response.data.id);
+      if (payoutResponse.success) {
+        setPayouts(payoutResponse.data);
       }
-    } catch (error) {
-      console.error('Error fetching waterfall:', error);
-    } finally {
-      setLoading(false);
+    } else {
+      // No waterfall exists, create one
+      const createResponse = await createWaterfall(projectId);
+      if (createResponse.success) {
+        setWaterfall(createResponse.data);
+      }
     }
-  };
+  } catch (error) {
+    console.error('Error fetching waterfall:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Handle tier submission
   const handleAddTier = async (e: React.FormEvent) => {

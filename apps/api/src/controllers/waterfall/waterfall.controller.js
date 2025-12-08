@@ -13,22 +13,74 @@ export const createWaterfall = asyncHandler(async (req, res) => {
 
 
 export const addTiers = asyncHandler(async (req, res) => {
-  const tiers = await waterfallService.addTiers(req.params.id, req.body);
-  res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, tiers, "Tiers added successfully"));
+  const { tiers } = req.body;  // <-- FIXED
+
+  if (!Array.isArray(tiers)) {
+    return res.status(400).json({
+      success: false,
+      message: "tiers must be an array"
+    });
+  }
+
+  const result = await waterfallService.addTiers(req.params.id, tiers);
+
+  res
+    .status(StatusCodes.OK)
+    .json(new ApiResponse(StatusCodes.OK, result, "Tiers added successfully"));
 });
 
 
+
+
 export const addParticipants = asyncHandler(async (req, res) => {
-  const participants = await waterfallService.addParticipants(req.params.id, req.body);
-  res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, participants, "Participants added successfully"));
+  const { participants } = req.body; // <-- FIXED
+
+  if (!Array.isArray(participants)) {
+    return res.status(400).json({
+      success: false,
+      message: "participants must be an array",
+    });
+  }
+
+  const result = await waterfallService.addParticipants(req.params.id, participants);
+
+  res.status(StatusCodes.OK).json(
+    new ApiResponse(StatusCodes.OK, result, "Participants added successfully")
+  );
 });
 
 
 export const addRevenuePeriod = asyncHandler(async (req, res) => {
-  const period = await waterfallService.addPeriod(req.params.id, req.body);
-  res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, period, "Revenue period added successfully"));
+  const { periodStart, periodEnd, netRevenue } = req.body;
+
+  // Validate required fields
+  if (!periodStart || !periodEnd || netRevenue == null) {
+    return res.status(400).json({
+      success: false,
+      message: "Validation error",
+      errors: [
+        { path: "period", message: "periodStart, periodEnd and netRevenue are required" }
+      ]
+    });
+  }
+
+  // Pass waterfallId from URL and period object
+  const period = await waterfallService.addPeriod(req.params.id, {
+    periodStart,
+    periodEnd,
+    netRevenue
+  });
+
+  res.status(StatusCodes.OK).json(
+    new ApiResponse(StatusCodes.OK, period, "Revenue period added successfully")
+  );
 });
 
+
+export const getPayouts = asyncHandler(async (req, res) => {
+  const payouts = await waterfallService.getPayouts(req.params.id);
+  res.status(StatusCodes.OK).json(new ApiResponse(StatusCodes.OK, payouts, "Payouts fetched successfully"));
+});
 
 export const calculateDistribution = asyncHandler(async (req, res) => {
   const payouts = await waterfallService.calculateDistribution(req.params.id);
