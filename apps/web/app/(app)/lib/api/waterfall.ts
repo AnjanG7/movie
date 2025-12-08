@@ -96,6 +96,16 @@ export const addRevenuePeriod = async (projectId: string, waterfallId: string, p
 // Calculate distribution
 export const calculateDistribution = async (projectId: string, waterfallId: string) => {
   const response = await fetch(`${APIBASEURL}/projects/${projectId}/waterfalls/${waterfallId}/distribution`, {
+        headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+    credentials: 'include',
+    
+  });
+  return response.json();
+};
+
+export const getPayouts = async (projectId: string, waterfallId: string) => {
+  const response = await fetch(`${APIBASEURL}/projects/${projectId}/waterfalls/${waterfallId}/payouts`, {
     method: 'GET',
     credentials: 'include',
   });
