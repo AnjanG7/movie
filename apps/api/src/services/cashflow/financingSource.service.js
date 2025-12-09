@@ -8,6 +8,20 @@ export class FinancingSourceService {
   async createFinancingSource(projectId, data) {
     const { type, amount, rate, fees, schedule } = data;
 
+ const validTypes = ['EQUITY', 'LOAN', 'GRANT', 'INCENTIVE', 'MG'];
+  if (!validTypes.includes(type)) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      `Invalid type. Must be one of: ${validTypes.join(', ')}`
+    );
+  }
+  
+  // Ensure amount is a number
+  const parsedAmount = parseFloat(amount);
+  if (isNaN(parsedAmount)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Amount must be a valid number');
+  }
+
     return await prisma.financingSource.create({
       data: {
         projectId,

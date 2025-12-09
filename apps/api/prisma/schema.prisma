@@ -36,13 +36,7 @@ enum QuoteStatus {
   REJECTED
 }
 
-enum FinancingType {
-  EQUITY
-  LOAN
-  GRANT
-  INCENTIVE
-  MG // Minimum Guarantee
-}
+
 
 enum PostTaskType {
   EDITING
@@ -171,6 +165,7 @@ model Project {
   publicityBudgets     PublicityBudget[]
   campaignEvents       CampaignEvent[]
 }
+
 
 model ProjectUser {
   id        String  @id @default(uuid())
@@ -349,24 +344,31 @@ model Allocation {
 
 // ---------------------- Financing & Cashflow ------------
 
+enum FinancingType {
+  EQUITY
+  LOAN
+  GRANT
+  INCENTIVE
+  MG
+}
+
 model FinancingSource {
-  id        String   @id @default(uuid())
+  id        String         @id @default(uuid())
   projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
-  type      String   // EQUITY, LOAN, GRANT, INCENTIVE, MG
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  type      FinancingType  // ← enum, matches DB
   amount    Float
   rate      Float?
   fees      Float?   @default(0)
   schedule  Json?
-  
-  // Link to quotation that created it (removed @unique)
+
   sourceQuotationId String?
   sourceQuotation   BudgetVersion? @relation(fields: [sourceQuotationId], references: [id], onDelete: SetNull)
-  
-  drawdowns     Drawdown[]
-  participants  Participant[]  // ✅ ADD THIS LINE - reverse relation
-  
+
+  drawdowns    Drawdown[]
+  participants Participant[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

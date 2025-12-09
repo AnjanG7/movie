@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, FinancingType } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -11,7 +11,7 @@ async function main() {
     console.log('📋 Creating roles...');
     const roleNames = ['Admin', 'Producer', 'Line Producer', 'Accountant', 'Investor'];
     const createdRoles = {};
-    
+
     for (const roleName of roleNames) {
       const role = await prisma.role.upsert({
         where: { name: roleName },
@@ -41,8 +41,7 @@ async function main() {
     console.log('   📧 Email: admin@filmfinance.com');
     console.log('   🔑 Password: Admin123!');
 
-
-    // ================== 4. CREATE SAMPLE PROJECT ==================
+    // ================== 3. CREATE SAMPLE PROJECT ==================
     console.log('\n🎬 Creating sample project...');
     const sampleProject = await prisma.project.create({
       data: {
@@ -55,7 +54,7 @@ async function main() {
     });
     console.log(`   ✅ Project created: ${sampleProject.title}`);
 
-    // ================== 5. CREATE PHASES ==================
+    // ================== 4. CREATE PHASES ==================
     console.log('\n📅 Creating project phases...');
     const phases = [
       { name: 'DEVELOPMENT', orderNo: 1 },
@@ -74,7 +73,7 @@ async function main() {
       console.log(`   ✅ ${phase.name}`);
     }
 
-    // ================== 6. CREATE SAMPLE BUDGET ==================
+    // ================== 5. CREATE SAMPLE BUDGET ==================
     console.log('\n💰 Creating sample budget...');
     const budgetVersion = await prisma.budgetVersion.create({
       data: {
@@ -123,7 +122,7 @@ async function main() {
     });
     console.log(`   ✅ Budget version created: ${budgetVersion.version}`);
 
-    // ================== 7. CREATE VENDORS ==================
+    // ================== 6. CREATE VENDORS ==================
     console.log('\n🏢 Creating sample vendors...');
     const vendors = [
       { name: 'Camera House Ltd', currency: 'USD', contactInfo: { phone: '555-0001', email: 'contact@camerahouse.com' } },
@@ -138,12 +137,12 @@ async function main() {
       console.log(`   ✅ ${vendor.name}`);
     }
 
-    // ================== 8. CREATE FINANCING SOURCES ==================
+    // ================== 7. CREATE FINANCING SOURCES ==================
     console.log('\n💵 Creating financing sources...');
     await prisma.financingSource.create({
       data: {
         projectId: sampleProject.id,
-        type: 'EQUITY',
+        type: FinancingType.EQUITY,
         amount: 30000,
         rate: 0,
       },
@@ -153,7 +152,7 @@ async function main() {
     await prisma.financingSource.create({
       data: {
         projectId: sampleProject.id,
-        type: 'LOAN',
+        type: FinancingType.LOAN,
         amount: 20000,
         rate: 5,
       },
@@ -182,5 +181,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-
-

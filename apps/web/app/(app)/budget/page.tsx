@@ -29,6 +29,8 @@ interface BudgetLine {
   qty: number;
   rate: number;
   taxPercent: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface BudgetVersion {
@@ -37,6 +39,7 @@ interface BudgetVersion {
   type: string;
   grandTotal: number;
   createdAt: string;
+  updatedAt: string;
   lockedAt?: string;
   lines: BudgetLine[];
 }
@@ -93,11 +96,11 @@ export default function BudgetPage() {
       if (result.success) {
         setProjects(result.data.projects || []);
 
-         const params = new URLSearchParams(window.location.search);
-      const projectId = params.get('projectId');
-      if (projectId) {
-        setSelectedProjectId(projectId);
-      }
+        const params = new URLSearchParams(window.location.search);
+        const projectId = params.get('projectId');
+        if (projectId) {
+          setSelectedProjectId(projectId);
+        }
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -229,6 +232,19 @@ export default function BudgetPage() {
     })}`;
   };
 
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return '—';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+    } catch {
+      return '—';
+    }
+  };
+
   const calculateLineTotal = (line: BudgetLine) => {
     return line.qty * line.rate * (1 + line.taxPercent / 100);
   };
@@ -284,83 +300,197 @@ export default function BudgetPage() {
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
   const exportToPDF = () => {
-  if (!selectedVersion) {
-    alert('No budget version selected');
-    return;
-  }
-
-  const project = projects.find(p => p.id === selectedProjectId);
-  const doc = new jsPDF();
-
-  // Header
-  doc.setFontSize(18);
-  doc.text('Budget Report', 14, 20);
-  
-  doc.setFontSize(11);
-  doc.text(`Project: ${project?.title || 'N/A'}`, 14, 30);
-  doc.text(`Version: ${selectedVersion.version} (${selectedVersion.type})`, 14, 36);
-  doc.text(`Created: ${new Date(selectedVersion.createdAt).toLocaleDateString()}`, 14, 42);
-  if (selectedVersion.lockedAt) {
-    doc.setTextColor(220, 38, 38);
-    doc.text('LOCKED', 14, 48);
-    doc.setTextColor(0, 0, 0);
-  }
-
-  // Summary by Phase
-  doc.setFontSize(14);
-  doc.text('Summary by Phase', 14, 60);
-
-  const phaseData = Object.entries(calculateTotalsByPhase()).map(([phase, total]) => [
-    phase,
-    formatCurrency(total),
-    `${((total / calculateGrandTotal()) * 100).toFixed(1)}%`
-  ]);
-
-  autoTable(doc, {
-    startY: 65,
-    head: [['Phase', 'Total', '% of Budget']],
-    body: phaseData,
-    foot: [['TOTAL', formatCurrency(calculateGrandTotal()), '100%']],
-    theme: 'striped',
-    headStyles: { fillColor: [37, 99, 235] },
-    footStyles: { fillColor: [241, 245, 249], textColor: [0, 0, 0], fontStyle: 'bold' }
-  });
-
-  // Budget Lines
-  const finalY = (doc as any).lastAutoTable.finalY + 10;
-  doc.setFontSize(14);
-  doc.text('Budget Lines', 14, finalY);
-
-  const lineData = selectedVersion.lines.map(line => [
-    line.phase,
-    line.department || '-',
-    line.name,
-    line.qty.toString(),
-    line.rate.toLocaleString(),
-    `${line.taxPercent || 0}%`,
-    formatCurrency(calculateLineTotal(line))
-  ]);
-
-  autoTable(doc, {
-    startY: finalY + 5,
-    head: [['Phase', 'Dept', 'Line Item', 'Qty', 'Rate', 'Tax', 'Total']],
-    body: lineData,
-    theme: 'striped',
-    headStyles: { fillColor: [37, 99, 235] },
-    styles: { fontSize: 8 },
-    columnStyles: {
-      3: { halign: 'right' },
-      4: { halign: 'right' },
-      5: { halign: 'right' },
-      6: { halign: 'right' }
+    if (!selectedVersion) {
+      alert('No budget version selected');
+      return;
     }
-  });
 
-  // Save
-  const filename = `Budget_${project?.title}_${selectedVersion.version}_${new Date().toISOString().split('T')[0]}.pdf`;
-  doc.save(filename);
-};
+    const project = projects.find(p => p.id === selectedProjectId);
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
 
+    const colors = {
+      primary: [37, 99, 235] as [number, number, number],
+      text: [30, 41, 59] as [number, number, number],
+      lightText: [100, 116, 139] as [number, number, number],
+      lightBg: [248, 250, 252] as [number, number, number],
+      border: [226, 232, 240] as [number, number, number],
+    };
+
+    let yPos = 20;
+
+    // ===== HEADER =====
+    doc.setFillColor(...colors.primary);
+    doc.rect(0, 0, pageWidth, 50, "F");
+
+    doc.setFontSize(24);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.text("BUDGET REPORT", 15, 22);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("Film Finance Management System", 15, 32);
+
+    doc.setFontSize(9);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - 15, 22, { align: "right" });
+
+    doc.setTextColor(...colors.text);
+    yPos = 60;
+
+    // ===== PROJECT & VERSION INFO =====
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.primary);
+    doc.text("PROJECT & VERSION INFORMATION", 15, yPos);
+
+    yPos += 8;
+
+    doc.setFillColor(...colors.lightBg);
+    doc.setDrawColor(...colors.border);
+    doc.roundedRect(15, yPos, pageWidth - 30, 30, 2, 2, "FD");
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...colors.lightText);
+    doc.text("Project:", 20, yPos + 8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.text);
+    doc.text(project?.title || 'N/A', 50, yPos + 8);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...colors.lightText);
+    doc.text("Version:", 20, yPos + 16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.text);
+    doc.text(`${selectedVersion.version} (${selectedVersion.type})`, 50, yPos + 16);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...colors.lightText);
+    doc.text("Created:", 20, yPos + 24);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.text);
+    doc.text(formatDate(selectedVersion.createdAt), 50, yPos + 24);
+
+    if (selectedVersion.lockedAt) {
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(220, 38, 38);
+      doc.text("🔒 LOCKED", pageWidth - 30, yPos + 24, { align: "right" });
+    }
+
+    yPos += 40;
+
+    // ===== SUMMARY BY PHASE =====
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.primary);
+    doc.text("SUMMARY BY PHASE", 15, yPos);
+
+    yPos += 5;
+
+    const phaseData = Object.entries(calculateTotalsByPhase()).map(([phase, total]) => [
+      phase,
+      formatCurrency(total),
+      `${((total / calculateGrandTotal()) * 100).toFixed(1)}%`
+    ]);
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Phase', 'Total', '% of Budget']],
+      body: phaseData,
+      foot: [['TOTAL', formatCurrency(calculateGrandTotal()), '100%']],
+      theme: 'striped',
+      headStyles: { fillColor: colors.primary, textColor: [255, 255, 255], fontStyle: 'bold' },
+      footStyles: { fillColor: [241, 245, 249], textColor: colors.text, fontStyle: 'bold' },
+      styles: { fontSize: 9 },
+      columnStyles: {
+        1: { halign: 'right' },
+        2: { halign: 'right' }
+      }
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+
+    // ===== BUDGET LINES (Detailed) =====
+    // Check if we need a new page
+    if (yPos > pageHeight - 100) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.primary);
+    doc.text("DETAILED BUDGET LINES", 15, yPos);
+
+    yPos += 5;
+
+    const lineData = selectedVersion.lines.map(line => [
+      line.phase,
+      line.department || '-',
+      line.name,
+      line.qty.toString(),
+      formatCurrency(line.rate),
+      `${line.taxPercent || 0}%`,
+      formatCurrency(calculateLineTotal(line)),
+      formatDate(line.createdAt),
+      formatDate(line.updatedAt),
+    ]);
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Phase', 'Dept', 'Line Item', 'Qty', 'Rate', 'Tax', 'Total', 'Created', 'Updated']],
+      body: lineData,
+      theme: 'striped',
+      headStyles: { 
+        fillColor: colors.primary, 
+        textColor: [255, 255, 255], 
+        fontStyle: 'bold',
+        fontSize: 8
+      },
+      bodyStyles: { fontSize: 7 },
+      columnStyles: {
+        3: { halign: 'center' },
+        4: { halign: 'right' },
+        5: { halign: 'center' },
+        6: { halign: 'right' },
+        7: { halign: 'center' },
+        8: { halign: 'center' }
+      },
+      margin: { left: 10, right: 10 }
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 10;
+
+    // ===== FOOTER ON ALL PAGES =====
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setDrawColor(...colors.border);
+      doc.setLineWidth(0.5);
+      doc.line(10, pageHeight - 15, pageWidth - 10, pageHeight - 15);
+
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...colors.lightText);
+      doc.text(
+        `${project?.title || 'Budget'} - ${selectedVersion.version}`,
+        pageWidth / 2,
+        pageHeight - 8,
+        { align: 'center' }
+      );
+      doc.text(
+        `Page ${i} of ${pageCount}`,
+        pageWidth - 10,
+        pageHeight - 8,
+        { align: 'right' }
+      );
+    }
+
+    const filename = `Budget_${project?.title}_${selectedVersion.version}_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(filename);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6 lg:p-8">
@@ -409,7 +539,6 @@ export default function BudgetPage() {
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.title}
-
                 </option>
               ))}
             </select>
@@ -433,38 +562,35 @@ export default function BudgetPage() {
                 ))}
               </select>
             </div>
-            
           )}
-<div className="flex items-center gap-3">
-  {selectedProjectId && selectedVersion && (
-    <button
-      onClick={exportToPDF}
-      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-    >
-      <Download className="w-5 h-5" />
-      Download PDF
-    </button>
-  )}
-</div>
-          {selectedVersion && !selectedVersion.lockedAt && (
-            
-            <button
-              type="button"
-              onClick={() => {
-                setEditingLine(null);
-                resetLineForm();
-                setShowAddLineModal(true);
-              }}
-              className="ml-auto inline-flex items-center gap-2 px-4 h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Add Budget Line
-            </button>
-            
-          )
-          }
-        </div>
 
+          <div className="flex items-center gap-3 ml-auto">
+            {selectedProjectId && selectedVersion && (
+              <button
+                onClick={exportToPDF}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 font-semibold"
+              >
+                <Download className="w-5 h-5" />
+                Download PDF
+              </button>
+            )}
+
+            {selectedVersion && !selectedVersion.lockedAt && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingLine(null);
+                  resetLineForm();
+                  setShowAddLineModal(true);
+                }}
+                className="inline-flex items-center gap-2 px-4 h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Add Budget Line
+              </button>
+            )}
+          </div>
+        </div>
 
         {/* Modal */}
         {showAddLineModal && (
@@ -655,20 +781,35 @@ export default function BudgetPage() {
               <>
                 {/* Header info */}
                 <div className="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-100">
-                  <h2 className="text-lg font-semibold text-slate-900 mb-1">
+                  <h2 className="text-lg font-semibold text-slate-900 mb-2">
                     {selectedVersion.version} ({selectedVersion.type})
                   </h2>
-                  <p className="text-sm text-slate-600">
-                    Created:{' '}
-                    {new Date(
-                      selectedVersion.createdAt
-                    ).toLocaleDateString()}{' '}
-                    {selectedVersion.lockedAt && (
-                      <span className="ml-4 text-red-600 font-semibold">
-                        🔒 Locked
-                      </span>
-                    )}
-                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <div className="text-xs text-slate-600">Created</div>
+                      <div className="font-semibold text-slate-900">
+                        {formatDate(selectedVersion.createdAt)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-600">Updated</div>
+                      <div className="font-semibold text-slate-900">
+                        {formatDate(selectedVersion.updatedAt)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-600">Status</div>
+                      <div className="font-semibold text-slate-900">
+                        {selectedVersion.lockedAt ? '🔒 Locked' : 'Active'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-600">Total Budget</div>
+                      <div className="font-semibold text-blue-600">
+                        {formatCurrency(calculateGrandTotal())}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Summary by Phase */}
@@ -688,7 +829,7 @@ export default function BudgetPage() {
                       <tbody>
                         {Object.entries(calculateTotalsByPhase()).map(
                           ([phase, total]) => (
-                            <tr key={phase} className="border-t">
+                            <tr key={phase} className="border-t hover:bg-slate-50">
                               <td className="px-4 py-2 font-semibold">
                                 {phase}
                               </td>
@@ -706,7 +847,7 @@ export default function BudgetPage() {
                           )
                         )}
                       </tbody>
-                      <tfoot className="bg-slate-50 font-semibold">
+                      <tfoot className="bg-slate-50 font-semibold border-t-2">
                         <tr>
                           <td className="px-4 py-2">TOTAL</td>
                           <td className="px-4 py-2 text-right text-blue-700">
@@ -740,6 +881,8 @@ export default function BudgetPage() {
                             <th className="px-4 py-2 text-right">Rate</th>
                             <th className="px-4 py-2 text-right">Tax %</th>
                             <th className="px-4 py-2 text-right">Total</th>
+                            <th className="px-4 py-2 text-center">Created</th>
+                            <th className="px-4 py-2 text-center">Updated</th>
                             {!selectedVersion.lockedAt && (
                               <th className="px-4 py-2 text-left">Actions</th>
                             )}
@@ -765,8 +908,14 @@ export default function BudgetPage() {
                               <td className="px-4 py-2 text-right">
                                 {line.taxPercent}%
                               </td>
-                              <td className="px-4 py-2 text-right">
+                              <td className="px-4 py-2 text-right font-semibold">
                                 {formatCurrency(calculateLineTotal(line))}
+                              </td>
+                              <td className="px-4 py-2 text-center text-xs text-slate-600">
+                                {formatDate(line.createdAt)}
+                              </td>
+                              <td className="px-4 py-2 text-center text-xs text-slate-600">
+                                {formatDate(line.updatedAt)}
                               </td>
                               {!selectedVersion.lockedAt && (
                                 <td className="px-4 py-2">

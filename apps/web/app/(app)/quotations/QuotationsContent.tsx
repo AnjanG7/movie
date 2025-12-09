@@ -89,7 +89,15 @@ export default function QuotationsContent() {
       const result = await response.json();
       if (result.success) {
         setProjects(result.data.projects as Project[]);
+          
+      // ✅ ADD THESE LINES - Auto-select from URL
+      const params = new URLSearchParams(window.location.search);
+      const projectId = params.get('projectId');
+      if (projectId) {
+        setSelectedProjectId(projectId);
       }
+      }
+
     } catch (error) {
       console.error('Error fetching projects', error);
     } finally {

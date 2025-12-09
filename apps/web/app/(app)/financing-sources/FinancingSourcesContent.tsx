@@ -1,9 +1,10 @@
 "use client";
 import React, { useState, useEffect, FormEvent, ChangeEvent } from "react";
-import { useSearchParams } from "next/navigation";
-import { DollarSign, TrendingUp, Plus, Trash2, PiggyBank, FileText, Lock } from "lucide-react";
+import { DollarSign, TrendingUp, Plus, Trash2, PiggyBank, Download } from "lucide-react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
-const APIBASEURL = process.env.NEXT_PUBLIC_APIURL || "http://localhost:4000/api";
+const APIBASEURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 interface FinancingSource {
   id: string;
@@ -16,14 +17,6 @@ interface FinancingSource {
   remaining: number;
   createdAt: string;
   sourceQuotationId?: string;
-  sourceQuotation?: {
-    version: string;
-    type: string;
-    createdAt: string;
-  };
-  project?: {
-    baseCurrency: string;
-  };
 }
 
 interface Project {
@@ -37,6 +30,7 @@ interface Drawdown {
   sourceId: string;
   date: string;
   amount: number;
+  createdAt: string;
   source?: {
     type: string;
   };
@@ -55,12 +49,303 @@ interface DrawdownFormData {
   amount: number;
 }
 
-export default function FinancingSourcesPage() {
-  const searchParams = useSearchParams();
-  const projectIdParam = searchParams.get("projectId");
+// PDF Export Function
+// PDF Export Function - IMPROVED
+// PDF Export Function - FIXED ALIGNMENT
+const exportFinancingToPDF = (
+  sources: FinancingSource[],
+  drawdowns: Drawdown[],
+  projectTitle: string,
+  currency: string
+) => {
+  try {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
 
+    const colors = {
+      primary: [34, 197, 94] as [number, number, number],
+      secondary: [59, 130, 246] as [number, number, number],
+      text: [30, 41, 59] as [number, number, number],
+      lightText: [100, 116, 139] as [number, number, number],
+      lightBg: [248, 250, 252] as [number, number, number],
+      border: [226, 232, 240] as [number, number, number],
+      red: [220, 38, 38] as [number, number, number],
+      green: [34, 197, 94] as [number, number, number],
+    };
+
+    // Helper function to safely format dates
+    const formatDateSafe = (dateString: string | undefined): string => {
+      try {
+        if (!dateString) return "—";
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return "—";
+        return date.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        });
+      } catch {
+        return "—";
+      }
+    };
+
+    // Helper function to format currency with proper decimals
+    const formatCurrencySafe = (amount: number | string | undefined): string => {
+      try {
+        if (amount === undefined || amount === null) return `${currency} 0.00`;
+        const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+        if (isNaN(numAmount) || !isFinite(numAmount)) return `${currency} 0.00`;
+        
+        return `${currency} ${numAmount.toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`;
+      } catch {
+        return `${currency} 0.00`;
+      }
+    };
+
+    // ===== HEADER =====
+    doc.setFillColor(...colors.primary);
+    doc.rect(0, 0, pageWidth, 50, "F");
+
+    doc.setFontSize(28);
+    doc.setTextColor(255, 255, 255);
+    doc.text("💰", 15, 22);
+
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.text("FINANCING SOURCES", 35, 22);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text("Film Finance Management System", 35, 30);
+    doc.setFontSize(8);
+    doc.text(projectTitle, 35, 37);
+
+    doc.setFontSize(10);
+    const today = new Date().toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    doc.text(today, pageWidth - 15, 26, { align: "right" });
+
+    doc.setTextColor(...colors.text);
+
+    let yPos = 60;
+
+    // ===== SUMMARY =====
+    const totalFinancing = sources.reduce((sum, s) => sum + (s.amount || 0), 0);
+    const totalDrawn = sources.reduce((sum, s) => sum + (s.totalDrawn || 0), 0);
+    const totalRemaining = sources.reduce((sum, s) => sum + (s.remaining || 0), 0);
+    const usedPercentage = totalFinancing > 0 ? (totalDrawn / totalFinancing) * 100 : 0;
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.primary);
+    doc.text("SUMMARY", 15, yPos);
+
+    yPos += 8;
+
+    doc.setFillColor(...colors.lightBg);
+    doc.setDrawColor(...colors.border);
+    doc.roundedRect(15, yPos, pageWidth - 30, 40, 2, 2, "FD");
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...colors.lightText);
+    
+    // Left Column
+    doc.text("Total Allocated:", 20, yPos + 8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.text);
+    doc.text(formatCurrencySafe(totalFinancing), 20, yPos + 14);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...colors.lightText);
+    doc.text("Total Remaining:", 20, yPos + 22);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.green);
+    doc.text(formatCurrencySafe(totalRemaining), 20, yPos + 28);
+
+    // Right Column
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...colors.lightText);
+    doc.text("Total Used:", 90, yPos + 8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.red);
+    doc.text(formatCurrencySafe(totalDrawn), 90, yPos + 14);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...colors.lightText);
+    doc.text("Usage Rate:", 90, yPos + 22);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.text);
+    doc.text(`${usedPercentage.toFixed(1)}%`, 90, yPos + 28);
+
+    yPos += 48;
+
+    // ===== FINANCING SOURCES TABLE =====
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.primary);
+    doc.text("FINANCING SOURCES", 15, yPos);
+
+    yPos += 5;
+
+    if (sources.length > 0) {
+      const sourceData = sources.map((s) => [
+        s.type || "N/A",
+        formatCurrencySafe(s.amount),
+        formatCurrencySafe(s.totalDrawn),
+        formatCurrencySafe(s.remaining),
+        s.rate ? `${s.rate}%` : "—",
+        s.fees ? formatCurrencySafe(s.fees) : "—",
+        formatDateSafe(s.createdAt),
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [["Type", "Allocated", "Used", "Remaining", "Rate", "Fees", "Created"]],
+        body: sourceData,
+        theme: "striped",
+        headStyles: {
+          fillColor: colors.primary,
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          fontSize: 9,
+          cellPadding: 4,
+        },
+        bodyStyles: {
+          fontSize: 8,
+          cellPadding: 3,
+          textColor: colors.text,
+        },
+        alternateRowStyles: {
+          fillColor: [249, 250, 251],
+        },
+        columnStyles: {
+          0: { halign: "left" },
+          1: { halign: "right" },
+          2: { halign: "right" },
+          3: { halign: "right" },
+          4: { halign: "center" },
+          5: { halign: "right" },
+          6: { halign: "right" },
+        },
+        margin: { left: 15, right: 15 },
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 10;
+    } else {
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...colors.lightText);
+      doc.text("No financing sources available.", 15, yPos + 10);
+      yPos += 20;
+    }
+
+    // ===== DRAWDOWN HISTORY TABLE (SIMPLIFIED - NO RECORDED ON) =====
+    if (drawdowns.length > 0) {
+      // Check if we need a new page
+      if (yPos > pageHeight - 80) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...colors.primary);
+      doc.text("DRAWDOWN HISTORY", 15, yPos);
+
+      yPos += 5;
+
+      const drawdownData = drawdowns.map((d) => [
+        d.source?.type || "N/A",
+        formatDateSafe(d.date),
+        formatCurrencySafe(d.amount),
+      ]);
+
+     autoTable(doc, {
+  startY: yPos,
+  head: [["Source Type", "Drawdown Date", "Amount"]],
+  body: drawdownData,
+  theme: "striped",
+  
+  // ADD THESE LINES FOR STRAIGHT BORDERS
+  tableLineWidth: 0.1,
+  tableLineColor: [0, 0, 0],
+  styles: {
+    lineWidth: 0.1,
+    lineColor: [0, 0, 0],
+  },
+
+  headStyles: {
+    fillColor: colors.secondary,
+    textColor: [255, 255, 255],
+    fontStyle: "bold",
+    fontSize: 9,
+    cellPadding: 5,
+  },
+  bodyStyles: {
+    fontSize: 8,
+    cellPadding: 2,
+    textColor: colors.text,
+  },
+  alternateRowStyles: {
+    fillColor: [239, 246, 255],
+  },
+  columnStyles: {
+    0: { halign: "left" },
+    1: { halign: "center" },
+    2: { halign: "right" },
+  },
+  margin: { left: 15, right: 5 },
+});
+
+
+      yPos = (doc as any).lastAutoTable.finalY + 10;
+    }
+
+    // ===== FOOTER =====
+    doc.setDrawColor(...colors.border);
+    doc.setLineWidth(0.5);
+    doc.line(15, pageHeight - 25, pageWidth - 15, pageHeight - 25);
+
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...colors.lightText);
+    doc.text(
+      "This is an automatically generated financing report from Film Finance Management System.",
+      pageWidth / 2,
+      pageHeight - 18,
+      { align: "center" }
+    );
+
+    doc.setFontSize(7);
+    doc.text(
+      `Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
+      pageWidth / 2,
+      pageHeight - 12,
+      { align: "center" }
+    );
+
+    doc.save(`FinancingSources-${projectTitle.replace(/\s+/g, "-")}-${Date.now()}.pdf`);
+    alert("✅ Financing report PDF generated successfully!");
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    alert("❌ Failed to generate PDF. Please try again.");
+  }
+};
+
+
+
+
+export default function FinancingSourcesPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState(projectIdParam || "");
+  const [selectedProjectId, setSelectedProjectId] = useState("");
   const [sources, setSources] = useState<FinancingSource[]>([]);
   const [drawdowns, setDrawdowns] = useState<Drawdown[]>([]);
   const [loading, setLoading] = useState(false);
@@ -115,7 +400,8 @@ export default function FinancingSourcesPage() {
       );
       const result = await response.json();
       if (result.success) {
-        setSources(result.data);
+        const manualSources = result.data.filter((s: FinancingSource) => !s.sourceQuotationId);
+        setSources(manualSources);
       }
     } catch (error) {
       console.error("Error fetching sources:", error);
@@ -156,7 +442,7 @@ export default function FinancingSourcesPage() {
       );
       const result = await response.json();
       if (result.success) {
-        alert("Financing source created");
+        alert("✅ Financing source created");
         setShowSourceModal(false);
         setSourceFormData({ type: "EQUITY", amount: 0, rate: 0, fees: 0 });
         fetchFinancingSources();
@@ -185,7 +471,7 @@ export default function FinancingSourcesPage() {
       );
       const result = await response.json();
       if (result.success) {
-        alert("Drawdown created");
+        alert("✅ Drawdown created");
         setShowDrawdownModal(false);
         setDrawdownFormData({
           sourceId: "",
@@ -203,12 +489,7 @@ export default function FinancingSourcesPage() {
     }
   };
 
-  const handleDeleteSource = async (id: string, sourceQuotationId?: string) => {
-    if (sourceQuotationId) {
-      alert("❌ Cannot delete this source - it was created from a quotation.\n\nTo remove it, delete the quotation instead.");
-      return;
-    }
-
+  const handleDeleteSource = async (id: string) => {
     if (!confirm("Delete this financing source?")) return;
     if (!selectedProjectId) return;
 
@@ -222,7 +503,7 @@ export default function FinancingSourcesPage() {
       );
       const result = await response.json();
       if (result.success) {
-        alert("Source deleted");
+        alert("✅ Source deleted");
         fetchFinancingSources();
       } else {
         alert(result.message || "Failed to delete");
@@ -247,7 +528,7 @@ export default function FinancingSourcesPage() {
       );
       const result = await response.json();
       if (result.success) {
-        alert("Drawdown deleted");
+        alert("✅ Drawdown deleted");
         fetchFinancingSources();
         fetchDrawdowns();
       } else {
@@ -291,14 +572,20 @@ export default function FinancingSourcesPage() {
     }
   };
 
+  const handleDownloadPDF = () => {
+    const project = projects.find((p) => p.id === selectedProjectId);
+    if (!project) return;
+    exportFinancingToPDF(sources, drawdowns, project.title, project.baseCurrency);
+  };
+
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const totalFinancing = sources.reduce((sum, s) => sum + s.amount, 0);
   const totalDrawn = sources.reduce((sum, s) => sum + s.totalDrawn, 0);
   const totalRemaining = sources.reduce((sum, s) => sum + s.remaining, 0);
 
-  // Separate manual vs quotation sources
-  const manualSources = sources.filter((s) => !s.sourceQuotationId);
-  const quotationSources = sources.filter((s) => s.sourceQuotationId);
+  // Calculate percentages for visual graph
+  const usedPercentage = totalFinancing > 0 ? (totalDrawn / totalFinancing) * 100 : 0;
+  const remainingPercentage = totalFinancing > 0 ? (totalRemaining / totalFinancing) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 p-6 lg:p-8">
@@ -354,7 +641,7 @@ export default function FinancingSourcesPage() {
                 className="ml-auto inline-flex items-center gap-2 px-4 h-11 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 shadow-sm"
               >
                 <Plus className="w-4 h-4" />
-                Add Manual Source
+                Add Source
               </button>
               <button
                 type="button"
@@ -364,194 +651,248 @@ export default function FinancingSourcesPage() {
                 <TrendingUp className="w-4 h-4" />
                 Record Drawdown
               </button>
+              <button
+                type="button"
+                onClick={handleDownloadPDF}
+                className="inline-flex items-center gap-2 px-4 h-11 rounded-lg border-2 border-green-400 bg-green-50 text-green-700 text-sm font-semibold hover:bg-green-100 shadow-sm"
+                disabled={sources.length === 0}
+              >
+                <Download className="w-4 h-4" />
+                Download PDF
+              </button>
             </>
           )}
         </div>
 
-        {/* Summary Cards */}
+        {/* Summary Cards & Visual Graph */}
         {selectedProjectId && sources.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
-              <div className="text-xs text-slate-500 mb-1">Total Financing</div>
-              <div className="text-2xl font-bold text-slate-900">
-                {formatCurrency(totalFinancing)}
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
+                <div className="text-xs text-slate-500 mb-1">Total Allocated</div>
+                <div className="text-2xl font-bold text-slate-900">
+                  {formatCurrency(totalFinancing)}
+                </div>
+              </div>
+              <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
+                <div className="text-xs text-slate-500 mb-1">Total Used</div>
+                <div className="text-2xl font-bold text-red-600">
+                  {formatCurrency(totalDrawn)}
+                </div>
+                <div className="text-xs text-slate-500 mt-1">
+                  {usedPercentage.toFixed(1)}% of total
+                </div>
+              </div>
+              <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
+                <div className="text-xs text-slate-500 mb-1">Remaining</div>
+                <div className="text-2xl font-bold text-green-600">
+                  {formatCurrency(totalRemaining)}
+                </div>
+                <div className="text-xs text-slate-500 mt-1">
+                  {remainingPercentage.toFixed(1)}% available
+                </div>
               </div>
             </div>
-            <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
-              <div className="text-xs text-slate-500 mb-1">Total Drawn</div>
-              <div className="text-2xl font-bold text-red-600">
-                {formatCurrency(totalDrawn)}
+
+            {/* Visual Progress Bar */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">
+                Financing Utilization
+              </h3>
+              <div className="w-full h-12 bg-slate-100 rounded-lg overflow-hidden flex">
+                <div
+                  className="bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center text-white text-sm font-semibold transition-all duration-500"
+                  style={{ width: `${usedPercentage}%` }}
+                >
+                  {usedPercentage > 10 && `${usedPercentage.toFixed(1)}% Used`}
+                </div>
+                <div
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 flex items-center justify-center text-white text-sm font-semibold transition-all duration-500"
+                  style={{ width: `${remainingPercentage}%` }}
+                >
+                  {remainingPercentage > 10 && `${remainingPercentage.toFixed(1)}% Remaining`}
+                </div>
+              </div>
+              <div className="flex items-center justify-between mt-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-red-500 rounded"></div>
+                  <span className="text-slate-600">
+                    Used: {formatCurrency(totalDrawn)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-green-500 rounded"></div>
+                  <span className="text-slate-600">
+                    Remaining: {formatCurrency(totalRemaining)}
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
-              <div className="text-xs text-slate-500 mb-1">Total Remaining</div>
-              <div className="text-2xl font-bold text-green-600">
-                {formatCurrency(totalRemaining)}
-              </div>
-            </div>
-            <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
-              <div className="text-xs text-slate-500 mb-1">From Quotations</div>
-              <div className="text-2xl font-bold text-blue-600">
-                {quotationSources.length}
-              </div>
-            </div>
-          </div>
+          </>
         )}
 
-        {/* Tables */}
+        {/* Financing Sources Table */}
         {selectedProjectId && (
-          <>
-            {/* Quotation Sources */}
-            {quotationSources.length > 0 && (
-              <div className="mb-8">
-                <div className="flex items-center gap-2 mb-3">
-                  <FileText className="w-5 h-5 text-blue-600" />
-                  <h2 className="text-lg font-semibold text-slate-900">
-                    From Quotations ({quotationSources.length})
-                  </h2>
-                </div>
-                {loading ? (
-                  <p className="text-center text-slate-600">Loading...</p>
-                ) : (
-                  <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    <table className="min-w-full text-sm">
-                      <thead className="bg-blue-50">
-                        <tr>
-                          <th className="px-4 py-2 text-left">Type</th>
-                          <th className="px-4 py-2 text-right">Total Amount</th>
-                          <th className="px-4 py-2 text-right">Drawn</th>
-                          <th className="px-4 py-2 text-right">Remaining</th>
-                          <th className="px-4 py-2 text-left">Rate</th>
-                          <th className="px-4 py-2 text-left">Source</th>
-                          <th className="px-4 py-2 text-left">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {quotationSources.map((source) => (
-                          <tr key={source.id} className="border-t hover:bg-slate-50">
-                            <td className="px-4 py-2">
-                              <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                                {source.type}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2 text-right font-semibold">
-                              {formatCurrency(source.amount)}
-                            </td>
-                            <td className="px-4 py-2 text-right text-red-600">
-                              {formatCurrency(source.totalDrawn)}
-                            </td>
-                            <td className="px-4 py-2 text-right text-green-600">
-                              {formatCurrency(source.remaining)}
-                            </td>
-                            <td className="px-4 py-2">
-                              {source.rate ? `${source.rate}%` : "—"}
-                            </td>
-                            <td className="px-4 py-2">
-                              <div className="flex items-center gap-2">
-                                <FileText className="w-4 h-4 text-blue-600" />
-                                <div>
-                                  <div className="text-xs font-medium text-blue-900">
-                                    {source.sourceQuotation?.version}
-                                  </div>
-                                  <div className="text-xs text-slate-600">
-                                    {new Date(source.createdAt).toLocaleDateString()}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-2">
-                              <button
-                                onClick={() => alert("This source was created from a quotation.\n\nTo modify or delete it, edit or delete the quotation.")}
-                                className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"
-                                title="Cannot delete - created from quotation"
-                              >
-                                <Lock className="w-4 h-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-3">
+              <PiggyBank className="w-5 h-5 text-green-600" />
+              <h2 className="text-lg font-semibold text-slate-900">
+                Financing Sources ({sources.length})
+              </h2>
+            </div>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
               </div>
-            )}
-
-            {/* Manual Sources */}
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-3">
-                <Plus className="w-5 h-5 text-green-600" />
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Manual Sources ({manualSources.length})
-                </h2>
+            ) : sources.length === 0 ? (
+              <div className="text-center p-10 bg-white/80 rounded-2xl border border-slate-200">
+                <PiggyBank className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                <p className="text-lg font-medium text-slate-900 mb-1">
+                  No financing sources yet
+                </p>
+                <p className="text-sm text-slate-600">
+                  Add a financing source to get started.
+                </p>
               </div>
-              {loading ? (
-                <p className="text-center text-slate-600">Loading...</p>
-              ) : manualSources.length === 0 ? (
-                <div className="text-center p-10 bg-white/80 rounded-2xl border border-slate-200">
-                  <p className="text-base text-slate-700">
-                    No manual financing sources yet. Add one to get started.
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <table className="min-w-full text-sm">
-                    <thead className="bg-slate-50">
-                      <tr>
-                        <th className="px-4 py-2 text-left">Type</th>
-                        <th className="px-4 py-2 text-right">Total Amount</th>
-                        <th className="px-4 py-2 text-right">Drawn</th>
-                        <th className="px-4 py-2 text-right">Remaining</th>
-                        <th className="px-4 py-2 text-left">Rate</th>
-                        <th className="px-4 py-2 text-left">Fees</th>
-                        <th className="px-4 py-2 text-left">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {manualSources.map((source) => (
-                        <tr key={source.id} className="border-t hover:bg-slate-50">
-                          <td className="px-4 py-2 font-semibold">{source.type}</td>
-                          <td className="px-4 py-2 text-right">
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Type</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Allocated</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Used</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Remaining</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Rate</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Fees</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Created</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {sources.map((source) => {
+                      const sourceUsedPct = (source.totalDrawn / source.amount) * 100;
+                      return (
+                        <tr key={source.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="font-semibold text-slate-900">{source.type}</div>
+                            <div className="text-xs text-slate-500">{sourceUsedPct.toFixed(1)}% utilized</div>
+                          </td>
+                          <td className="px-4 py-3 text-right font-semibold text-slate-900">
                             {formatCurrency(source.amount)}
                           </td>
-                          <td className="px-4 py-2 text-right text-red-600">
+                          <td className="px-4 py-3 text-right text-red-600 font-semibold">
                             {formatCurrency(source.totalDrawn)}
                           </td>
-                          <td className="px-4 py-2 text-right text-green-600">
+                          <td className="px-4 py-3 text-right text-green-600 font-semibold">
                             {formatCurrency(source.remaining)}
                           </td>
-                          <td className="px-4 py-2">
+                          <td className="px-4 py-3 text-slate-700">
                             {source.rate ? `${source.rate}%` : "—"}
                           </td>
-                          <td className="px-4 py-2">
+                          <td className="px-4 py-3 text-slate-700">
                             {source.fees ? formatCurrency(source.fees) : "—"}
                           </td>
-                          <td className="px-4 py-2">
+                          <td className="px-4 py-3 text-slate-500 text-xs">
+                            {new Date(source.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-3">
                             <button
-                              onClick={() => handleDeleteSource(source.id, source.sourceQuotationId)}
+                              onClick={() => handleDeleteSource(source.id)}
                               className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete Source"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Drawdowns Table */}
+        {selectedProjectId && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              <h2 className="text-lg font-semibold text-slate-900">
+                Drawdown History ({drawdowns.length})
+              </h2>
             </div>
-          </>
+            {drawdowns.length === 0 ? (
+              <div className="text-center p-10 bg-white/80 rounded-2xl border border-slate-200">
+                <TrendingUp className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                <p className="text-lg font-medium text-slate-900 mb-1">
+                  No drawdowns recorded yet
+                </p>
+                <p className="text-sm text-slate-600">
+                  Record a drawdown to track fund utilization.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+             <table className="min-w-full text-sm border border-slate-300">
+  <thead className="bg-slate-50">
+    <tr>
+      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase border border-slate-300">
+        Source Type
+      </th>
+      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase border border-slate-300">
+        Drawdown Date
+      </th>
+      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase border border-slate-300">
+        Amount
+      </th>
+      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase border border-slate-300">
+        Actions
+      </th>
+    </tr>
+  </thead>
+
+  <tbody className="divide-y divide-slate-200">
+    {drawdowns.map((drawdown) => (
+      <tr key={drawdown.id} className="hover:bg-slate-50 transition-colors">
+        <td className="px-4 py-3 font-semibold text-slate-900 border border-slate-300">
+          {drawdown.source?.type || "N/A"}
+        </td>
+        <td className="px-4 py-3 text-slate-700 border border-slate-300">
+          {new Date(drawdown.date).toLocaleDateString()}
+        </td>
+        <td className="px-4 py-3 text-right font-semibold text-blue-600 border border-slate-300">
+          {formatCurrency(drawdown.amount)}
+        </td>
+        <td className="px-4 py-3 border border-slate-300">
+          <button
+            onClick={() => handleDeleteDrawdown(drawdown.id)}
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="Delete Drawdown"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+              </div>
+            )}
+          </div>
         )}
 
         {/* Source Modal */}
         {showSourceModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-              <h2 className="text-xl font-bold mb-4">Add Manual Financing Source</h2>
+              <h2 className="text-xl font-bold mb-4 text-slate-900">Add Financing Source</h2>
               <form onSubmit={handleCreateSource} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-2">
                     Type
                   </label>
                   <select
@@ -569,8 +910,8 @@ export default function FinancingSourcesPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Total Amount
+                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-2">
+                    Total Amount *
                   </label>
                   <input
                     type="number"
@@ -584,7 +925,7 @@ export default function FinancingSourcesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-2">
                     Interest Rate % (Optional)
                   </label>
                   <input
@@ -598,7 +939,7 @@ export default function FinancingSourcesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-2">
                     Fees (Optional)
                   </label>
                   <input
@@ -615,13 +956,13 @@ export default function FinancingSourcesPage() {
                   <button
                     type="button"
                     onClick={() => setShowSourceModal(false)}
-                    className="px-4 h-9 rounded-lg border border-slate-300 text-sm"
+                    className="px-4 h-10 rounded-lg border border-slate-300 text-sm hover:bg-slate-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 h-9 rounded-lg bg-green-600 text-white text-sm font-semibold"
+                    className="px-4 h-10 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700"
                   >
                     Create
                   </button>
@@ -633,13 +974,13 @@ export default function FinancingSourcesPage() {
 
         {/* Drawdown Modal */}
         {showDrawdownModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-              <h2 className="text-xl font-bold mb-4">Record Drawdown</h2>
+              <h2 className="text-xl font-bold mb-4 text-slate-900">Record Drawdown</h2>
               <form onSubmit={handleCreateDrawdown} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Financing Source
+                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-2">
+                    Financing Source *
                   </label>
                   <select
                     name="sourceId"
@@ -658,8 +999,8 @@ export default function FinancingSourcesPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Drawdown Date
+                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-2">
+                    Drawdown Date *
                   </label>
                   <input
                     type="date"
@@ -671,8 +1012,8 @@ export default function FinancingSourcesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Amount
+                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-2">
+                    Amount *
                   </label>
                   <input
                     type="number"
@@ -689,13 +1030,13 @@ export default function FinancingSourcesPage() {
                   <button
                     type="button"
                     onClick={() => setShowDrawdownModal(false)}
-                    className="px-4 h-9 rounded-lg border border-slate-300 text-sm"
+                    className="px-4 h-10 rounded-lg border border-slate-300 text-sm hover:bg-slate-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 h-9 rounded-lg bg-blue-600 text-white text-sm font-semibold"
+                    className="px-4 h-10 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
                   >
                     Record
                   </button>

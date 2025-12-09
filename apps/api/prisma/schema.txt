@@ -1,0 +1,568 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  password     String
+  status       UserStatus    @default(ACTIVE)
+  roleId       String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime?     @updatedAt
+  auditLogs    AuditLog[]
+  projectsuser ProjectUser[]
+  role         Role?         @relation(fields: [roleId], references: [id])
+}
+
+model Role {
+  id    String @id @default(uuid())
+  name  String @unique
+  users User[]
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  entity     String
+  action     String
+  recordId   String?
+  beforeData Json?
+  afterData  Json?
+  userId     String?
+  timestamp  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([entity])
+  @@index([recordId])
+  @@index([userId])
+  @@index([timestamp])
+}
+
+model Project {
+  id                   String                @id @default(uuid())
+  title                String
+  baseCurrency         String
+  timezone             String?               @default("Asia/Kathmandu")
+  status               String?               @default("planning")
+  ownerId              String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime?             @updatedAt
+  budgetVersions       BudgetVersion[]
+  campaignEvents       CampaignEvent[]
+  cashflowForecasts    CashflowForecast[]
+  distributionDeals    DistributionDeal[]
+  financingSources     FinancingSource[]
+  pAndATasks           PAndATask[]
+  phases               PhaseEntity[]
+  postTasks            PostTask[]
+  users                ProjectUser[]
+  publicityBudgets     PublicityBudget[]
+  purchaseOrders       PurchaseOrder[]
+  waterfallDefinitions WaterfallDefinition[]
+}
+
+model ProjectUser {
+  id        String  @id @default(uuid())
+  projectId String
+  userId    String
+  role      String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@unique([projectId, userId])
+}
+
+model PhaseEntity {
+  id        String  @id @default(uuid())
+  name      Phase
+  orderNo   Int?
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model BudgetVersion {
+  id               String           @id @default(uuid())
+  projectId        String
+  version          String
+  type             BudgetType
+  createdBy        String?
+  lockedAt         DateTime?
+  acceptedAt       DateTime?
+  sentTo           Json?
+  grandTotal       Float?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime?        @updatedAt
+  assumptions      Json?
+  financingPlan    Json?
+  metrics          Json?
+  revenueModel     Json?
+  template         String?
+  lines            BudgetLineItem[]
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  changeOrders     ChangeOrder[]
+  financingSources FinancingSource?
+
+  @@unique([projectId, version])
+}
+
+model BudgetLineItem {
+  id              String          @id @default(uuid())
+  budgetVersionId String
+  phase           Phase
+  department      String?
+  name            String
+  qty             Int             @default(1)
+  rate            Float
+  taxPercent      Float?          @default(0)
+  vendor          String?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime?       @updatedAt
+  budgetVersion   BudgetVersion   @relation(fields: [budgetVersionId], references: [id], onDelete: Cascade)
+  purchaseOrders  PurchaseOrder[]
+}
+
+model ChangeOrder {
+  id        String        @id @default(uuid())
+  versionId String
+  reason    String?
+  oldValue  Json?
+  newValue  Json?
+  createdBy String?
+  createdAt DateTime      @default(now())
+  version   BudgetVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+}
+
+model Vendor {
+  id                String             @id @default(uuid())
+  name              String
+  currency          String
+  bankInfo          Json?
+  contactInfo       Json?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime?          @updatedAt
+  invoices          Invoice[]
+  purchaseOrders    PurchaseOrder[]
+  scheduledPayments ScheduledPayment[]
+}
+
+model PurchaseOrder {
+  id           String          @id @default(uuid())
+  vendorId     String
+  projectId    String
+  poNo         String          @unique
+  amount       Float
+  status       String          @default("Pending")
+  approvedBy   String?
+  approvedAt   DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime?       @updatedAt
+  budgetLineId String?
+  invoices     Invoice[]
+  budgetLine   BudgetLineItem? @relation(fields: [budgetLineId], references: [id], onDelete: Cascade)
+  project      Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  vendor       Vendor          @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id          String         @id @default(uuid())
+  vendorId    String
+  poId        String?
+  docNo       String
+  date        DateTime
+  amount      Float
+  status      String         @default("Pending")
+  attachments Json?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime?      @updatedAt
+  po          PurchaseOrder? @relation(fields: [poId], references: [id], onDelete: Cascade)
+  vendor      Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  payments    Payment[]
+}
+
+model Payment {
+  id        String    @id @default(uuid())
+  invoiceId String
+  amount    Float
+  paidOn    DateTime?
+  method    String?
+  status    String    @default("Paid")
+  createdAt DateTime  @default(now())
+  invoice   Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model ScheduledPayment {
+  id           String        @id @default(uuid())
+  payeeId      String
+  total        Float
+  status       String        @default("Scheduled")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime?     @updatedAt
+  allocations  Allocation[]
+  installments Installment[]
+  payee        Vendor        @relation(fields: [payeeId], references: [id])
+}
+
+model Installment {
+  id                 String           @id @default(uuid())
+  scheduledPaymentId String
+  dueDate            DateTime
+  amount             Float
+  status             String           @default("Pending")
+  scheduledPayment   ScheduledPayment @relation(fields: [scheduledPaymentId], references: [id], onDelete: Cascade)
+}
+
+model Allocation {
+  id                 String           @id @default(uuid())
+  scheduledPaymentId String
+  phase              Phase
+  lineRefId          String?
+  amount             Float
+  scheduledPayment   ScheduledPayment @relation(fields: [scheduledPaymentId], references: [id], onDelete: Cascade)
+}
+
+model FinancingSource {
+  id                String         @id @default(uuid())
+  projectId         String
+  type              FinancingType
+  amount            Float
+  rate              Float?
+  fees              Float?
+  schedule          Json?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime?      @updatedAt
+  sourceQuotationId String?        @unique
+  drawdowns         Drawdown[]
+  project           Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceQuotation   BudgetVersion? @relation(fields: [sourceQuotationId], references: [id])
+  participants      Participant[]
+}
+
+model Drawdown {
+  id       String          @id @default(uuid())
+  sourceId String
+  date     DateTime
+  amount   Float
+  source   FinancingSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+}
+
+model CashflowForecast {
+  id         String   @id @default(uuid())
+  projectId  String
+  weekStart  DateTime
+  inflows    Float
+  outflows   Float
+  cumulative Float
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model PostTask {
+  id           String        @id @default(uuid())
+  projectId    String
+  name         String
+  type         PostTaskType?
+  assigneeId   String?
+  vendorId     String?
+  costEstimate Float
+  actualCost   Float?
+  dueDate      DateTime?
+  status       TaskStatus    @default(PENDING)
+  notes        String?
+  attachments  Json?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime?     @updatedAt
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model PAndATask {
+  id           String    @id @default(uuid())
+  projectId    String
+  name         String
+  campaignType String?
+  region       String?
+  vendorId     String?
+  costEstimate Float
+  actualSpent  Float?
+  campaignDate DateTime?
+  notes        String?
+  attachments  Json?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime? @updatedAt
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model DistributionDeal {
+  id                String               @id @default(uuid())
+  projectId         String
+  territory         String
+  window            String
+  feePercent        Float?
+  expensesCap       Float?
+  minimumGuarantee  Float?
+  waterfallId       String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime?            @updatedAt
+  project           Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  waterfall         WaterfallDefinition? @relation(fields: [waterfallId], references: [id], onDelete: Cascade)
+  revenueStatements RevenueStatement[]
+}
+
+model RevenueStatement {
+  id           String           @id @default(uuid())
+  dealId       String
+  periodStart  DateTime
+  periodEnd    DateTime
+  gross        Float
+  fee          Float
+  expenses     Float
+  net          Float
+  carryForward Float?
+  allocated    Json?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime?        @updatedAt
+  deal         DistributionDeal @relation(fields: [dealId], references: [id], onDelete: Cascade)
+}
+
+model WaterfallDefinition {
+  id                String             @id @default(uuid())
+  projectId         String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime?          @updatedAt
+  distributionDeals DistributionDeal[]
+  participants      Participant[]
+  project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  periods           WaterfallPeriod[]
+  tiers             WaterfallTier[]
+}
+
+model WaterfallTier {
+  id          String              @id @default(uuid())
+  waterfallId String
+  tierOrder   Int
+  cap         Float?
+  pctSplit    Float?
+  description String?
+  waterfall   WaterfallDefinition @relation(fields: [waterfallId], references: [id], onDelete: Cascade)
+}
+
+model Participant {
+  id                String              @id @default(uuid())
+  waterfallId       String
+  name              String
+  role              String
+  pctShare          Float?
+  investmentAmount  Float?
+  recoupedAmount    Float?              @default(0)
+  preferredReturn   Float?
+  capAmount         Float?
+  type              FinancingType?
+  orderNo           Int?
+  financingSourceId String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime?           @updatedAt
+  financingSource   FinancingSource?    @relation(fields: [financingSourceId], references: [id], onDelete: Cascade)
+  waterfall         WaterfallDefinition @relation(fields: [waterfallId], references: [id], onDelete: Cascade)
+  payouts           WaterfallPayout[]
+}
+
+model WaterfallPayout {
+  id            String      @id @default(uuid())
+  participantId String
+  periodStart   DateTime
+  periodEnd     DateTime
+  amount        Float
+  createdAt     DateTime    @default(now())
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+}
+
+model WaterfallPeriod {
+  id          String              @id @default(uuid())
+  waterfallId String
+  periodStart DateTime
+  periodEnd   DateTime
+  netRevenue  Float
+  createdAt   DateTime            @default(now())
+  waterfall   WaterfallDefinition @relation(fields: [waterfallId], references: [id], onDelete: Cascade)
+}
+
+model CurrencyRate {
+  id           String   @id @default(uuid())
+  month        DateTime
+  fromCurrency String
+  toCurrency   String
+  rate         Float
+}
+
+model Attachment {
+  id         String   @id @default(uuid())
+  entityType String
+  entityId   String
+  fileUrl    String
+  uploadedBy String?
+  uploadedAt DateTime @default(now())
+}
+
+model PublicityBudget {
+  id             String             @id @default(uuid())
+  projectId      String
+  name           String
+  category       PublicityCategory
+  description    String?
+  budgetAmount   Float
+  actualAmount   Float              @default(0)
+  vendor         String?
+  startDate      DateTime?
+  endDate        DateTime?
+  status         PublicityStatus    @default(PLANNED)
+  notes          String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime?          @updatedAt
+  campaignEvents CampaignEvent[]
+  project        Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  expenses       PublicityExpense[]
+
+  @@index([projectId])
+  @@index([category])
+  @@index([status])
+}
+
+model PublicityExpense {
+  id                String          @id @default(uuid())
+  publicityBudgetId String
+  description       String
+  amount            Float
+  expenseDate       DateTime
+  vendor            String?
+  invoiceNumber     String?
+  attachmentUrl     String?
+  notes             String?
+  createdAt         DateTime        @default(now())
+  publicityBudget   PublicityBudget @relation(fields: [publicityBudgetId], references: [id], onDelete: Cascade)
+
+  @@index([publicityBudgetId])
+  @@index([expenseDate])
+}
+
+model CampaignEvent {
+  id                String            @id @default(uuid())
+  projectId         String
+  publicityBudgetId String?
+  title             String
+  description       String?
+  eventType         CampaignEventType
+  startDate         DateTime
+  endDate           DateTime?
+  deliverable       String?
+  status            CampaignStatus    @default(UPCOMING)
+  notes             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime?         @updatedAt
+  project           Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  publicityBudget   PublicityBudget?  @relation(fields: [publicityBudgetId], references: [id])
+
+  @@index([projectId])
+  @@index([startDate])
+  @@index([status])
+}
+
+enum Phase {
+  DEVELOPMENT
+  PRODUCTION
+  POST
+  PUBLICITY
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum BudgetType {
+  QUOTE
+  BASELINE
+  WORKING
+}
+
+enum QuoteStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum FinancingType {
+  EQUITY
+  LOAN
+  GRANT
+  INCENTIVE
+  MG
+}
+
+enum PostTaskType {
+  EDITING
+  COLOR
+  AUDIO
+  MUSIC
+  VFX
+  QC
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum PublicityCategory {
+  TRAILER
+  KEY_ART
+  POSTER
+  DIGITAL_MARKETING
+  SOCIAL_MEDIA
+  PR
+  FESTIVALS
+  SCREENINGS
+  PRINT_ADS
+  OOH
+  TV_SPOTS
+  RADIO
+  PRESS_KIT
+  PREMIERE
+  OTHER
+}
+
+enum PublicityStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum CampaignEventType {
+  TEASER_RELEASE
+  TRAILER_RELEASE
+  POSTER_REVEAL
+  FESTIVAL_SUBMISSION
+  FESTIVAL_SCREENING
+  PREMIERE
+  THEATRICAL_RELEASE
+  STREAMING_RELEASE
+  PRESS_CONFERENCE
+  SOCIAL_MEDIA_CAMPAIGN
+  TV_APPEARANCE
+  PRESS_JUNKET
+  OTHER
+}
+
+enum CampaignStatus {
+  UPCOMING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}

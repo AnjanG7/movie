@@ -6,22 +6,32 @@ import { StatusCodes } from 'http-status-codes';
 const financingSourceService = new FinancingSourceService();
 
 export const createFinancingSource = asyncHandler(async (req, res) => {
-    const { projectId } = req.params;
+  const { projectId } = req.params;
+  
+  try {
     const source = await financingSourceService.createFinancingSource(
-        projectId,
-        req.body,
-        req.user
+      projectId,
+      req.body
     );
+    
     res
-        .status(StatusCodes.CREATED)
-        .json(
-            new ApiResponse(
-                StatusCodes.CREATED,
-                source,
-                'Financing source created successfully'
-            )
-        );
+      .status(StatusCodes.CREATED)
+      .json(
+        new ApiResponse(
+          StatusCodes.CREATED,
+          source,
+          'Financing source created successfully'
+        )
+      );
+  } catch (error) {
+    // Log the full Prisma error details
+    console.error('Full error:', error);
+    console.error('Error code:', error.code);
+    console.error('Error meta:', error.meta);
+    throw error;
+  }
 });
+
 
 export const getFinancingSources = asyncHandler(async (req, res) => {
     const { projectId } = req.params;

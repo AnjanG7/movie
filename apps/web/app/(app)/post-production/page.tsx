@@ -93,6 +93,15 @@ export default function PostProductionPage() {
       const json = await res.json();
       if (json?.success) {
         setProjects(json.data.projects || []);
+        const params = new URLSearchParams(window.location.search);
+      const projectId = params.get('projectId');
+      if (projectId) {
+        const project = json.data.projects.find((p: Project) => p.id === projectId);
+        if (project) {
+          setSelectedProject(project); // ✅ Set the full project object
+        }
+      }
+        
       }
     } catch (error) {
       console.error('Failed to fetch projects:', error);

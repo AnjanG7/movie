@@ -1,91 +1,323 @@
 'use client';
 
 import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
-import { Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Download } from 'lucide-react';
 
-const exportPOToPDF = (po: any) => {
-  const doc = new jsPDF();
+// Professional PDF Export Function (matching Invoice style)
+const exportPOToPDF = async (po: any) => {
+  try {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-  // Header
-  doc.setFontSize(20);
-  doc.text('Purchase Order', 14, 20);
-  
-  doc.setFontSize(11);
-  doc.text(`PO Number: ${po.poNumber}`, 14, 35);
-  doc.text(`Date: ${new Date(po.poDate).toLocaleDateString()}`, 14, 41);
-  doc.text(`Vendor: ${po.vendor?.name || 'N/A'}`, 14, 47);
-  doc.text(`Status: ${po.status}`, 14, 53);
+    // Colors
+    const colors = {
+      primary: [59, 130, 246] as [number, number, number], // Blue-500
+      success: [22, 163, 74] as [number, number, number],
+      warning: [234, 88, 12] as [number, number, number],
+      danger: [220, 38, 38] as [number, number, number],
+      text: [30, 41, 59] as [number, number, number],
+      lightText: [100, 116, 139] as [number, number, number],
+      lightBg: [248, 250, 252] as [number, number, number],
+      border: [226, 232, 240] as [number, number, number],
+    };
 
-  // Line Items
-  if (po.lineItems && po.lineItems.length > 0) {
-    doc.setFontSize(14);
-    doc.text('Items', 14, 65);
-
-    const itemData = po.lineItems.map((item: any) => [
-      item.description,
-      item.qty.toString(),
-      item.unitPrice.toLocaleString(),
-      (item.qty * item.unitPrice).toLocaleString()
-    ]);
-
-    autoTable(doc, {
-      startY: 70,
-      head: [['Description', 'Qty', 'Unit Price', 'Total']],
-      body: itemData,
-      theme: 'striped',
-      headStyles: { fillColor: [249, 115, 22] },
-      columnStyles: {
-        1: { halign: 'right' },
-        2: { halign: 'right' },
-        3: { halign: 'right' }
+    // Helper function for status color
+    const getStatusColor = (status: string): [number, number, number] => {
+      switch (status.toLowerCase()) {
+        case "approved": return colors.success;
+        case "pending": return colors.warning;
+        case "rejected": return colors.danger;
+        default: return colors.lightText;
       }
-    });
+    };
 
-    // Total
-    const total = po.lineItems.reduce((sum: number, item: any) => sum + (item.qty * item.unitPrice), 0);
-    const finalY = (doc as any).lastAutoTable.finalY + 5;
-    doc.setFontSize(12);
-    doc.setFont("Helvetica", 'bold');
-    doc.text(`Total: ${total.toLocaleString()}`, 14, finalY);
-  }
+    // ========== HEADER ==========
+    doc.setFillColor(...colors.primary);
+    doc.rect(0, 0, pageWidth, 50, "F");
 
-  // Notes
-  if (po.notes) {
-    const notesY = (doc as any).lastAutoTable?.finalY + 15 || 120;
+    // Logo/Icon
+    doc.setFontSize(28);
+    doc.setTextColor(255, 255, 255);
+    doc.text("📋", 15, 22);
+
+    // Title
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.text("PURCHASE ORDER", 35, 22);
+
+    // Subtitle
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text("Film Finance Management System", 35, 30);
+    doc.setFontSize(8);
+    doc.text("Professional Procurement & Budget Management", 35, 37);
+
+    // PO number (right side)
     doc.setFontSize(10);
-    doc.text('Notes:', 14, notesY);
-    doc.setFont("Helvetica", 'normal');
-    doc.text(po.notes, 14, notesY + 6, { maxWidth: 180 });
-  }
+    doc.setFont("helvetica", "bold");
+    doc.text("PO No:", pageWidth - 15, 18, { align: "right" });
+    
+    doc.setFontSize(14);
+    doc.text(po.poNo, pageWidth - 15, 26, { align: "right" });
 
-  // Save
-  const filename = `PO_${po.poNumber}_${new Date().toISOString().split('T')[0]}.pdf`;
-  doc.save(filename);
+    // Status badge
+    const statusColor = getStatusColor(po.status);
+    doc.setFillColor(...statusColor);
+    doc.roundedRect(pageWidth - 50, 32, 35, 8, 2, 2, "F");
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    doc.text(po.status.toUpperCase(), pageWidth - 32.5, 37, { align: "center" });
+
+    // Reset text color
+    doc.setTextColor(...colors.text);
+
+    // ========== PO INFO CARDS ==========
+    let yPos = 60;
+
+    // Left Card - PO Details
+    doc.setDrawColor(...colors.border);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(15, yPos, 90, 50, 3, 3, "S");
+
+    // Card header
+    doc.setFillColor(...colors.lightBg);
+    doc.roundedRect(15, yPos, 90, 12, 3, 3, "F");
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.primary);
+    doc.text("ORDER DETAILS", 20, yPos + 8);
+
+    // Date
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...colors.lightText);
+    doc.text("Order Date:", 20, yPos + 22);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.text);
+    const formattedDate = new Date(po.createdAt).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    doc.text(formattedDate, 20, yPos + 30);
+
+    // Project info
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...colors.lightText);
+    doc.text("Project:", 20, yPos + 40);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.text);
+    const projectText = po.project?.title || "N/A";
+    doc.text(projectText.substring(0, 25), 20, yPos + 47);
+
+    // Right Card - Vendor Info
+    doc.setDrawColor(...colors.border);
+    doc.roundedRect(110, yPos, 85, 50, 3, 3, "S");
+
+    // Card header
+    doc.setFillColor(...colors.lightBg);
+    doc.roundedRect(110, yPos, 85, 12, 3, 3, "F");
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.primary);
+    doc.text("VENDOR", 115, yPos + 8);
+
+    // Vendor name
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.text);
+    doc.text(po.vendor?.name || "N/A", 115, yPos + 24);
+
+    // Currency
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...colors.lightText);
+    doc.text("Currency:", 115, yPos + 35);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.text);
+    doc.text(po.vendor?.currency || "USD", 115, yPos + 42);
+
+    yPos += 60;
+
+    // ========== PO AMOUNT (BIG HIGHLIGHT) ==========
+    doc.setFillColor(...colors.primary);
+    doc.roundedRect(15, yPos, pageWidth - 30, 25, 3, 3, "F");
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.text("PURCHASE ORDER AMOUNT", 20, yPos + 10);
+
+    doc.setFontSize(20);
+    const currency = po.vendor?.currency || "USD";
+    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "Rs.";
+    doc.text(`${symbol}${po.amount.toLocaleString()}`, 20, yPos + 20);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Currency: ${currency}`, pageWidth - 20, yPos + 20, { align: "right" });
+
+    yPos += 35;
+
+    // ========== BUDGET LINE INFORMATION ==========
+    if (po.budgetLine) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...colors.primary);
+      doc.text("BUDGET LINE ALLOCATION", 15, yPos);
+
+      yPos += 8;
+
+      // Budget line details box
+      doc.setFillColor(...colors.lightBg);
+      doc.setDrawColor(...colors.border);
+      doc.roundedRect(15, yPos, pageWidth - 30, 30, 2, 2, "FD");
+
+      doc.setFontSize(9);
+      doc.setTextColor(...colors.lightText);
+      doc.text("Phase:", 20, yPos + 8);
+      
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...colors.text);
+      doc.text(po.budgetLine.phase, 20, yPos + 14);
+
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...colors.lightText);
+      doc.text("Budget Line:", 20, yPos + 22);
+      
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...colors.text);
+      doc.text(po.budgetLine.name || "N/A", 20, yPos + 28);
+
+      // Budget Amount
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...colors.lightText);
+      doc.text("Budgeted Amount:", pageWidth - 20, yPos + 8, { align: "right" });
+      
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...colors.text);
+      const budgetedAmount = (po.budgetLine.qty || 0) * (po.budgetLine.rate || 0);
+      doc.text(`${symbol}${budgetedAmount.toLocaleString()}`, pageWidth - 20, yPos + 14, { align: "right" });
+
+      yPos += 38;
+    }
+
+    // ========== NOTES ==========
+    if (po.notes) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...colors.primary);
+      doc.text("NOTES", 15, yPos);
+
+      yPos += 8;
+
+      doc.setFillColor(...colors.lightBg);
+      doc.setDrawColor(...colors.border);
+      doc.roundedRect(15, yPos, pageWidth - 30, 25, 2, 2, "FD");
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...colors.text);
+      const splitNotes = doc.splitTextToSize(po.notes, pageWidth - 40);
+      doc.text(splitNotes, 20, yPos + 8);
+
+      yPos += 33;
+    }
+
+    // ========== APPROVAL INFO ==========
+    if (po.approvedBy || po.approvedAt) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...colors.primary);
+      doc.text("APPROVAL DETAILS", 15, yPos);
+
+      yPos += 8;
+
+      doc.setFillColor(220, 252, 231); // Light green
+      doc.setDrawColor(34, 197, 94); // Green
+      doc.roundedRect(15, yPos, pageWidth - 30, 20, 2, 2, "FD");
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...colors.text);
+      
+      if (po.approvedAt) {
+        const approvalDate = new Date(po.approvedAt).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        doc.text(`Approved on: ${approvalDate}`, 20, yPos + 10);
+        doc.text(`Approved by: ${po.approvedBy}`, 20, yPos + 16);
+      }
+
+      if (po.approvedBy) {
+      }
+
+      yPos += 28;
+    }
+
+    // ========== FOOTER ==========
+    doc.setDrawColor(...colors.border);
+    doc.setLineWidth(0.5);
+    doc.line(15, pageHeight - 25, pageWidth - 15, pageHeight - 25);
+
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...colors.lightText);
+    doc.text(
+      "This is an automatically generated purchase order. For inquiries, contact your production manager.",
+      pageWidth / 2,
+      pageHeight - 18,
+      { align: "center" }
+    );
+
+    doc.setFontSize(7);
+    doc.text(
+      `Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
+      pageWidth / 2,
+      pageHeight - 12,
+      { align: "center" }
+    );
+
+    // Save PDF
+    doc.save(`PurchaseOrder-${po.poNo}-${Date.now()}.pdf`);
+    alert("✅ Purchase Order PDF generated successfully!");
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    alert("❌ Failed to generate PDF. Please try again.");
+  }
 };
 
-// Client Component that uses useSearchParams
-function PurchaseOrdersContent() {
-  const searchParams = useSearchParams();
-  const projectIdParam = searchParams.get('projectId');
-
+export default function PurchaseOrdersPage() {
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
   const [budgetLines, setBudgetLines] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState(projectIdParam || '');
+  const [selectedProjectId, setSelectedProjectId] = useState('');
   const [formData, setFormData] = useState<any>({
     vendorId: '',
     amount: 0,
     notes: '',
-    budgetLineId: '',
+    budgetLineId: '', // Now required
   });
 
   useEffect(() => {
@@ -108,12 +340,6 @@ function PurchaseOrdersContent() {
       const result = await response.json();
       if (result.success) {
         setProjects(result.data.projects);
-
-         const params = new URLSearchParams(window.location.search);
-      const projectId = params.get('projectId');
-      if (projectId) {
-        setSelectedProjectId(projectId);
-      }
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -177,6 +403,12 @@ function PurchaseOrdersContent() {
       return;
     }
 
+    // Validate budget line is selected
+    if (!formData.budgetLineId) {
+      alert('⚠️ Budget Line is required. Please select a budget line.');
+      return;
+    }
+
     try {
       const response = await fetch(
         `${API_BASE_URL}/projects/${selectedProjectId}/purchase-orders`,
@@ -190,7 +422,7 @@ function PurchaseOrdersContent() {
 
       const result = await response.json();
       if (result.success) {
-        alert('Purchase Order created successfully');
+        alert('✅ Purchase Order created successfully');
         setShowCreateModal(false);
         setFormData({ vendorId: '', amount: 0, notes: '', budgetLineId: '' });
         fetchPurchaseOrders();
@@ -209,7 +441,7 @@ function PurchaseOrdersContent() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/projects/${selectedProjectId}/purchase-orders/${poId}`,
+        `${API_BASE_URL}/projects/${selectedProjectId}/purchase-orders/${poId}/status`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -220,7 +452,7 @@ function PurchaseOrdersContent() {
 
       const result = await response.json();
       if (result.success) {
-        alert(`PO ${status.toLowerCase()}d successfully`);
+        alert(`✅ PO ${status.toLowerCase()}d successfully`);
         fetchPurchaseOrders();
         fetchBudgetLines();
       } else {
@@ -246,7 +478,7 @@ function PurchaseOrdersContent() {
 
       const result = await response.json();
       if (result.success) {
-        alert('PO deleted successfully');
+        alert('✅ PO deleted successfully');
         fetchPurchaseOrders();
         fetchBudgetLines();
       } else {
@@ -407,39 +639,42 @@ function PurchaseOrdersContent() {
                           <td className="px-6 py-4 text-sm text-slate-500">
                             {po.createdAt ? new Date(po.createdAt).toLocaleDateString() : 'N/A'}
                           </td>
-                          <td className="px-6 py-4 text-right space-x-2">
-                            {po.status === 'Pending' && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateStatus(po.id, 'Approved')}
-                                  className="px-3 py-1.5 rounded-md border border-emerald-300 text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
-                                >
-                                  Approve
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateStatus(po.id, 'Rejected')}
-                                  className="px-3 py-1.5 rounded-md border border-amber-300 text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
-                                >
-                                  Reject
-                                </button>
-                              </>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(po.id)}
-                              className="px-3 py-1.5 rounded-md border border-red-300 text-xs text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
-                            >
-                              Delete
-                            </button>
-                            <button
-                            onClick={() => exportPOToPDF(po)}
-                            className="text-green-600 hover:text-green-900"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              {po.status === 'Pending' && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateStatus(po.id, 'Approved')}
+                                    className="px-3 py-1.5 rounded-md border border-emerald-300 text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateStatus(po.id, 'Rejected')}
+                                    className="px-3 py-1.5 rounded-md border border-amber-300 text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
+                                  >
+                                    Reject
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => exportPOToPDF(po)}
+                                className="px-3 py-1.5 rounded-md border-2 border-blue-400 text-xs text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors flex items-center gap-1 font-semibold"
+                                title="Download PDF"
+                              >
+                                📄 PDF
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(po.id)}
+                                className="px-3 py-1.5 rounded-md border border-red-300 text-xs text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -481,6 +716,31 @@ function PurchaseOrdersContent() {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">
+                    Budget Line * <span className="text-red-600">(Required)</span>
+                  </label>
+                  <select
+                    name="budgetLineId"
+                    value={formData.budgetLineId}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full h-11 border-2 border-blue-300 rounded-lg px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50"
+                  >
+                    <option value="">-- Select Budget Line --</option>
+                    {budgetLines.map((line: any) => (
+                      <option key={line.id} value={line.id}>
+                        {line.phase} - {line.name} (Remaining: {line.remaining?.toFixed(2) || 0})
+                      </option>
+                    ))}
+                  </select>
+                  {budgetLines.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-2">
+                      ⚠️ No budget lines available for this project. Please create budget lines first.
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">
                     Amount *
                   </label>
                   <input
@@ -494,25 +754,6 @@ function PurchaseOrdersContent() {
                     className="w-full h-11 border border-slate-300 rounded-lg px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="0.00"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">
-                    Budget Line
-                  </label>
-                  <select
-                    name="budgetLineId"
-                    value={formData.budgetLineId}
-                    onChange={handleFormChange}
-                    className="w-full h-11 border border-slate-300 rounded-lg px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">-- Select Budget Line (Optional) --</option>
-                    {budgetLines.map((line: any) => (
-                      <option key={line.id} value={line.id}>
-                        {line.phase} - {line.name} (Remaining: {line.remaining?.toFixed(2) || 0})
-                      </option>
-                    ))}
-                  </select>
                 </div>
 
                 <div>
@@ -539,7 +780,8 @@ function PurchaseOrdersContent() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 h-11 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all font-semibold"
+                    disabled={!formData.budgetLineId}
+                    className="flex-1 h-11 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all font-semibold disabled:bg-slate-300 disabled:cursor-not-allowed"
                   >
                     Create PO
                   </button>
@@ -550,21 +792,5 @@ function PurchaseOrdersContent() {
         )}
       </div>
     </div>
-  );
-}
-
-// Server Component wrapper with Suspense
-export default function PurchaseOrdersPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading Purchase Orders...</p>
-        </div>
-      </div>
-    }>
-      <PurchaseOrdersContent />
-    </Suspense>
   );
 }

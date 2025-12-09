@@ -31,8 +31,10 @@ async createPurchaseOrder(projectId, data, userId) {
   }
 
   // Generate PO number
-  const count = await prisma.purchaseOrder.count({ where: { projectId } });
-  const poNo = `PO-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
+   const count = await prisma.purchaseOrder.count({
+            where: { projectId }, // ← Count only POs for THIS project
+        });
+    const poNo = `PO-${project.title.substring(0, 3).toUpperCase()}-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
 
   const purchaseOrder = await prisma.purchaseOrder.create({
     data: {
@@ -71,6 +73,7 @@ async createPurchaseOrder(projectId, data, userId) {
                     vendor: true,
                     project: true,
                     invoices: true,
+                    budgetLine: true,
                 },
                 skip,
                 take,
@@ -95,6 +98,7 @@ async createPurchaseOrder(projectId, data, userId) {
                 vendor: true,
                 project: true,
                 invoices: true,
+                budgetLine: true,
             },
         });
 
@@ -115,17 +119,28 @@ async createPurchaseOrder(projectId, data, userId) {
         if (!purchaseOrder) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Purchase Order not found');
         }
+        
+            let approverName = null;
+    if (status === 'Approved' && userId) {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { name: true }
+        });
+        approverName = user?.name;
+    }
+
 
         const updated = await prisma.purchaseOrder.update({
             where: { id },
             data: {
                 status,
-                approvedBy: userId,
-                approvedAt: new Date(),
+                 approvedBy: status === 'Approved' ? (approverName || userId) : po.approvedBy, // ← Store name instead of ID
+            approvedAt: status === 'Approved' ? new Date() : po.approvedAt,
             },
             include: {
                 vendor: true,
                 project: true,
+                budgetLine: true,
             },
         });
 
