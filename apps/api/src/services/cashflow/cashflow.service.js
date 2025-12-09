@@ -167,6 +167,9 @@ export class CashflowService {
   // Helper to recalculate cumulatives for weeks after a given date
   async recalculateSubsequentCumulatives(projectId, fromDate) {
     // Get ALL entries for this project to recalculate properly
+
+
+    
     const allForecasts = await prisma.cashflowForecast.findMany({
       where: { projectId },
       orderBy: { weekStart: "asc" },
@@ -190,86 +193,103 @@ export class CashflowService {
   }
 
   // Auto-compute cashflow from financing and scheduled payments
-  async autoComputeCashflow(projectId, user, weeks = 12) {
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
+async autoComputeCashflow(projectId, user, weeks = 12) {
+  const project = await prisma.project.findUnique({ where: { id: projectId } });
+  if (!project) throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+
+  const isAdmin = user.roles?.includes("Admin");
+  if (
+    !isAdmin &&
+    project.ownerId !== user?.id &&
+    !(await prisma.projectUser.findFirst({ where: { projectId, userId: user?.id } }))
+  ) {
+    throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+  }
+
+  await this.verifyProjectAccess(projectId);
+
+  const startDate = new Date();
+  startDate.setUTCHours(0, 0, 0, 0);
+
+  // Fetch existing forecasts once to avoid repeated DB queries
+  const existingForecasts = await prisma.cashflowForecast.findMany({
+    where: { projectId },
+    orderBy: { weekStart: "asc" },
+  });
+
+  // Preload cumulative from last existing forecast
+  let lastCumulative = existingForecasts.length
+    ? existingForecasts[existingForecasts.length - 1].cumulative
+    : 0;
+
+  const operations = []; // For transaction batching
+
+  for (let i = 0; i < weeks; i++) {
+    const weekStart = new Date(startDate);
+    weekStart.setUTCDate(weekStart.getUTCDate() + i * 7);
+
+    const weekEnd = new Date(weekStart);
+    weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
+
+    // Calculate inflows
+    const drawdowns = await prisma.drawdown.findMany({
+      where: { source: { projectId }, date: { gte: weekStart, lt: weekEnd } },
     });
-    const users = await prisma.user.findUnique({
-      where: { id: user?.id },
-      include: { role: true },
-    });
-    const isAdmin = users.role?.name === "Admin";
+    const inflows = drawdowns.reduce((sum, d) => sum + (d.amount || 0), 0);
 
-    if (!project)
-      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
-
-    // Only Admin or Project Owner
-    if (
-      !isAdmin &&
-      project.ownerId !== user?.id &&
-      !(await prisma.projectUser.findFirst({
-        where: { projectId, userId: user?.id },
-      }))
-    ) {
-      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
-    }
-    await this.verifyProjectAccess(projectId);
-
-    const startDate = new Date();
-    startDate.setUTCHours(0, 0, 0, 0);
-
-    const forecasts = [];
-
-    for (let i = 0; i < weeks; i++) {
-      const weekStart = new Date(startDate);
-      weekStart.setUTCDate(weekStart.getUTCDate() + i * 7);
-
-      const weekEnd = new Date(weekStart);
-      weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
-
-      // Calculate inflows from financing drawdowns
-      const drawdowns = await prisma.drawdown.findMany({
-        where: {
-          source: { projectId },
-          date: { gte: weekStart, lt: weekEnd },
-        },
-      });
-
-      const inflows = drawdowns.reduce((sum, d) => sum + (d.amount || 0), 0);
-
-      // Calculate outflows from scheduled payments
-      const installments = await prisma.installment.findMany({
-        where: {
-          scheduledPayment: {
-            payee: {
-              purchaseOrders: {
-                some: { projectId },
-              },
+    // Calculate outflows
+    const installments = await prisma.installment.findMany({
+      where: {
+        scheduledPayment: {
+          payee: {
+            purchaseOrders: {
+              some: { projectId },
             },
           },
-          dueDate: { gte: weekStart, lt: weekEnd },
-          status: "Pending",
         },
-        include: { scheduledPayment: true },
-      });
+        dueDate: { gte: weekStart, lt: weekEnd },
+        status: "Pending",
+      },
+      include: { scheduledPayment: true },
+    });
+    const outflows = installments.reduce((sum, inst) => sum + (inst.amount || 0), 0);
 
-      const outflows = installments.reduce(
-        (sum, inst) => sum + (inst.amount || 0),
-        0
+    // Calculate cumulative for this week
+    lastCumulative += inflows - outflows;
+
+    // Check if forecast already exists
+    const existing = existingForecasts.find(f =>
+      f.weekStart.getTime() === weekStart.getTime()
+    );
+
+    if (existing) {
+      operations.push(
+        prisma.cashflowForecast.update({
+          where: { id: existing.id },
+          data: { inflows, outflows, cumulative: lastCumulative },
+        })
       );
-
-      // Upsert forecast
-      const forecast = await this.upsertCashflowEntry(projectId, {
-        weekStart: weekStart.toISOString(),
-        inflows,
-        outflows,
-      });
-
-      forecasts.push(forecast);
+    } else {
+      operations.push(
+        prisma.cashflowForecast.create({
+          data: {
+            projectId,
+            weekStart,
+            inflows,
+            outflows,
+            cumulative: lastCumulative,
+          },
+        })
+      );
     }
-
-    return forecasts;
   }
+
+  // Execute all updates/inserts in a single transaction
+  const forecasts = await prisma.$transaction(operations);
+
+  return forecasts;
+}
+
 
   // Get cashflow summary
   async getCashflowSummary(projectId, user) {
