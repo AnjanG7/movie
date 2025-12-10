@@ -18,6 +18,7 @@ import {
   X,
   Video,
   Megaphone,
+  UserCog,
 } from "lucide-react";
 
 const menuItems = [
@@ -40,6 +41,11 @@ const menuItems = [
   { section: "Production" },
   { icon: Video, label: "Post Production", href: "/post-production" }, // ✅ Added
   { icon: Megaphone, label: "Publicity & P&A", href: "/publicity" }, 
+  {
+    icon: UserCog,
+    label: "Team Management",
+    href: "/team",
+  }
 ];
 
 export default function Sidebar() {
