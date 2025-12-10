@@ -65,7 +65,7 @@ export const recalculateCumulatives = asyncHandler(async (req, res) => {
 });
 
 export const deleteCashflowEntry = asyncHandler(async (req, res) => {
-    const result = await cashflowService.deleteCashflowEntry(req.params.id);
+    const result = await cashflowService.deleteCashflowEntry(req.params.id,req.user);
     res
         .status(StatusCodes.OK)
         .json(new ApiResponse(StatusCodes.OK, result, 'Cashflow entry deleted'));

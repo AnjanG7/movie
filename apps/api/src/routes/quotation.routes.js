@@ -25,7 +25,7 @@ const router = express.Router({ mergeParams: true });
 router.post(
   '/',
   authMiddleware,
-  authorizeRoles('Producer'),
+  authorizeRoles("Admin",'Producer'),
   createQuotation
 );
 
@@ -33,7 +33,7 @@ router.post(
 router.get(
   '/',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer', 'Accountant', 'Investor'),
+  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant', 'Investor'),
   getQuotations
 );
 
@@ -41,7 +41,7 @@ router.get(
 router.get(
   '/:id',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer', 'Accountant', 'Investor'),
+  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant', 'Investor'),
   getQuotation
 );
 
@@ -49,7 +49,7 @@ router.get(
 router.patch(
   '/:id/assumptions',
   authMiddleware,
-  authorizeRoles('Producer'),
+  authorizeRoles("Admin",'Producer'),
   updateAssumptions
 );
 
@@ -57,7 +57,7 @@ router.patch(
 router.post(
   '/:id/lines',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer'),
+  authorizeRoles("Admin",'Producer', 'Line Producer'),
   addCostLine
 );
 
@@ -65,7 +65,7 @@ router.post(
 router.patch(
   '/:id/lines/:lineId',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer'),
+  authorizeRoles("Admin",'Producer', 'Line Producer'),
   updateCostLine
 );
 
@@ -73,7 +73,7 @@ router.patch(
 router.delete(
   '/:id/lines/:lineId',
   authMiddleware,
-  authorizeRoles('Producer'),
+  authorizeRoles("Admin",'Producer'),
   deleteCostLine
 );
 
@@ -81,7 +81,7 @@ router.delete(
 router.patch(
   '/:id/financing',
   authMiddleware,
-  authorizeRoles('Producer'),
+  authorizeRoles("Admin",'Producer'),
   updateFinancingPlan
 );
 
@@ -89,7 +89,7 @@ router.patch(
 router.patch(
   '/:id/revenue',
   authMiddleware,
-  authorizeRoles('Producer'),
+  authorizeRoles("Admin",'Producer'),
   updateRevenueModel
 );
 
@@ -97,7 +97,7 @@ router.patch(
 router.post(
   '/:id/calculate',
   authMiddleware,
-  authorizeRoles('Producer', 'Investor'),
+  authorizeRoles("Admin",'Producer', 'Investor'),
   calculateMetrics
 );
 
@@ -105,20 +105,20 @@ router.post(
 router.post(
   '/:id/convert-to-baseline',
   authMiddleware,
-  authorizeRoles('Producer'),
+  authorizeRoles("Admin",'Producer'),
   convertToBaseline
 );
 //update quotation
 router.put(
   '/:id',
   authMiddleware,
-  authorizeRoles('Producer'),
+  authorizeRoles("Admin",'Producer'),
   updateQuotation
 );
 router.delete(
   '/:id',
   authMiddleware,
-  authorizeRoles('Producer'),
+  authorizeRoles("Admin",'Producer'),
   deleteQuotation
 );
 

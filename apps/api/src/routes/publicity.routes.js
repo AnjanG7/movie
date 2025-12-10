@@ -28,35 +28,35 @@ const router = express.Router({ mergeParams: true });
 router.post(
   '/budgets',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer'),
+  authorizeRoles("Admin",'Producer', 'Line Producer'),
   createPublicityBudget
 );
 
 router.get(
   '/budgets',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer', 'Accountant', 'Investor'),
+  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant', 'Investor'),
   getPublicityBudgets
 );
 
 router.get(
   '/budgets/:id',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer', 'Accountant', 'Investor'),
+  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant', 'Investor'),
   getPublicityBudget
 );
 
 router.put(
   '/budgets/:id',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer'),
+  authorizeRoles("Admin",'Producer', 'Line Producer'),
   updatePublicityBudget
 );
 
 router.delete(
   '/budgets/:id',
   authMiddleware,
-  authorizeRoles('Producer'),
+  authorizeRoles("Admin",'Producer'),
   deletePublicityBudget
 );
 
@@ -64,28 +64,28 @@ router.delete(
 router.post(
   '/budgets/:budgetId/expenses',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer', 'Accountant'),
+  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
   addPublicityExpense
 );
 
 router.get(
   '/budgets/:budgetId/expenses',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer', 'Accountant', 'Investor'),
+  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant', 'Investor'),
   getPublicityExpenses
 );
 
 router.put(
   '/expenses/:id',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer', 'Accountant'),
+  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
   updatePublicityExpense
 );
 
 router.delete(
   '/expenses/:id',
   authMiddleware,
-  authorizeRoles('Producer', 'Accountant'),
+  authorizeRoles("Admin",'Producer', 'Accountant'),
   deletePublicityExpense
 );
 
@@ -93,35 +93,35 @@ router.delete(
 router.post(
   '/campaign',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer'),
+  authorizeRoles("Admin",'Producer', 'Line Producer'),
   createCampaignEvent
 );
 
 router.get(
   '/campaign',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer', 'Accountant', 'Investor'),
+  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant', 'Investor'),
   getCampaignCalendar
 );
 
 router.get(
   '/campaign/:id',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer', 'Accountant', 'Investor'),
+  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant', 'Investor'),
   getCampaignEvent
 );
 
 router.put(
   '/campaign/:id',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer'),
+  authorizeRoles("Admin",'Producer', 'Line Producer'),
   updateCampaignEvent
 );
 
 router.delete(
   '/campaign/:id',
   authMiddleware,
-  authorizeRoles('Producer'),
+  authorizeRoles("Admin",'Producer'),
   deleteCampaignEvent
 );
 
@@ -129,14 +129,14 @@ router.delete(
 router.get(
   '/summary',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer', 'Accountant', 'Investor'),
+  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant', 'Investor'),
   getPublicitySummary
 );
 
 router.post(
   '/update-roi',
   authMiddleware,
-  authorizeRoles('Producer'),
+  authorizeRoles("Admin",'Producer'),
   updateROIWithPublicity
 );
 

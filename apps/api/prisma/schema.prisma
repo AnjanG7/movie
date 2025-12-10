@@ -111,6 +111,7 @@ model User {
   status    UserStatus    @default(ACTIVE)
   roleId    String?
   role      Role?         @relation(fields: [roleId], references: [id])
+  requestedBy String?
   auditLogs AuditLog[]
   projectsuser  ProjectUser[]
   createdAt DateTime      @default(now())

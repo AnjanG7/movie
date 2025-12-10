@@ -14,28 +14,28 @@ const router = express.Router({ mergeParams: true });
 router.post(
     '/',
     authMiddleware,
-    authorizeRoles('Producer'),
+    authorizeRoles("Admin",'Producer'),
     createFinancingSource
 );
 
 router.get(
     '/',
     authMiddleware,
-    authorizeRoles('Producer', 'Line Producer', 'Accountant', 'Investor'),
+    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant', 'Investor'),
     getFinancingSources
 );
 
 router.put(
     '/:id',
     authMiddleware,
-    authorizeRoles('Producer'),
+    authorizeRoles("Admin",'Producer'),
     updateFinancingSource
 );
 
 router.delete(
     '/:id',
     authMiddleware,
-    authorizeRoles('Producer'),
+    authorizeRoles("Admin",'Producer'),
     deleteFinancingSource
 );
 

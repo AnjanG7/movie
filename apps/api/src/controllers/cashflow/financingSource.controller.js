@@ -11,7 +11,8 @@ export const createFinancingSource = asyncHandler(async (req, res) => {
   try {
     const source = await financingSourceService.createFinancingSource(
       projectId,
-      req.body
+      req.body,
+      req.user
     );
     
     res

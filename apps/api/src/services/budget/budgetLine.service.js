@@ -6,6 +6,24 @@ export class BudgetLineService {
   // Get budget lines for a project's working budget
   async getBudgetLines(projectId,user) {
     // Get the working budget version for this project
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (!isAdmin && project.ownerId !== user?.id) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "You do not have permission to delete this project"
+      );
+    }
+
+    
     const workingBudget = await prisma.budgetVersion.findFirst({
       where: {
         projectId,
@@ -18,17 +36,7 @@ export class BudgetLineService {
         },
       },
     });
-     const isAdmin = user.roles?.includes("Admin");
-  if (
-    !isAdmin &&
-    workingBudget.project.ownerId !== user?.id &&
-    budgetVersion.createdBy !== user?.id
-  ) {
-    throw new ApiError(
-      StatusCodes.FORBIDDEN,
-      'You do not have permission to view this budget'
-    );
-  }
+
     if (!workingBudget) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'No working budget found for this project');
     }

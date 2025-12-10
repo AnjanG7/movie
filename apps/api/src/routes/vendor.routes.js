@@ -15,35 +15,35 @@ const router = express.Router();
 router.post(
     '/',
     authMiddleware,
-    authorizeRoles('Producer', 'Line Producer', 'Accountant'),
+    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
     createVendor
 );
 
 router.get(
     '/',
     authMiddleware,
-    authorizeRoles('Producer', 'Line Producer', 'Accountant', 'Dept Head'),
+    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant', 'Dept Head'),
     getVendors
 );
 
 router.get(
     '/:id',
     authMiddleware,
-    authorizeRoles('Producer', 'Line Producer', 'Accountant'),
+    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
     getVendor
 );
 
 router.put(
     '/:id',
     authMiddleware,
-    authorizeRoles('Producer', 'Line Producer', 'Accountant'),
+    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
     updateVendor
 );
 
 router.delete(
     '/:id',
     authMiddleware,
-    authorizeRoles('Producer'),
+    authorizeRoles("Admin",'Producer'),
     deleteVendor
 );
 

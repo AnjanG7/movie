@@ -22,23 +22,17 @@ export class CashflowService {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
-    const users = await prisma.user.findUnique({
-      where: { id: user?.id },
-      include: { role: true },
-    });
-
-    if (!project)
+    if (!project) {
       throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
-    const isAdmin = users.role?.name === "Admin";
-    // Only Admin or Project Owner
-    if (
-      !isAdmin &&
-      project.ownerId !== user?.id &&
-      !(await prisma.projectUser.findFirst({
-        where: { projectId, userId: user?.id },
-      }))
-    ) {
-      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (!isAdmin && project.ownerId !== user?.id) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "You do not have permission to delete this project"
+      );
     }
     await this.verifyProjectAccess(projectId);
 
@@ -192,7 +186,6 @@ export class CashflowService {
     }
   }
 
-  // Auto-compute cashflow from financing and scheduled payments
 async autoComputeCashflow(projectId, user, weeks = 12) {
   const project = await prisma.project.findUnique({ where: { id: projectId } });
   if (!project) throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
@@ -211,22 +204,22 @@ async autoComputeCashflow(projectId, user, weeks = 12) {
   const startDate = new Date();
   startDate.setUTCHours(0, 0, 0, 0);
 
-  // Fetch existing forecasts once to avoid repeated DB queries
+  // Fetch existing forecasts once
   const existingForecasts = await prisma.cashflowForecast.findMany({
     where: { projectId },
-    orderBy: { weekStart: "asc" },
   });
 
-  // Preload cumulative from last existing forecast
   let lastCumulative = existingForecasts.length
     ? existingForecasts[existingForecasts.length - 1].cumulative
     : 0;
 
-  const operations = []; // For transaction batching
+  const operations = [];
+  const forecastsToKeep = [];
 
   for (let i = 0; i < weeks; i++) {
     const weekStart = new Date(startDate);
     weekStart.setUTCDate(weekStart.getUTCDate() + i * 7);
+    weekStart.setUTCHours(0, 0, 0, 0);
 
     const weekEnd = new Date(weekStart);
     weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
@@ -242,9 +235,7 @@ async autoComputeCashflow(projectId, user, weeks = 12) {
       where: {
         scheduledPayment: {
           payee: {
-            purchaseOrders: {
-              some: { projectId },
-            },
+            purchaseOrders: { some: { projectId } },
           },
         },
         dueDate: { gte: weekStart, lt: weekEnd },
@@ -254,12 +245,13 @@ async autoComputeCashflow(projectId, user, weeks = 12) {
     });
     const outflows = installments.reduce((sum, inst) => sum + (inst.amount || 0), 0);
 
-    // Calculate cumulative for this week
+    // Skip empty weeks (optional)
+    if (inflows === 0 && outflows === 0) continue;
+
     lastCumulative += inflows - outflows;
 
-    // Check if forecast already exists
-    const existing = existingForecasts.find(f =>
-      f.weekStart.getTime() === weekStart.getTime()
+    const existing = existingForecasts.find(
+      f => f.weekStart.getTime() === weekStart.getTime()
     );
 
     if (existing) {
@@ -269,24 +261,26 @@ async autoComputeCashflow(projectId, user, weeks = 12) {
           data: { inflows, outflows, cumulative: lastCumulative },
         })
       );
+      forecastsToKeep.push(existing.id);
     } else {
-      operations.push(
-        prisma.cashflowForecast.create({
-          data: {
-            projectId,
-            weekStart,
-            inflows,
-            outflows,
-            cumulative: lastCumulative,
-          },
-        })
-      );
+      const createOp = prisma.cashflowForecast.create({
+        data: { projectId, weekStart, inflows, outflows, cumulative: lastCumulative },
+      });
+      operations.push(createOp);
     }
   }
 
-  // Execute all updates/inserts in a single transaction
-  const forecasts = await prisma.$transaction(operations);
+  // Optional: delete forecasts outside computed range
+  operations.push(
+    prisma.cashflowForecast.deleteMany({
+      where: {
+        projectId,
+        id: { notIn: forecastsToKeep },
+      },
+    })
+  );
 
+  const forecasts = await prisma.$transaction(operations);
   return forecasts;
 }
 
@@ -407,9 +401,13 @@ async autoComputeCashflow(projectId, user, weeks = 12) {
   }
 
   // Delete cashflow entry
-  async deleteCashflowEntry(id) {
+  async deleteCashflowEntry(id,user) {
     const forecast = await prisma.cashflowForecast.findUnique({
       where: { id },
+    });
+  const users = await prisma.user.findUnique({
+      where: { id: user?.id },
+      include: { role: true },
     });
 
     if (!forecast) {
@@ -419,7 +417,7 @@ async autoComputeCashflow(projectId, user, weeks = 12) {
     const projectId = forecast.projectId;
 
     await prisma.cashflowForecast.delete({ where: { id } });
-    await this.recalculateCumulatives(projectId);
+    await this.recalculateCumulatives(projectId,users);
 
     return { message: "Cashflow entry deleted successfully" };
   }

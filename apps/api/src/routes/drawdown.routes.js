@@ -13,21 +13,21 @@ const router = express.Router({ mergeParams: true });
 router.post(
     '/',
     authMiddleware,
-    authorizeRoles('Producer', 'Accountant'),
+    authorizeRoles("Admin",'Producer', 'Accountant'),
     createDrawdown
 );
 
 router.get(
     '/',
     authMiddleware,
-    authorizeRoles('Producer', 'Line Producer', 'Accountant'),
+    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
     getDrawdowns
 );
 
 router.delete(
     '/:id',
     authMiddleware,
-    authorizeRoles('Producer'),
+    authorizeRoles("Admin",'Producer'),
     deleteDrawdown
 );
 

@@ -65,8 +65,13 @@ export const logout = asyncHandler(async (req, res) => {
 });
 
 export const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await authService.getAllUsers();
-
+const requesterId = req.user?.id;
+  const roles = req.user?.roles || [];
+    const isAdmin = roles.includes("ADMIN");
+  const users = await authService.getAllUsers({
+    requesterId,
+    isAdmin
+  });
   res
     .status(StatusCodes.OK)
     .json(new ApiResponse(StatusCodes.OK, { users }, "Users fetched successfully"));

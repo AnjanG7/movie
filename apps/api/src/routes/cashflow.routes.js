@@ -16,42 +16,42 @@ const router = express.Router({ mergeParams: true });
 router.get(
     '/',
     authMiddleware,
-    authorizeRoles('Producer', 'Line Producer', 'Accountant'),
+    authorizeRoles('Admin','Producer', 'Line Producer', 'Accountant'),
     getCashflowForecast
 );
 
 router.post(
     '/',
     authMiddleware,
-    authorizeRoles('Producer', 'Line Producer', 'Accountant'),
+    authorizeRoles('Admin','Producer', 'Line Producer', 'Accountant'),
     upsertCashflowEntry
 );
 
 router.post(
     '/auto-compute',
     authMiddleware,
-    authorizeRoles('Producer', 'Line Producer', 'Accountant'),
+    authorizeRoles('Admin','Producer', 'Line Producer', 'Accountant'),
     autoComputeCashflow
 );
 
 router.get(
     '/summary',
     authMiddleware,
-    authorizeRoles('Producer', 'Line Producer', 'Accountant'),
+    authorizeRoles('Admin','Producer', 'Line Producer', 'Accountant'),
     getCashflowSummary
 );
 
 router.post(
     '/recalculate',
     authMiddleware,
-    authorizeRoles('Producer', 'Accountant'),
+    authorizeRoles('Admin','Producer', 'Accountant'),
     recalculateCumulatives
 );
 
 router.delete(
     '/:id',
     authMiddleware,
-    authorizeRoles('Producer'),
+    authorizeRoles('Admin','Producer'),
     deleteCashflowEntry
 );
 
