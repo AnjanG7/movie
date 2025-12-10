@@ -65,6 +65,7 @@ export class AuthService {
         name,
         email,
         password: hashedPassword,
+        requestedBy,
         role: { connect: { id: roleRecord.id } },
       },
       include: { role: true },
@@ -129,6 +130,8 @@ export class AuthService {
 }
 
 async getAllUsers({ requesterId, isAdmin }) {
+  // If Admin → fetch all
+  // If Producer → fetch only their created users
   const whereClause = isAdmin ? {} : { requestedBy: requesterId };
 
   const users = await prisma.user.findMany({
@@ -145,6 +148,7 @@ async getAllUsers({ requesterId, isAdmin }) {
     createdAt: user.createdAt,
   }));
 }
+
 
 
 }
