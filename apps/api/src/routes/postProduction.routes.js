@@ -21,35 +21,35 @@ const router = express.Router({ mergeParams: true });
 router.post(
   '/tasks',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer'),
+  authorizeRoles("Admin",'Producer', 'Line Producer'),
   createPostTask
 );
 
 router.get(
   '/tasks',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer', 'Accountant'),
+  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
   getPostTasks
 );
 
 router.get(
   '/tasks/:id',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer', 'Accountant'),
+  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
   getPostTask
 );
 
 router.put(
   '/tasks/:id',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer'),
+  authorizeRoles("Admin",'Producer', 'Line Producer'),
   updatePostTask
 );
 
 router.delete(
   '/tasks/:id',
   authMiddleware,
-  authorizeRoles('Producer'),
+  authorizeRoles("Admin",'Producer'),
   deletePostTask
 );
 
@@ -57,14 +57,14 @@ router.delete(
 router.get(
   '/budget-lines',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer', 'Accountant'),
+  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
   getPostBudgetLines
 );
 
 router.post(
   '/budget-lines',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer'),
+  authorizeRoles("Admin",'Producer', 'Line Producer'),
   addPostBudgetLine
 );
 
@@ -72,14 +72,14 @@ router.post(
 router.get(
   '/forecast',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer', 'Accountant', 'Investor'),
+  authorizeRoles('"Admin",Producer', 'Line Producer', 'Accountant', 'Investor'),
   getPostProductionForecast
 );
 
 router.post(
   '/update-roi',
   authMiddleware,
-  authorizeRoles('Producer'),
+  authorizeRoles("Admin",'Producer'),
   updateROIWithPostProduction
 );
 

@@ -12,14 +12,14 @@ const router = express.Router({ mergeParams: true });
 router.get(
   '/',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer','Admin'),
+  authorizeRoles("Admin",'Producer', 'Line Producer','Admin'),
   getBudgetLines
 );
 
 router.get(
   '/variance-report',
   authMiddleware,
-  authorizeRoles('Producer', 'Line Producer', 'Admin'),
+  authorizeRoles("Admin",'Producer', 'Line Producer', 'Admin'),
   getVarianceReport
 );
 

@@ -128,13 +128,16 @@ export class AuthService {
   return true;
 }
 
-async getAllUsers() {
+async getAllUsers({ requesterId, isAdmin }) {
+  const whereClause = isAdmin ? {} : { requestedBy: requesterId };
+
   const users = await prisma.user.findMany({
+    where: whereClause,
     include: { role: true },
-    orderBy: { createdAt: 'desc' }, // optional: newest first
+    orderBy: { createdAt: "desc" },
   });
 
-  return users.map((user) => ({
+  return users.map(user => ({
     id: user.id,
     name: user.name,
     email: user.email,

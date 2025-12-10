@@ -14,7 +14,7 @@ export const createQuotation = asyncHandler(async (req, res) => {
   const quotation = await quotationService.createQuotation(
     projectId,
     req.body,
-    req.user?.id // your authMiddleware sets req.user.id
+    req.user // your authMiddleware sets req.user.id
   );
 
   res
@@ -30,7 +30,7 @@ export const createQuotation = asyncHandler(async (req, res) => {
 
 export const getQuotations = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const quotations = await quotationService.getQuotations(projectId);
+  const quotations = await quotationService.getQuotations(projectId,req.user);
   res
     .status(StatusCodes.OK)
     .json(
@@ -44,7 +44,7 @@ export const getQuotations = asyncHandler(async (req, res) => {
 
 export const getQuotation = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const quotation = await quotationService.getQuotation(id);
+  const quotation = await quotationService.getQuotation(id,req.user);
   res
     .status(StatusCodes.OK)
     .json(

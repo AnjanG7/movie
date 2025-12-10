@@ -9,20 +9,23 @@ export class BudgetVersionService {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
-    if (!project)
+    if (!project) {
       throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
     const isAdmin = user.roles?.includes("Admin");
+
     if (!isAdmin && project.ownerId !== user?.id) {
       throw new ApiError(
         StatusCodes.FORBIDDEN,
-        "You do not have permission to create a budget version for this project"
+        "You do not have permission to delete this project"
       );
     }
     const versionData = {
       projectId,
       version: data.version,
       type: data.type, // WORKING | QUOTE
-      createdBy: userId,
+      createdBy: user?.id,
     };
 
     const budgetVersion = await prisma.budgetVersion.create({

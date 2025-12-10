@@ -5,7 +5,23 @@ import { ApiError } from '../../utils/ApiError.js';
 
 export class FinancingSourceService {
   // Create financing source
-  async createFinancingSource(projectId, data) {
+  async createFinancingSource(projectId, data,user) {
+
+        const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (!isAdmin && project.ownerId !== user?.id) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "You do not have permission to delete this project"
+      );
+    }
     const { type, amount, rate, fees, schedule } = data;
 
  const validTypes = ['EQUITY', 'LOAN', 'GRANT', 'INCENTIVE', 'MG'];
@@ -35,7 +51,22 @@ export class FinancingSourceService {
   }
 
   // Get financing sources for project (with quotation info)
-  async getFinancingSources(projectId) {
+  async getFinancingSources(projectId,user) {
+        const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (!isAdmin && project.ownerId !== user?.id) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "You do not have permission to delete this project"
+      );
+    }
     const sources = await prisma.financingSource.findMany({
       where: { projectId },
       include: {
@@ -72,6 +103,8 @@ export class FinancingSourceService {
 
   // Update financing source
   async updateFinancingSource(id, data) {
+
+    
     const source = await prisma.financingSource.findUnique({
       where: { id },
     });

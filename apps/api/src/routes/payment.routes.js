@@ -17,49 +17,49 @@ const router = express.Router();
 router.post(
     '/',
     authMiddleware,
-    authorizeRoles('Producer', 'Accountant'),
+    authorizeRoles("Admin",'Producer', 'Accountant'),
     createPayment
 );
 
 router.post(
     '/scheduled',
     authMiddleware,
-    authorizeRoles('Producer', 'Accountant'),
+    authorizeRoles("Admin",'Producer', 'Accountant'),
     createScheduledPayment
 );
 
 router.get(
     '/',
     authMiddleware,
-    authorizeRoles('Producer', 'Line Producer', 'Accountant'),
+    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
     getPayments
 );
 
 router.get(
     '/scheduled',
     authMiddleware,
-    authorizeRoles('Producer', 'Line Producer', 'Accountant'),
+    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
     getScheduledPayments
 );
 
 router.get(
     '/:id',
     authMiddleware,
-    authorizeRoles('Producer', 'Line Producer', 'Accountant'),
+    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
     getPayment
 );
 
 router.patch(
     '/scheduled/:scheduledPaymentId/installments/:installmentId/pay',
     authMiddleware,
-    authorizeRoles('Producer', 'Accountant'),
+    authorizeRoles("Admin",'Producer', 'Accountant'),
     markInstallmentPaid
 );
 
 router.get(
     '/projects/:projectId/upcoming',
     authMiddleware,
-    authorizeRoles('Producer', 'Line Producer', 'Accountant'),
+    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
     getUpcomingPayments
 );
 

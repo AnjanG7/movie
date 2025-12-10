@@ -16,35 +16,35 @@ const router = express.Router();
 router.post(
   "/",
   authMiddleware,
-  authorizeRoles("Producer", "Line Producer", "Accountant"),
+  authorizeRoles("Admin","Producer", "Line Producer", "Accountant"),
   createInvoice
 );
 
 router.get(
   "/",
   authMiddleware,
-  authorizeRoles("Producer", "Line Producer", "Accountant"),
+  authorizeRoles("Admin","Producer", "Line Producer", "Accountant"),
   getInvoices
 );
 
 router.get(
   "/:id",
   authMiddleware,
-  authorizeRoles("Producer", "Line Producer", "Accountant"),
+  authorizeRoles("Admin","Producer", "Line Producer", "Accountant"),
   getInvoice
 );
 
 router.patch(
   "/:id/status",
   authMiddleware,
-  authorizeRoles("Producer", "Accountant"),
+  authorizeRoles("Admin","Producer", "Accountant"),
   updateInvoiceStatus
 );
 
 router.delete(
   "/:id",
   authMiddleware,
-  authorizeRoles("Producer"),
+  authorizeRoles("Admin","Producer"),
   deleteInvoice
 );
 
@@ -52,7 +52,7 @@ router.delete(
 router.get(
   "/po/:poId/balance",
   authMiddleware,
-  authorizeRoles("Producer", "Line Producer", "Accountant"),
+  authorizeRoles("Admin","Producer", "Line Producer", "Accountant"),
   getPOBalance
 );
 

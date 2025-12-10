@@ -4,7 +4,7 @@ import { StatusCodes } from 'http-status-codes';
 
 export class QuotationService {
   // Create new quotation
-async createQuotation(projectId, data, userId) {
+async createQuotation(projectId, data, user) {
   const {
     version,
     type = 'QUOTE',
@@ -14,7 +14,21 @@ async createQuotation(projectId, data, userId) {
     revenueModel,
     lines,
   } = data;
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
 
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (!isAdmin && project.ownerId !== user?.id) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "You do not have permission to delete this project"
+      );
+    }
   if (!version) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
@@ -26,7 +40,7 @@ async createQuotation(projectId, data, userId) {
     projectId,
     version,
     type,
-    createdBy: userId || null,
+    createdBy: user?.id || null,
     template: template || null,
     grandTotal: 0,
   };
@@ -313,7 +327,7 @@ async deleteQuotation(quotationId) {
   }
 
   // Get quotation
-  async getQuotation(quotationId) {
+  async getQuotation(quotationId,user) {
     const quotation = await prisma.budgetVersion.findUnique({
       where: { id: quotationId },
       include: {
@@ -323,10 +337,26 @@ async deleteQuotation(quotationId) {
         },
       },
     });
-
-    if (!quotation) {
+     if (!quotation) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Quotation not found');
     }
+    const project = await prisma.project.findUnique({
+      where: { id: quotation.projectId},
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (!isAdmin && project.ownerId !== user?.id) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "You do not have permission to delete this project"
+      );
+    }
+
+   
 
     // Calculate totals
     const totalsByPhase = {};
@@ -364,7 +394,22 @@ async deleteQuotation(quotationId) {
   }
 
   // Get all quotations for a project
-  async getQuotations(projectId) {
+  async getQuotations(projectId,user) {
+        const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (!isAdmin && project.ownerId !== user?.id) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "You do not have permission to delete this project"
+      );
+    }
     const quotations = await prisma.budgetVersion.findMany({
       where: {
         projectId,
