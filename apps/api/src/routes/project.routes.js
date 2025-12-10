@@ -30,14 +30,14 @@ router.put(
 router.get(
   "/",
   authMiddleware,
-  authorizeRoles("Admin", "Producer"),
+  authorizeRoles("Admin", "Producer","Line Producer"),
   getAllProjects
 );
 
 router.get(
   "/:projectId",
   authMiddleware,
-  authorizeRoles("Admin", "Producer"),
+  authorizeRoles("Admin", "Producer","Line Producer"),
   fetchProject  
 );
 router.put(

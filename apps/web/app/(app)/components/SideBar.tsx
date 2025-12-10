@@ -24,8 +24,12 @@ import {
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Film, label: "Projects", href: "/projects" },
-  { icon: Users, label: "Investors", href: "/investors" },
   { icon: Layers, label: "Phases", href: "/phases" },
+  {
+    icon: UserCog,
+    label: "Team Management",
+    href: "/team",
+  },
   { section: "Finance" },
   { icon: FileText, label: "Quotations", href: "/quotations" },
   { icon: DollarSign, label: "Budget", href: "/budget" },
@@ -41,11 +45,6 @@ const menuItems = [
   { section: "Production" },
   { icon: Video, label: "Post Production", href: "/post-production" }, // ✅ Added
   { icon: Megaphone, label: "Publicity & P&A", href: "/publicity" }, 
-  {
-    icon: UserCog,
-    label: "Team Management",
-    href: "/team",
-  }
 ];
 
 export default function Sidebar() {

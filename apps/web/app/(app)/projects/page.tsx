@@ -22,7 +22,7 @@ export default function ProjectsPage() {
   // Form state for new project
   const [formData, setFormData] = useState({
     title: '',
-    baseCurrency: 'USD',
+    baseCurrency: 'NPR',
     timezone: 'Asia/Kathmandu',
     status: 'planning'
   });
@@ -104,7 +104,7 @@ export default function ProjectsPage() {
         // Reset form and close modal
         setFormData({
           title: '',
-          baseCurrency: 'USD',
+          baseCurrency: 'NPE',
           timezone: 'Asia/Kathmandu',
           status: 'planning'
         });
@@ -157,7 +157,7 @@ export default function ProjectsPage() {
     setCreateError('');
     setFormData({
       title: '',
-      baseCurrency: 'USD',
+      baseCurrency: 'NPR',
       timezone: 'Asia/Kathmandu',
       status: 'planning'
     });

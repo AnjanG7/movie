@@ -144,40 +144,6 @@ export default function CashflowPage() {
     }
   };
 
-  const handleAutoCompute = async () => {
-    if (!selectedProjectId) return;
-    if (
-      !confirm(
-        'This will auto-compute cashflow from financing and scheduled payments. Continue?'
-      )
-    )
-      return;
-
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/projects/${selectedProjectId}/cashflow/auto-compute?weeks=${weeks}`,
-        {
-          method: 'POST',
-          credentials: 'include',
-        }
-      );
-
-      const result = await response.json();
-      if (result.success) {
-        alert('Cashflow auto-computed successfully');
-        fetchCashflow();
-        fetchSummary();
-      } else {
-        alert(result.message || 'Failed to auto-compute');
-      }
-    } catch (error) {
-      console.error('Error auto-computing:', error);
-      alert('Failed to auto-compute cashflow');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleAddEntry = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -564,18 +530,7 @@ export default function CashflowPage() {
 
           {selectedProjectId && (
             <>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="px-3 h-10 rounded-lg bg-slate-800 text-white text-sm font-semibold"
-              >
-                Add Manual Entry
-              </button>
-              <button
-                onClick={handleAutoCompute}
-                className="px-3 h-10 rounded-lg bg-blue-600 text-white text-sm font-semibold"
-              >
-                Auto-Compute
-              </button>
+             
               <a
                 href={`/financing-sources?projectId=${selectedProjectId}`}
                 className="px-3 h-10 rounded-lg border border-slate-300 text-sm flex items-center"
