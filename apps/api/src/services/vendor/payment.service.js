@@ -4,7 +4,7 @@ import { StatusCodes } from 'http-status-codes';
 
 export class PaymentService {
     // Create Payment (single or installment schedule)
-    async createPayment(data, userId) {
+    async createPayment(data) {
         const { invoiceId, amount, paidOn, method, status } = data;
 
         // Verify invoice exists
@@ -59,7 +59,7 @@ export class PaymentService {
     }
 
     // Create Scheduled Payment (with installments)
-    async createScheduledPayment(data, userId) {
+    async createScheduledPayment(data) {
         const { payeeId, total, installments, allocations } = data;
 
         // Verify vendor exists
@@ -250,7 +250,7 @@ export class PaymentService {
     }
 
     // Get upcoming payments (next 30 days)
-    async getUpcomingPayments(projectId) {
+    async getUpcomingPayments() {
         const thirtyDaysFromNow = new Date();
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 

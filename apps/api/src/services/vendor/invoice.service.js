@@ -4,7 +4,7 @@ import StatusCodes from "http-status-codes";
 
 export class InvoiceService {
   // Create Invoice with PO balance validation
-  async createInvoice(data, userId) {
+  async createInvoice(data,user) {
     const { vendorId, poId, date, amount, attachments } = data;
 
     // Verify vendor exists
@@ -43,6 +43,24 @@ export class InvoiceService {
         },
       },
     });
+          const project = await prisma.project.findUnique({
+      where: { id:po.projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+const projectId= po.projectId
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
 
     if (!po) {
       throw new ApiError(StatusCodes.NOT_FOUND, "Purchase Order not found");
@@ -177,7 +195,7 @@ export class InvoiceService {
   }
 
   // Update Invoice Status
-  async updateInvoiceStatus(id, status, userId) {
+  async updateInvoiceStatus(id, status) {
     if (!["Approved", "Rejected", "Pending", "Paid"].includes(status)) {
       throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid status");
     }

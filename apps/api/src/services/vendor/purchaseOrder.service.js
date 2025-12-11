@@ -5,7 +5,7 @@ import { StatusCodes } from 'http-status-codes';
 export class PurchaseOrderService {
     // Create Purchase Order
 // Update the createPurchaseOrder method to include budgetLineId
-async createPurchaseOrder(projectId, data, userId) {
+async createPurchaseOrder(projectId, data) {
   const { vendorId, amount, approvedBy, notes, budgetLineId } = data;
 
   // Verify project exists

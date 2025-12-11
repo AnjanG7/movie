@@ -14,7 +14,7 @@ async createQuotation(projectId, data, user) {
     revenueModel,
     lines,
   } = data;
-    const project = await prisma.project.findUnique({
+      const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project) {
@@ -23,11 +23,14 @@ async createQuotation(projectId, data, user) {
 
     const isAdmin = user.roles?.includes("Admin");
 
-    if (!isAdmin && project.ownerId !== user?.id) {
-      throw new ApiError(
-        StatusCodes.FORBIDDEN,
-        "You do not have permission to delete this project"
-      );
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
   if (!version) {
     throw new ApiError(

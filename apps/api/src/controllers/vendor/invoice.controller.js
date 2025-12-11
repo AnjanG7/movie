@@ -7,7 +7,7 @@ const invoiceService = new InvoiceService();
 
 // Create Invoice
 export const createInvoice = asyncHandler(async (req, res) => {
-  const invoice = await invoiceService.createInvoice(req.body, req.user.id);
+  const invoice = await invoiceService.createInvoice(req.body, req.user);
   res
     .status(StatusCodes.CREATED)
     .json(
