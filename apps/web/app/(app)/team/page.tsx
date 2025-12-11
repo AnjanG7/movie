@@ -49,9 +49,8 @@ interface ProjectUserAssignment {
   };
 }
 
-const AVAILABLE_ROLES = [
-"User"
-] as const;
+const AVAILABLE_ROLES = ["Accountant", "LineProducer", "Investor" ] as const;
+
 
 const API_BASE_URL = "http://localhost:4000/api";
 
@@ -643,98 +642,109 @@ const handleAssignToProject = async (projectId: string) => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        {userProjects.length > 0 ? (
-                          <div className="flex flex-col gap-2">
-                            {userProjects.map((project) => {
-                              const projectRole = getUserProjectRole(user.id, project.id);
-                              const isEditing = 
-                                editingUserProject?.userId === user.id && 
-                                editingUserProject?.projectId === project.id;
+  {userProjects.length > 0 ? (
+    <div className="flex flex-col gap-2">
+      {userProjects.map((project) => {
+        const projectRole = getUserProjectRole(user.id, project.id);
+        const isEditing = 
+          editingUserProject?.userId === user.id && 
+          editingUserProject?.projectId === project.id;
 
-                              return (
-                                <div
-                                  key={project.id}
-                                  className="flex items-center justify-between gap-2 bg-gray-50 p-3 rounded border border-gray-200"
-                                >
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <Briefcase className="w-4 h-4 text-green-500 flex-shrink-0" />
-                                    <div>
-                                      <span className="text-sm font-medium text-gray-900 block">
-                                        {project.title}
-                                      </span>
-                                      {isEditing ? (
-                                        <div className="flex items-center gap-2 mt-2">
-                                          <select
-                                            value={editingRole}
-                                            onChange={(e) => setEditingRole(e.target.value)}
-                                            className="px-2 py-1 border border-blue-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            {AVAILABLE_ROLES.map((role) => (
-                                              <option key={role} value={role}>
-                                                {role}
-                                              </option>
-                                            ))}
-                                          </select>
-                                          <button
-                                            onClick={() => handleUpdateProjectRole(user.id, project.id)}
-                                            className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 flex items-center gap-1"
-                                          >
-                                            <Save className="w-3 h-3" />
-                                            Save
-                                          </button>
-                                          <button
-                                            onClick={() => {
-                                              setEditingUserProject(null);
-                                              setEditingRole("");
-                                            }}
-                                            className="px-2 py-1 bg-gray-300 text-gray-700 rounded text-xs hover:bg-gray-400"
-                                          >
-                                            Cancel
-                                          </button>
-                                        </div>
-                                      ) : (
-                                        <div className="flex items-center gap-2 mt-1">
-                                          <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-1 rounded">
-                                            {projectRole || "No Role"}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Action Buttons - Always visible */}
-                                  {!isEditing && projectRole && (
-                                    <div className="flex items-center gap-1">
-                                      <button
-                                        onClick={() => {
-                                          setEditingUserProject({ userId: user.id, projectId: project.id });
-                                          setEditingRole(projectRole);
-                                        }}
-                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                        title="Edit role"
-                                      >
-                                        <Edit2 className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleRemoveFromProject(user.id, project.id)}
-                                        className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
-                                        title="Remove from project"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-400 italic">
-                            Not assigned
-                          </span>
-                        )}
-                      </td>
+        return (
+          <div
+            key={project.id}
+            className="flex items-center justify-between gap-2 bg-gray-50 p-3 rounded border border-gray-200"
+          >
+            <div className="flex items-center gap-2 flex-1">
+              <Briefcase className="w-4 h-4 text-green-500 flex-shrink-0" />
+              <div className="flex-1">
+                <span className="text-sm font-medium text-gray-900 block">
+                  {project.title}
+                </span>
+                
+                {isEditing ? (
+                  <div className="flex items-center gap-2 mt-2">
+                    {/* Show dropdown with all project roles */}
+                    <select
+                      value={editingRole}
+                      onChange={(e) => setEditingRole(e.target.value)}
+                      className="px-2 py-1 border border-blue-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {AVAILABLE_ROLES.map((role) => (
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => handleUpdateProjectRole(user.id, project.id)}
+                      className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 flex items-center gap-1"
+                    >
+                      <Save className="w-3 h-3" />
+                      Save
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingUserProject(null);
+                        setEditingRole("");
+                      }}
+                      className="px-2 py-1 bg-gray-300 text-gray-700 rounded text-xs hover:bg-gray-400"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 mt-1">
+                    {/* Clickable Role Badge */}
+                    <button
+                      onClick={() => {
+                        setEditingUserProject({ userId: user.id, projectId: project.id });
+                        setEditingRole(projectRole || 'Admin');
+                      }}
+                      className="text-xs font-medium text-green-700 bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200 transition-colors"
+                      title="Click to change role"
+                    >
+                      {projectRole || "No Role"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            {!isEditing && projectRole && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => {
+                    setEditingUserProject({ userId: user.id, projectId: project.id });
+                    setEditingRole(projectRole);
+                  }}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                  title="Edit role"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleRemoveFromProject(user.id, project.id)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                  title="Remove from project"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  ) : (
+    <span className="text-sm text-gray-400 italic">
+      Not assigned
+    </span>
+  )}
+</td>
+
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           onClick={() => {

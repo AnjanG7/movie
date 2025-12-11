@@ -22,7 +22,7 @@ router.post(
 router.get(
     '/',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant', 'Dept Head'),
+    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
     getVendors
 );
 
