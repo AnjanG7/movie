@@ -832,7 +832,7 @@ export default function ProjectProfilePage() {
       <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Link href={`/quotation?projectId=${projectId}`} className="group p-6 bg-white border border-gray-200 rounded-xl hover:shadow-lg hover:border-blue-400 transition-all">
+<Link href={`/quotations?projectId=${projectId}`} className="group p-6 bg-white border border-gray-200 rounded-xl hover:shadow-lg hover:border-blue-400 transition-all">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
                 <FileText className="w-6 h-6 text-blue-600" />

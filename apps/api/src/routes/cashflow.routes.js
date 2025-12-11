@@ -38,7 +38,7 @@ router.post(
 router.get(
     '/summary',
     authMiddleware,
-authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant","Investor"),
     getCashflowSummary
 );
 

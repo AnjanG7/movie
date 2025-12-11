@@ -36,8 +36,6 @@ enum QuoteStatus {
   REJECTED
 }
 
-
-
 enum PostTaskType {
   EDITING
   COLOR
@@ -104,18 +102,18 @@ enum CampaignStatus {
 // ---------------------- Core Models ---------------------
 
 model User {
-  id        String        @id @default(uuid())
-  name      String
-  email     String        @unique
-  password  String
-  status    UserStatus    @default(ACTIVE)
-  roleId    String?
-  role      Role?         @relation(fields: [roleId], references: [id])
-  requestedBy String?
-  auditLogs AuditLog[]
-  projectsuser  ProjectUser[]
-  createdAt DateTime      @default(now())
-  updatedAt DateTime?     @updatedAt
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  password     String
+  status       UserStatus    @default(ACTIVE)
+  roleId       String?
+  role         Role?         @relation(fields: [roleId], references: [id])
+  requestedBy  String?
+  auditLogs    AuditLog[]
+  projectsuser ProjectUser[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime?     @updatedAt
 }
 
 model Role {
@@ -165,8 +163,9 @@ model Project {
   users                ProjectUser[]
   publicityBudgets     PublicityBudget[]
   campaignEvents       CampaignEvent[]
+  vendors              Vendor[]
+  invoices             Invoice[]
 }
-
 
 model ProjectUser {
   id        String  @id @default(uuid())
@@ -174,7 +173,7 @@ model ProjectUser {
   userId    String
   role      String // "LineProducer", "Accountant", etc.
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user      User    @relation(fields: [userId], references: [id],onDelete: Restrict)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@unique([projectId, userId])
 }
@@ -213,13 +212,12 @@ model BudgetVersion {
 
   // Relations
   lines            BudgetLineItem[]
-  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   changeOrders     ChangeOrder[]
   financingSources FinancingSource[] // ← ADD THIS LINE (reverse relation)
 
   @@unique([projectId, version]) // Ensure unique version numbers per project
 }
-
 
 model BudgetLineItem {
   id              String    @id @default(uuid())
@@ -253,11 +251,14 @@ model ChangeOrder {
 // ---------------------- Vendors & Costs -----------------
 
 model Vendor {
-  id                String             @id @default(uuid())
-  name              String
-  currency          String
-  bankInfo          Json?
-  contactInfo       Json? // optional phone/email/address
+  id          String  @id @default(uuid())
+  name        String
+  currency    String
+  bankInfo    Json?
+  contactInfo Json? // optional phone/email/address
+  projectId   String
+  project     Project @relation(fields: [projectId], references: [id])
+
   purchaseOrders    PurchaseOrder[]
   invoices          Invoice[]
   scheduledPayments ScheduledPayment[] // opposite relation
@@ -290,14 +291,17 @@ model Invoice {
   poId        String?
   docNo       String
   date        DateTime
+  projectId   String
   amount      Float
   status      String    @default("Pending")
   attachments Json?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime? @updatedAt
 
-  vendor   Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  po       PurchaseOrder? @relation(fields: [poId], references: [id], onDelete: Cascade)
+  vendor  Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  po      PurchaseOrder? @relation(fields: [poId], references: [id], onDelete: Cascade)
+  project Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
   payments Payment[]
 }
 
@@ -354,15 +358,15 @@ enum FinancingType {
 }
 
 model FinancingSource {
-  id        String         @id @default(uuid())
+  id        String  @id @default(uuid())
   projectId String
-  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  type      FinancingType  // ← enum, matches DB
-  amount    Float
-  rate      Float?
-  fees      Float?   @default(0)
-  schedule  Json?
+  type     FinancingType // ← enum, matches DB
+  amount   Float
+  rate     Float?
+  fees     Float?        @default(0)
+  schedule Json?
 
   sourceQuotationId String?
   sourceQuotation   BudgetVersion? @relation(fields: [sourceQuotationId], references: [id], onDelete: SetNull)
@@ -373,9 +377,6 @@ model FinancingSource {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-
-
-
 
 model Drawdown {
   id       String          @id @default(uuid())

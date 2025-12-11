@@ -122,20 +122,7 @@ async function main() {
     });
     console.log(`   ✅ Budget version created: ${budgetVersion.version}`);
 
-    // ================== 6. CREATE VENDORS ==================
-    console.log('\n🏢 Creating sample vendors...');
-    const vendors = [
-      { name: 'Camera House Ltd', currency: 'USD', contactInfo: { phone: '555-0001', email: 'contact@camerahouse.com' } },
-      { name: 'Sound Studios Inc', currency: 'USD', contactInfo: { phone: '555-0002', email: 'info@soundstudios.com' } },
-      { name: 'Marketing Pro', currency: 'USD', contactInfo: { phone: '555-0003', email: 'hello@marketingpro.com' } },
-    ];
 
-    for (const vendor of vendors) {
-      await prisma.vendor.create({
-        data: vendor,
-      });
-      console.log(`   ✅ ${vendor.name}`);
-    }
 
     // ================== 7. CREATE FINANCING SOURCES ==================
     console.log('\n💵 Creating financing sources...');
