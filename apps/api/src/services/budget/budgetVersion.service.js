@@ -100,51 +100,60 @@ export class BudgetVersionService {
   }
 
   // Get all Budget Versions for a Project
-  async getBudgetVersions(projectId, user, query) {
-    const {
-      page = 1,
-      limit = 10,
-      type, // optional filter: "BASELINE", "WORKING", "QUOTE"
-      locked, // optional filter: true/false
-    } = query;
+async getBudgetVersions(projectId, user, query) {
+  const { page = 1, limit = 10, type, locked } = query;
 
-    const skip = (Number(page) - 1) * Number(limit);
-    const take = Number(limit);
+  // 1️⃣ Fetch project and assigned users
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: { users: true }, // assigned users
+  });
 
-    // Build dynamic where clause
-    const where = { projectId };
-    const allowedRoles = ["Admin", "Investor"];
-    const hasAccess = user.roles?.some((role) => allowedRoles.includes(role));
-
-    if (!hasAccess) {
-      where.createdBy = user?.id;
-    }
-
-    if (type) where.type = type;
-    if (locked !== undefined) {
-      if (locked === "true" || locked === true) where.lockedAt = { not: null };
-      else if (locked === "false" || locked === false) where.lockedAt = null;
-    }
-
-    // Fetch data with pagination
-    const [versions, total] = await Promise.all([
-      prisma.budgetVersion.findMany({
-        where,
-        include: { lines: true },
-        skip,
-        take,
-        orderBy: { createdAt: "asc" },
-      }),
-      prisma.budgetVersion.count({ where }),
-    ]);
-
-    return {
-      total,
-      page: Number(page),
-      totalPages: Math.ceil(total / limit),
-      versions,
-    };
+  if (!project) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
   }
+
+  const isAdmin = user.roles?.includes("Admin");
+  const isOwner = project.ownerId === user.id;
+  const isAssigned = project.users.some((pu) => pu.userId === user.id);
+
+  if (!isAdmin && !isOwner && !isAssigned) {
+    throw new ApiError(StatusCodes.FORBIDDEN, "Forbidden: Access denied");
+  }
+
+  // 2️⃣ Build where clause for budget versions
+  const where = { projectId };
+
+  if (type) where.type = type;
+
+  if (locked !== undefined) {
+    if (locked === "true" || locked === true) where.lockedAt = { not: null };
+    else if (locked === "false" || locked === false) where.lockedAt = null;
+  }
+
+  const skip = (Number(page) - 1) * Number(limit);
+  const take = Number(limit);
+
+  // 3️⃣ Fetch budget versions
+  const [versions, total] = await Promise.all([
+    prisma.budgetVersion.findMany({
+      where,
+      include: { lines: true }, // include budget lines
+      skip,
+      take,
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.budgetVersion.count({ where }),
+  ]);
+
+  return {
+    total,
+    page: Number(page),
+    totalPages: Math.ceil(total / limit),
+    versions,
+  };
+}
+
 
   // Add Line Item
   async addLineItem(versionId, lineData, user) {
@@ -241,7 +250,7 @@ export class BudgetVersionService {
         reason: "Deleted Line Item",
         oldValue: line,
         newValue: null,
-        createdBy: userId,
+        createdBy: user?.id,
       },
     });
 

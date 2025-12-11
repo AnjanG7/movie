@@ -3,14 +3,12 @@ import { ApiError } from "../../utils/ApiError.js";
 import { StatusCodes } from "http-status-codes";
 
 export class ProjectUserService {
-  async assignUser(projectId, userId, role) {
 
+  async assignUser(projectId, userId, projectRole) {
+    
     const exists = await prisma.projectUser.findUnique({
       where: {
-        projectId_userId: {
-          projectId,
-          userId,
-        },
+        projectId_userId: { projectId, userId },
       },
     });
 
@@ -21,12 +19,12 @@ export class ProjectUserService {
       );
     }
 
-    // Create assignment
+    // Create the project assignment
     const assignment = await prisma.projectUser.create({
       data: {
         projectId,
         userId,
-      role
+        role: projectRole, // project-specific role
       },
       include: {
         user: true,
@@ -37,27 +35,23 @@ export class ProjectUserService {
     return assignment;
   }
 
-  // Get all users in a project with pagination
+  // Optional: Get all users in a project
   async getAll(projectId, page = 1, limit = 10, filters = {}) {
     const skip = (page - 1) * limit;
+
+    const where= { projectId };
+
     if (filters.email) {
-      // Filter by user's email (case-insensitive)
-      where.user = {
-        email: { contains: filters.email, mode: "insensitive" },
-      };
+      where.user = { email: { contains: filters.email, mode: "insensitive" } };
     }
+
     const [total, users] = await prisma.$transaction([
-      prisma.projectUser.count({ where: { projectId } }),
+      prisma.projectUser.count({ where }),
       prisma.projectUser.findMany({
-        where: { projectId },
+        where,
         include: {
           user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true, 
-            },
+            select: { id: true, name: true, email: true, role: true },
           },
         },
         skip,
@@ -75,66 +69,52 @@ export class ProjectUserService {
     };
   }
 
-  // Update role of a user in a project using email
-  async updateRoleByEmail(projectId, email, role) {
-    // Find the user by email
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-    if (!user) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
-    }
+  // Update user's project role
+  async updateRoleByEmail(projectId, email, projectRole) {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
 
-    // Find the assignment in the project
     const assignment = await prisma.projectUser.findUnique({
       where: { projectId_userId: { projectId, userId: user.id } },
     });
-    if (!assignment) {
+    if (!assignment)
       throw new ApiError(
         StatusCodes.NOT_FOUND,
         "User not assigned to this project"
       );
-    }
 
-    // Update the role
     const updated = await prisma.projectUser.update({
       where: { projectId_userId: { projectId, userId: user.id } },
-      data: { role },
+      data: { role: projectRole },
       include: { user: true },
     });
 
     return updated;
   }
 
+  // Remove user from a project
   async removeUser(projectId, userId) {
-    // 1. Check if the user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
 
-    if (!user) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
-    }
-
-    // 2. Check if user is assigned to the project
     const assignment = await prisma.projectUser.findUnique({
       where: { projectId_userId: { projectId, userId } },
     });
-
-    if (!assignment) {
+    if (!assignment)
       throw new ApiError(
         StatusCodes.NOT_FOUND,
         "User is not assigned to this project"
       );
-    }
 
-    // 3. Remove the assignment
     await prisma.projectUser.delete({
       where: { projectId_userId: { projectId, userId } },
     });
-      return {
-    success: true,
-    message: `User (${user.name}) has been removed from the project successfully`,
-  };
+
+    return {
+      success: true,
+      message: `User (${user.name}) has been removed from the project successfully`,
+    };
   }
 }
+
+

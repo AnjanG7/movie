@@ -26,7 +26,7 @@ interface UserType {
   createdAt: string;
 }
 
-const ROLES = ["Admin", "Producer", "Investor", "Line Producer", "Accountant"];
+const ROLES = ["Admin", "Producer", "User"];
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserType[]>([]);

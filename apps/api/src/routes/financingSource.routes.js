@@ -7,6 +7,7 @@ import {
 } from '../controllers/cashflow/financingSource.controller.js';
 import { authMiddleware } from '../middlewares/authmiddleware.js';
 import { authorizeRoles } from '../middlewares/rolemiddleware.js';
+import { authorizeProjectRoles } from '../middlewares/projectRoles.middlware.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -14,28 +15,28 @@ const router = express.Router({ mergeParams: true });
 router.post(
     '/',
     authMiddleware,
-    authorizeRoles("Admin",'Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     createFinancingSource
 );
 
 router.get(
     '/',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant', 'Investor'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     getFinancingSources
 );
 
 router.put(
     '/:id',
     authMiddleware,
-    authorizeRoles("Admin",'Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     updateFinancingSource
 );
 
 router.delete(
     '/:id',
     authMiddleware,
-    authorizeRoles("Admin",'Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     deleteFinancingSource
 );
 

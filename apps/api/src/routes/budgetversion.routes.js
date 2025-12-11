@@ -11,19 +11,20 @@ import {
 } from "../controllers/budget/budgetVersion.controller.js";
 import { authMiddleware } from "../middlewares/authmiddleware.js";
 import { authorizeRoles } from "../middlewares/rolemiddleware.js";
+import { authorizeProjectRoles } from "../middlewares/projectRoles.middlware.js";
 
 const router = express.Router({ mergeParams: true });
 
 // Base URL yo ho hai: /api/projects/:projectId/budget
-router.post("/", authMiddleware, authorizeRoles("Admin","Producer"), createBudgetVersion);
-router.get("/", authMiddleware, authorizeRoles("Admin","Producer","Investor"), getBudgetVersions);
-router.put("/:versionId", authMiddleware, authorizeRoles("Admin","Producer"), updateBudgetVersion);
-router.delete("/:versionId", authMiddleware, authorizeRoles("Admin","Producer"), deleteBudgetVersion);
+router.post("/", authMiddleware,   authorizeProjectRoles("Producer", "LineProducer", "Accountant"), createBudgetVersion);
+router.get("/", authMiddleware,  authorizeProjectRoles("Producer", "LineProducer", "Accountant"), getBudgetVersions);
+router.put("/:versionId", authMiddleware,   authorizeProjectRoles("Producer", "LineProducer", "Accountant"), updateBudgetVersion);
+router.delete("/:versionId", authMiddleware,   authorizeProjectRoles("Producer", "LineProducer", "Accountant"), deleteBudgetVersion);
 
-router.post("/:versionId/lines", authMiddleware, authorizeRoles("Admin","Producer","Line Producer"), addLineItem);
-router.put("/lines/:lineId", authMiddleware, authorizeRoles("Admin","Producer","Line Producer"), updateLineItem);
-router.delete("/lines/:lineId", authMiddleware, authorizeRoles("Admin","Producer","Line Producer"), deleteLineItem);
+router.post("/:versionId/lines", authMiddleware,  authorizeProjectRoles("Producer", "LineProducer", "Accountant"),addLineItem);
+router.put("/lines/:lineId", authMiddleware,   authorizeProjectRoles("Producer", "LineProducer", "Accountant"),updateLineItem);
+router.delete("/lines/:lineId", authMiddleware,  authorizeProjectRoles("Producer", "LineProducer", "Accountant"), deleteLineItem);
 
-router.post("/:versionId/lock", authMiddleware, authorizeRoles("Admin","Producer"), lockBaseline);
+router.post("/:versionId/lock", authMiddleware,   authorizeProjectRoles("Producer", "LineProducer", "Accountant"),lockBaseline);
 
 export default router;

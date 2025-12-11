@@ -141,10 +141,10 @@ export default function BudgetPage() {
 
     try {
       const endpoint = editingLine
-        ? `${API_BASE_URL}/projects/${selectedProjectId}/budget/${selectedVersion.id}/lines/${editingLine.id}`
+        ? `${API_BASE_URL}/projects/${selectedProjectId}/budget/lines/${editingLine.id}`
         : `${API_BASE_URL}/projects/${selectedProjectId}/budget/${selectedVersion.id}/lines`;
 
-      const method = editingLine ? 'PATCH' : 'POST';
+      const method = editingLine ? 'PUT' : 'POST';
 
       const response = await fetch(endpoint, {
         method,
@@ -190,7 +190,7 @@ export default function BudgetPage() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/projects/${selectedProjectId}/budget/${selectedVersion.id}/lines/${lineId}`,
+        `${API_BASE_URL}/projects/${selectedProjectId}/budget/lines/${lineId}`,
         {
           method: 'DELETE',
           credentials: 'include',

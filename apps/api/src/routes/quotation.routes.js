@@ -16,6 +16,7 @@ import {
 } from '../controllers/quotation/quotation.controller.js';
 import { authMiddleware } from '../middlewares/authmiddleware.js';
 import { authorizeRoles } from '../middlewares/rolemiddleware.js';
+import { authorizeProjectRoles } from '../middlewares/projectRoles.middlware.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -25,7 +26,7 @@ const router = express.Router({ mergeParams: true });
 router.post(
   '/',
   authMiddleware,
-  authorizeRoles("Admin",'Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   createQuotation
 );
 
@@ -33,7 +34,7 @@ router.post(
 router.get(
   '/',
   authMiddleware,
-  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant', 'Investor'),
+ authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   getQuotations
 );
 
@@ -41,7 +42,7 @@ router.get(
 router.get(
   '/:id',
   authMiddleware,
-  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant', 'Investor'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   getQuotation
 );
 
@@ -49,7 +50,7 @@ router.get(
 router.patch(
   '/:id/assumptions',
   authMiddleware,
-  authorizeRoles("Admin",'Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   updateAssumptions
 );
 
@@ -57,7 +58,7 @@ router.patch(
 router.post(
   '/:id/lines',
   authMiddleware,
-  authorizeRoles("Admin",'Producer', 'Line Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   addCostLine
 );
 
@@ -65,7 +66,7 @@ router.post(
 router.patch(
   '/:id/lines/:lineId',
   authMiddleware,
-  authorizeRoles("Admin",'Producer', 'Line Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   updateCostLine
 );
 
@@ -73,7 +74,7 @@ router.patch(
 router.delete(
   '/:id/lines/:lineId',
   authMiddleware,
-  authorizeRoles("Admin",'Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   deleteCostLine
 );
 
@@ -81,7 +82,7 @@ router.delete(
 router.patch(
   '/:id/financing',
   authMiddleware,
-  authorizeRoles("Admin",'Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   updateFinancingPlan
 );
 
@@ -89,7 +90,7 @@ router.patch(
 router.patch(
   '/:id/revenue',
   authMiddleware,
-  authorizeRoles("Admin",'Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   updateRevenueModel
 );
 
@@ -97,7 +98,7 @@ router.patch(
 router.post(
   '/:id/calculate',
   authMiddleware,
-  authorizeRoles("Admin",'Producer', 'Investor'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   calculateMetrics
 );
 
@@ -105,20 +106,20 @@ router.post(
 router.post(
   '/:id/convert-to-baseline',
   authMiddleware,
-  authorizeRoles("Admin",'Producer'),
+  authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   convertToBaseline
 );
 //update quotation
 router.put(
   '/:id',
   authMiddleware,
-  authorizeRoles("Admin",'Producer'),
+ authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   updateQuotation
 );
 router.delete(
   '/:id',
   authMiddleware,
-  authorizeRoles("Admin",'Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   deleteQuotation
 );
 

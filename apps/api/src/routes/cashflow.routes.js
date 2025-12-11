@@ -9,6 +9,7 @@ import {
 } from '../controllers/cashflow/cashflow.controller.js';
 import { authMiddleware } from '../middlewares/authmiddleware.js';
 import { authorizeRoles } from '../middlewares/rolemiddleware.js';
+import { authorizeProjectRoles } from '../middlewares/projectRoles.middlware.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -16,42 +17,42 @@ const router = express.Router({ mergeParams: true });
 router.get(
     '/',
     authMiddleware,
-    authorizeRoles('Admin','Producer', 'Line Producer', 'Accountant'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     getCashflowForecast
 );
 
 router.post(
     '/',
     authMiddleware,
-    authorizeRoles('Admin','Producer', 'Line Producer', 'Accountant'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     upsertCashflowEntry
 );
 
 router.post(
     '/auto-compute',
     authMiddleware,
-    authorizeRoles('Admin','Producer', 'Line Producer', 'Accountant'),
+ authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     autoComputeCashflow
 );
 
 router.get(
     '/summary',
     authMiddleware,
-    authorizeRoles('Admin','Producer', 'Line Producer', 'Accountant'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     getCashflowSummary
 );
 
 router.post(
     '/recalculate',
     authMiddleware,
-    authorizeRoles('Admin','Producer', 'Accountant'),
+   authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     recalculateCumulatives
 );
 
 router.delete(
     '/:id',
     authMiddleware,
-    authorizeRoles('Admin','Producer'),
+  authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     deleteCashflowEntry
 );
 

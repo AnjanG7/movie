@@ -48,7 +48,7 @@ export const deleteProject = asyncHandler(async (req, res) => {
 export const fetchProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
 
-  const project = await projectService.fetchProject(projectId);
+  const project = await projectService.fetchProject(projectId,req.user);
 
   res
     .status(StatusCodes.OK)

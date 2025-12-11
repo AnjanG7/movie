@@ -6,6 +6,7 @@ import {
 } from '../controllers/cashflow/drawdown.controller.js';
 import { authMiddleware } from '../middlewares/authmiddleware.js';
 import { authorizeRoles } from '../middlewares/rolemiddleware.js';
+import { authorizeProjectRoles } from '../middlewares/projectRoles.middlware.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -13,21 +14,21 @@ const router = express.Router({ mergeParams: true });
 router.post(
     '/',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Accountant'),
+  authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     createDrawdown
 );
 
 router.get(
     '/',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     getDrawdowns
 );
 
 router.delete(
     '/:id',
     authMiddleware,
-    authorizeRoles("Admin",'Producer'),
+  authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     deleteDrawdown
 );
 

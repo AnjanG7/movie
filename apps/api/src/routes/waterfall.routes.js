@@ -17,6 +17,7 @@ import {
 } from "../controllers/waterfall/waterfall.controller.js";
 import { authMiddleware } from "../middlewares/authmiddleware.js";
 import { authorizeRoles } from "../middlewares/rolemiddleware.js";
+import { authorizeProjectRoles } from "../middlewares/projectRoles.middlware.js";
 
 const router = express.Router({ mergeParams: true });
 // Create a new waterfall
@@ -24,26 +25,26 @@ router.post("/", authMiddleware, authorizeRoles("Admin","Producer"), createWater
 router.get(
   "/:id",
   authMiddleware,
-  authorizeRoles("Admin","Producer", "Investor"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   getWaterfallById
 );
 router.get(
   "/",
   authMiddleware,
-  authorizeRoles("Admin","Producer", "Investor"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   getWaterfallByProject
 );
 
 
 // Add tiers to a waterfall
-router.post("/:id/tiers", authMiddleware, authorizeRoles("Admin","Producer"), addTiers);
+router.post("/:id/tiers", authMiddleware,authorizeProjectRoles("Producer", "LineProducer", "Accountant"),addTiers);
 
 // Update a tier
 
 router.put(
   "/tiers/:tierId",
   authMiddleware,
-  authorizeRoles("Admin","Producer"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   updateTier
 );
 
@@ -51,7 +52,7 @@ router.put(
 router.delete(
   "/tiers/:tierId",
   authMiddleware,
-  authorizeRoles("Admin","Producer"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   deleteTier
 );
 
@@ -59,14 +60,14 @@ router.delete(
 router.post(
   "/:id/participants",
   authMiddleware,
-  authorizeRoles("Admin","Producer"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   addParticipants
 );
 // Update a participant
 router.put(
   "/participants/:participantId",
   authMiddleware,
-  authorizeRoles("Admin","Producer"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   updateParticipant
 );
 
@@ -74,7 +75,7 @@ router.put(
 router.delete(
   "/participants/:participantId",
   authMiddleware,
-  authorizeRoles("Admin","Producer"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   deleteParticipant
 );
 
@@ -82,7 +83,7 @@ router.delete(
 router.post(
   "/:id/periods",
   authMiddleware,
-  authorizeRoles("Admin","Producer"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   addRevenuePeriod
 );
 
@@ -90,7 +91,7 @@ router.post(
 router.put(
   "/periods/:periodId",
   authMiddleware,
-  authorizeRoles("Admin","Producer"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   updatePeriod
 );
 
@@ -98,7 +99,7 @@ router.put(
 router.delete(
   "/periods/:periodId",
   authMiddleware,
-  authorizeRoles("Admin","Producer"),
+ authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   deletePeriod
 );
 
@@ -106,10 +107,10 @@ router.delete(
 router.post(
   "/:id/distribution",
   authMiddleware,
-  authorizeRoles("Admin","Producer", "Investor"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   calculateDistribution
 );
 
-router.get("/:id/payouts", authMiddleware, authorizeRoles("Admin","Producer", "Investor"), getPayouts);
+router.get("/:id/payouts", authMiddleware, authorizeProjectRoles("Producer", "LineProducer", "Accountant"), getPayouts);
 
 export default router;

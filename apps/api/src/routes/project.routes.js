@@ -9,6 +9,7 @@ import {
 } from "../controllers/project/project.controller.js";
 import { authMiddleware } from "../middlewares/authmiddleware.js";
 import { authorizeRoles } from "../middlewares/rolemiddleware.js";
+import { authorizeProjectRoles } from "../middlewares/projectRoles.middlware.js";
 
 const router = express.Router();
 
@@ -30,27 +31,26 @@ router.put(
 router.get(
   "/",
   authMiddleware,
-  authorizeRoles("Admin", "Producer","Line Producer"),
   getAllProjects
 );
 
 router.get(
   "/:projectId",
   authMiddleware,
-  authorizeRoles("Admin", "Producer","Line Producer"),
+ authorizeProjectRoles("Producer", "LineProducer", "Accountant", "Investor"),
   fetchProject  
 );
 router.put(
   "/:projectId",
   authMiddleware,
-  authorizeRoles("Admin", "Producer"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   updateProject
 );
 
 router.delete(
   "/:projectId",
   authMiddleware,
-  authorizeRoles("Admin", "Producer"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   deleteProject
 );
 

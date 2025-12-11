@@ -16,13 +16,16 @@ export class BudgetLineService {
 
     const isAdmin = user.roles?.includes("Admin");
 
-    if (!isAdmin && project.ownerId !== user?.id) {
-      throw new ApiError(
-        StatusCodes.FORBIDDEN,
-        "You do not have permission to delete this project"
-      );
-    }
 
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
     
     const workingBudget = await prisma.budgetVersion.findFirst({
       where: {

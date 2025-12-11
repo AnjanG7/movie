@@ -12,6 +12,7 @@ import {
 } from '../controllers/postProduction/postProduction.controller.js';
 import { authMiddleware } from '../middlewares/authmiddleware.js';
 import { authorizeRoles } from '../middlewares/rolemiddleware.js';
+import { authorizeProjectRoles } from '../middlewares/projectRoles.middlware.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -21,35 +22,35 @@ const router = express.Router({ mergeParams: true });
 router.post(
   '/tasks',
   authMiddleware,
-  authorizeRoles("Admin",'Producer', 'Line Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   createPostTask
 );
 
 router.get(
   '/tasks',
   authMiddleware,
-  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   getPostTasks
 );
 
 router.get(
   '/tasks/:id',
   authMiddleware,
-  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   getPostTask
 );
 
 router.put(
   '/tasks/:id',
   authMiddleware,
-  authorizeRoles("Admin",'Producer', 'Line Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   updatePostTask
 );
 
 router.delete(
   '/tasks/:id',
   authMiddleware,
-  authorizeRoles("Admin",'Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   deletePostTask
 );
 
@@ -57,14 +58,14 @@ router.delete(
 router.get(
   '/budget-lines',
   authMiddleware,
-  authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
+ authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   getPostBudgetLines
 );
 
 router.post(
   '/budget-lines',
   authMiddleware,
-  authorizeRoles("Admin",'Producer', 'Line Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   addPostBudgetLine
 );
 
@@ -72,14 +73,14 @@ router.post(
 router.get(
   '/forecast',
   authMiddleware,
-  authorizeRoles('"Admin",Producer', 'Line Producer', 'Accountant', 'Investor'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   getPostProductionForecast
 );
 
 router.post(
   '/update-roi',
   authMiddleware,
-  authorizeRoles("Admin",'Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   updateROIWithPostProduction
 );
 

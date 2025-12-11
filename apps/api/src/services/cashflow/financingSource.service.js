@@ -14,13 +14,17 @@ export class FinancingSourceService {
       throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
     }
 
+  
     const isAdmin = user.roles?.includes("Admin");
 
-    if (!isAdmin && project.ownerId !== user?.id) {
-      throw new ApiError(
-        StatusCodes.FORBIDDEN,
-        "You do not have permission to delete this project"
-      );
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
     const { type, amount, rate, fees, schedule } = data;
 
@@ -52,7 +56,8 @@ export class FinancingSourceService {
 
   // Get financing sources for project (with quotation info)
   async getFinancingSources(projectId,user) {
-        const project = await prisma.project.findUnique({
+    
+    const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project) {
@@ -61,11 +66,14 @@ export class FinancingSourceService {
 
     const isAdmin = user.roles?.includes("Admin");
 
-    if (!isAdmin && project.ownerId !== user?.id) {
-      throw new ApiError(
-        StatusCodes.FORBIDDEN,
-        "You do not have permission to delete this project"
-      );
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
     const sources = await prisma.financingSource.findMany({
       where: { projectId },

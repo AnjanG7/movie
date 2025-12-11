@@ -50,10 +50,7 @@ interface ProjectUserAssignment {
 }
 
 const AVAILABLE_ROLES = [
-  "Line Producer",
-  "Accountant",
-  "Investor",
-  "Dept Head",
+"User"
 ] as const;
 
 const API_BASE_URL = "http://localhost:4000/api";
@@ -84,7 +81,7 @@ export default function TeamManagementPage() {
     name: "",
     email: "",
     password: "",
-    role: "Line Producer",
+    role: "User",
   });
 
   useEffect(() => {
@@ -252,7 +249,7 @@ export default function TeamManagementPage() {
           name: "",
           email: "",
           password: "",
-          role: "Line Producer",
+          role: "User",
         });
         await fetchAllUsers();
       } else {
@@ -264,50 +261,52 @@ export default function TeamManagementPage() {
     }
   };
 
-  const handleAssignToProject = async (projectId: string) => {
-    if (!selectedUserId) return;
+const handleAssignToProject = async (projectId: string) => {
+  if (!selectedUserId) return;
 
-    try {
-      const selectedUser = users.find((u) => u.id === selectedUserId);
-
-      if (!selectedUser) {
-        alert("User not found");
-        return;
-      }
-
-      const response = await fetch(
-        `${API_BASE_URL}/projects/${projectId}/users`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: selectedUser.email,
-            role: getRoleName(selectedUser.role),
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (data.success || response.ok) {
-        const project = projects.find((p) => p.id === projectId);
-        alert(
-          `${selectedUser.name} assigned to ${project?.title} successfully!`
-        );
-        setShowAssignModal(false);
-        setSelectedUserId("");
-        await fetchAllProjectAssignments(projects);
-      } else {
-        alert(data.message || "Failed to assign user");
-      }
-    } catch (error) {
-      console.error("Error assigning user:", error);
-      alert("Failed to assign user. Please try again.");
+  try {
+    // Find the selected user from your local users array
+    const selectedUser = users.find((u) => u.id === selectedUserId);
+    if (!selectedUser) {
+      alert("User not found");
+      return;
     }
-  };
+
+    // Make API call to assign user
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/users`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: selectedUser.email,
+        role: getRoleName(selectedUser.role), 
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      const project = projects.find((p) => p.id === projectId);
+      alert(`${selectedUser.name} assigned to ${project?.title} successfully!`);
+
+      // Reset UI state
+      setShowAssignModal(false);
+      setSelectedUserId("");
+
+      // Refresh assignments list
+      await fetchAllProjectAssignments(projects);
+    } else {
+      // Backend returned an error
+      alert(data.message || "Failed to assign user");
+    }
+  } catch (error) {
+    console.error("Error assigning user:", error);
+    alert("Failed to assign user. Please try again.");
+  }
+};
+
 
   const handleUpdateProjectRole = async (userId: string, projectId: string) => {
     try {

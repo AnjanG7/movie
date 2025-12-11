@@ -5,10 +5,27 @@ import { StatusCodes } from "http-status-codes";
 export class WaterfallService {
 
   // Create a new waterfall for a project
-  async createWaterfall(projectId) {
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+  async createWaterfall(projectId,user) {
 
+        const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+ 
     const waterfall = await prisma.waterfallDefinition.create({ data: { projectId } });
     return waterfall;
   }

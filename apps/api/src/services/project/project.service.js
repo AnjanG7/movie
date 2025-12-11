@@ -49,17 +49,23 @@ export class ProjectService {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
-    if (!project) {
+    const users = await prisma.user.findUnique({
+      where: { id: user?.id },
+      include: { role: true },
+    });
+
+    if (!project)
       throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
-    }
-
-    const isAdmin = user.roles?.includes("Admin");
-
-    if (!isAdmin && project.ownerId !== user?.id) {
-      throw new ApiError(
-        StatusCodes.FORBIDDEN,
-        "You do not have permission to delete this project"
-      );
+    const isAdmin = users.role?.name === "Admin";
+    // Only Admin or Project Owner
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
 
     const { title, baseCurrency, timezone, status, ownerId } = data;
@@ -86,16 +92,23 @@ export class ProjectService {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
+    const users = await prisma.user.findUnique({
+      where: { id: user?.id },
+      include: { role: true },
+    });
 
-    if (!project) {
+    if (!project)
       throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
-    }
-    const isAdmin = user.roles?.includes("Admin");
-    if (!isAdmin && project.ownerId !== user?.id) {
-      throw new ApiError(
-        StatusCodes.FORBIDDEN,
-        "You do not have permission to delete this project"
-      );
+    const isAdmin = users.role?.name === "Admin";
+    // Only Admin or Project Owner
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
 
     await prisma.project.delete({
@@ -125,68 +138,103 @@ export class ProjectService {
 
     return updated;
   }
+
   async getAllProjects(query, user) {
-    let { page = 1, limit = 10, status, baseCurrency, search } = query;
-    const isAdmin = user.roles?.includes("Admin");
-    const where = {};
-    if (!isAdmin) {
-      where.ownerId = user?.id;
-    }
+  let { page = 1, limit = 10, status, baseCurrency, search } = query;
+  const isAdmin = user.roles?.includes("Admin");
 
-    if (status) where.status = status;
-    if (baseCurrency) where.baseCurrency = baseCurrency;
 
-    if (search) {
-      where.OR = [
-        { title: { contains: search, mode: "insensitive" } },
-        { baseCurrency: { contains: search, mode: "insensitive" } },
-      ];
-    }
 
-    const fetchAll = limit === -1 || !limit;
-    const skip = fetchAll ? undefined : (Number(page) - 1) * Number(limit);
-    const take = fetchAll ? undefined : Number(limit);
+  const where = {};
 
-    const [projects, total] = await Promise.all([
-      prisma.project.findMany({
-        where,
-        skip,
-        take,
-        orderBy: { createdAt: "desc" },
-        include: {
-          phases: true,
-          budgetVersions: true,
-        },
-      }),
-      prisma.project.count({ where }),
-    ]);
-
-    return {
-      total,
-      page: Number(page),
-      totalPages: fetchAll ? 1 : Math.ceil(total / limit),
-      projects,
-    };
+  if (!isAdmin) {
+    // Non-admin users: show projects they own OR are assigned to
+    where.OR = [
+      { ownerId: user.id },
+    
+  { users: { some: { userId: user.id } } }
+    
+ 
+    ];
   }
 
-  // Fetch single project by ID
-  async fetchProject(projectId) {
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
+  if (status) where.status = status;
+  if (baseCurrency) where.baseCurrency = baseCurrency;
+
+  if (search) {
+    where.AND = [
+      where.AND || {},
+      {
+        OR: [
+          { title: { contains: search, mode: "insensitive" } },
+          { baseCurrency: { contains: search, mode: "insensitive" } },
+        ],
+      },
+    ];
+  }
+
+  const fetchAll = limit === -1 || !limit;
+  const skip = fetchAll ? undefined : (Number(page) - 1) * Number(limit);
+  const take = fetchAll ? undefined : Number(limit);
+
+  const [projects, total] = await Promise.all([
+    prisma.project.findMany({
+      where,
+      skip,
+      take,
+      orderBy: { createdAt: "desc" },
       include: {
         phases: true,
-        budgetVersions: {
-          include: {
-            lines: true, // optional if you want budget line items too
-          },
-        },
+        budgetVersions: true,
+        users: { include: { user: true } }, // include assigned users
       },
-    });
+    }),
+    prisma.project.count({ where }),
+  ]);
 
-    if (!project) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
-    }
-
-    return project;
-  }
+  return {
+    total,
+    page: Number(page),
+    totalPages: fetchAll ? 1 : Math.ceil(total / limit),
+    projects,
+  };
 }
+
+async fetchProject(projectId, user) {
+  // Fetch project including phases, budgetVersions, and assigned users
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: {
+      phases: true,
+      budgetVersions: {
+        include: { lines: true }, // optional: budget lines
+      },
+      users: { include: { user: true } }, // assigned users
+    },
+  });
+
+  if (!project) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+  }
+
+  const isAdmin = user.roles?.includes("Admin");
+  const isOwner = project.ownerId === user.id;
+  const isAssigned = project.users.some((pu) => pu.userId === user.id);
+
+  // Authorization: only Admin, owner, or assigned users
+  if (!isAdmin && !isOwner && !isAssigned) {
+    throw new ApiError(StatusCodes.FORBIDDEN, "Forbidden: Access denied");
+  }
+
+  // Attach current user's role
+  const currentUserAssignment = project.users.find((pu) => pu.userId === user.id);
+  const currentUserRole = currentUserAssignment?.role || null;
+
+  return {
+    ...project,
+    currentUserRole,
+  };
+}
+
+
+  }

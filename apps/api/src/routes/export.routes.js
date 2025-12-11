@@ -11,6 +11,7 @@ import {
 } from '../controllers/export/export.controller.js';
 import { authMiddleware } from '../middlewares/authmiddleware.js';
 import { authorizeRoles } from '../middlewares/rolemiddleware.js';
+import { authorizeProjectRoles } from '../middlewares/projectRoles.middlware.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -21,7 +22,7 @@ const router = express.Router({ mergeParams: true });
 router.get(
   '/:versionId/export/pdf',
   authMiddleware,
-  authorizeRoles('Admin', 'Producer', 'Investor'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   exportQuotationPDF
 );
 
@@ -32,7 +33,7 @@ router.get(
 router.get(
   '/:projectId/reports/cost/export/pdf',
   authMiddleware,
-  authorizeRoles('Admin', 'Producer', 'Accountant'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   exportCostReportPDF
 );
 
@@ -40,7 +41,7 @@ router.get(
 router.get(
   '/:projectId/reports/cashflow/export/pdf',
   authMiddleware,
-  authorizeRoles('Admin', 'Producer', 'Accountant'),
+ authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   exportCashflowReportPDF
 );
 
@@ -51,7 +52,7 @@ router.get(
 router.get(
   '/:projectId/waterfalls/:waterfallId/export/pdf',
   authMiddleware,
-  authorizeRoles('Admin', 'Producer', 'Investor'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   exportWaterfallStatementPDF
 );
 
@@ -62,7 +63,7 @@ router.get(
 router.get(
   '/:projectId/purchase-orders/:poId/export/pdf',
   authMiddleware,
-  authorizeRoles('Admin', 'Producer', 'Line Producer', 'Accountant'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   exportPurchaseOrderPDF
 );
 
@@ -84,7 +85,7 @@ router.get(
 router.get(
   '/:projectId/budget/:versionId/export/pdf',
   authMiddleware,
-  authorizeRoles('Admin', 'Producer', 'Line Producer', 'Accountant', 'Investor'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   exportBudgetSummaryPDF
 );
 
@@ -95,7 +96,7 @@ router.get(
 router.get(
   '/:projectId/export/pdf',
   authMiddleware,
-  authorizeRoles('Admin', 'Producer', 'Investor'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   exportProjectOverviewPDF
 );
 

@@ -12,9 +12,23 @@ export class PublicityService {
     const { name, category, description, budgetAmount, vendor, startDate, endDate, notes } = data;
 
     // Validate project exists
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
+      const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
     if (!project) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Project not found');
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
 
     const publicityBudget = await prisma.publicityBudget.create({
@@ -44,6 +58,29 @@ export class PublicityService {
    * Get all publicity budgets for a project with summary
    */
   async getPublicityBudgets(projectId, query = {}) {
+
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
+
+
     const { category, status } = query;
 
     const where = { projectId };
@@ -340,6 +377,26 @@ export class PublicityService {
    * Get campaign calendar for a project
    */
   async getCampaignCalendar(projectId, query = {}) {
+
+
+        const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
     const { eventType, status, upcoming, fromDate, toDate } = query;
 
     const where = { projectId };

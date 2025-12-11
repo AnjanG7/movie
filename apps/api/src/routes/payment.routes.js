@@ -10,6 +10,7 @@ import {
 } from '../controllers/vendor/payment.controller.js';
 import { authMiddleware } from '../middlewares/authmiddleware.js';
 import { authorizeRoles } from '../middlewares/rolemiddleware.js';
+import { authorizeProjectRoles } from '../middlewares/projectRoles.middlware.js';
 
 const router = express.Router();
 
@@ -59,7 +60,7 @@ router.patch(
 router.get(
     '/projects/:projectId/upcoming',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     getUpcomingPayments
 );
 

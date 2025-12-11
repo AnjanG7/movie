@@ -8,6 +8,7 @@ import {
 } from '../controllers/vendor/purchaseOrder.controller.js';
 import { authMiddleware } from '../middlewares/authmiddleware.js';
 import { authorizeRoles } from '../middlewares/rolemiddleware.js';
+import { authorizeProjectRoles } from '../middlewares/projectRoles.middlware.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -15,38 +16,38 @@ const router = express.Router({ mergeParams: true });
 router.post(
     '/',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Line Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     createPurchaseOrder
 );
 
 router.get(
     '/',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     getPurchaseOrders
 );
 
 router.get(
     '/:id',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     getPurchaseOrder
 );
 
-router.patch('/:id', authMiddleware, authorizeRoles("Admin",'Producer', 'Line Producer'), updatePOStatus);
+router.patch('/:id', authMiddleware, authorizeProjectRoles("Producer", "LineProducer", "Accountant"), updatePOStatus);
 
 
 router.patch(
     '/:id/status',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Line Producer'),
+   authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     updatePOStatus
 );
 
 router.delete(
     '/:id',
     authMiddleware,
-    authorizeRoles("Admin",'Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     deletePurchaseOrder
 );
 

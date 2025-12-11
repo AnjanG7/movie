@@ -7,13 +7,13 @@ const waterfallService = new WaterfallService();
 
 
 export const createWaterfall = asyncHandler(async (req, res) => {
-  const waterfall = await waterfallService.createWaterfall(req.params.projectId);
+  const waterfall = await waterfallService.createWaterfall(req.params.projectId,req.user);
   res.status(StatusCodes.CREATED).json(new ApiResponse(StatusCodes.CREATED, waterfall, "Waterfall created successfully"));
 });
 
 
 export const addTiers = asyncHandler(async (req, res) => {
-  const { tiers } = req.body;  // <-- FIXED
+  const { tiers } = req.body;  
 
   if (!Array.isArray(tiers)) {
     return res.status(400).json({
@@ -33,7 +33,7 @@ export const addTiers = asyncHandler(async (req, res) => {
 
 
 export const addParticipants = asyncHandler(async (req, res) => {
-  const { participants } = req.body; // <-- FIXED
+  const { participants } = req.body;
 
   if (!Array.isArray(participants)) {
     return res.status(400).json({
@@ -42,7 +42,7 @@ export const addParticipants = asyncHandler(async (req, res) => {
     });
   }
 
-  const result = await waterfallService.addParticipants(req.params.id, participants);
+  const result = await waterfallService.addParticipants(req.params.id, participants,req.user);
 
   res.status(StatusCodes.OK).json(
     new ApiResponse(StatusCodes.OK, result, "Participants added successfully")

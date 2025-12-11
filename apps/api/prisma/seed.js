@@ -9,7 +9,7 @@ async function main() {
   try {
     // ================== 1. CREATE ROLES ==================
     console.log('📋 Creating roles...');
-    const roleNames = ['Admin', 'Producer', 'Line Producer', 'Accountant', 'Investor'];
+    const roleNames = ['Admin', 'Producer', 'User'];
     const createdRoles = {};
 
     for (const roleName of roleNames) {

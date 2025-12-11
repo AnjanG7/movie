@@ -6,6 +6,7 @@ import {
 } from '../controllers/quotation/roi.controller.js';
 import { authMiddleware } from '../middlewares/authmiddleware.js';
 import { authorizeRoles } from '../middlewares/rolemiddleware.js';
+import { authorizeProjectRoles } from '../middlewares/projectRoles.middlware.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -13,7 +14,7 @@ const router = express.Router({ mergeParams: true });
 router.post(
   '/:versionId/calculate-roi',
   authMiddleware,
-  authorizeRoles('Admin', 'Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   calculateROI
 );
 
@@ -21,7 +22,7 @@ router.post(
 router.post(
   '/:versionId/scenarios',
   authMiddleware,
-  authorizeRoles('Admin', 'Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   generateScenarios
 );
 
@@ -29,6 +30,7 @@ router.post(
 router.get(
   '/:versionId/metrics',
   authMiddleware,
+  authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   getMetrics
 );
 

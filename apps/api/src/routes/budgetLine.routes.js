@@ -5,6 +5,7 @@ import {
 } from '../controllers/budget/budgetLine.controller.js';
 import { authMiddleware } from '../middlewares/authmiddleware.js';
 import { authorizeRoles } from '../middlewares/rolemiddleware.js';
+import { authorizeProjectRoles } from '../middlewares/projectRoles.middlware.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -12,14 +13,14 @@ const router = express.Router({ mergeParams: true });
 router.get(
   '/',
   authMiddleware,
-  authorizeRoles("Admin",'Producer', 'Line Producer','Admin'),
+  authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   getBudgetLines
 );
 
 router.get(
   '/variance-report',
   authMiddleware,
-  authorizeRoles("Admin",'Producer', 'Line Producer', 'Admin'),
+  authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   getVarianceReport
 );
 
