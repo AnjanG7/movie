@@ -4,9 +4,27 @@ import { StatusCodes } from 'http-status-codes';
 
 export class PaymentService {
     // Create Payment (single or installment schedule)
-    async createPayment(data) {
+    async createPayment(projectId,data,user) {
         const { invoiceId, amount, paidOn, method, status } = data;
+          // Verify project exists
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
 
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
         // Verify invoice exists
         const invoice = await prisma.invoice.findUnique({
             where: { id: invoiceId },
@@ -16,6 +34,8 @@ export class PaymentService {
         if (!invoice) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Invoice not found');
         }
+
+
 
         // Calculate total paid so far
         const totalPaid = invoice.payments.reduce((sum, p) => sum + p.amount, 0);
@@ -59,7 +79,26 @@ export class PaymentService {
     }
 
     // Create Scheduled Payment (with installments)
-    async createScheduledPayment(data) {
+    async createScheduledPayment(data,user,projectId) {
+                  // Verify project exists
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
         const { payeeId, total, installments, allocations } = data;
 
         // Verify vendor exists
@@ -110,8 +149,30 @@ export class PaymentService {
     }
 
     // Get all payments
-    async getPayments(query = {}) {
+    async getPayments(query = {},user,projectId) {
+                  // Verify project exists
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
         const { page = 1, limit = 10, invoiceId, status } = query;
+
+
+
         const skip = (Number(page) - 1) * Number(limit);
         const take = Number(limit);
 
@@ -150,33 +211,80 @@ export class PaymentService {
     }
 
     // Get single payment
-    async getPayment(id) {
-        const payment = await prisma.payment.findUnique({
-            where: { id },
-            include: {
-                invoice: {
-                    include: {
-                        vendor: true,
-                        po: {
-                            include: {
-                                project: true,
-                            },
+async getPayment(id, user,projectId) {
+              // Verify project exists
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+    const payment = await prisma.payment.findUnique({
+        where: { id },
+        include: {
+            invoice: {
+                include: {
+                    vendor: true,
+                    po: {
+                        include: {
+                            project: true,
                         },
                     },
                 },
             },
-        });
+        },
+    });
 
-        if (!payment) {
-            throw new ApiError(StatusCodes.NOT_FOUND, 'Payment not found');
-        }
-
-        return payment;
+    if (!payment) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Payment not found");
     }
 
+    const invoice = payment.invoice;
+    if (!invoice) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Invoice not found for this payment");
+    }
+
+
+
+    return payment;
+}
+
     // Get scheduled payments
-    async getScheduledPayments(query = {}) {
+    async getScheduledPayments(query = {},user,projectId) {
+                  // Verify project exists
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
         const { page = 1, limit = 10, payeeId, status } = query;
+
+
         const skip = (Number(page) - 1) * Number(limit);
         const take = Number(limit);
 
@@ -208,7 +316,26 @@ export class PaymentService {
     }
 
     // Mark installment as paid
-    async markInstallmentPaid(scheduledPaymentId, installmentId, data) {
+    async markInstallmentPaid(scheduledPaymentId, installmentId, data,projectId) {
+                  // Verify project exists
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
         const { paidAmount, method } = data;
 
         const installment = await prisma.installment.findUnique({
@@ -250,7 +377,25 @@ export class PaymentService {
     }
 
     // Get upcoming payments (next 30 days)
-    async getUpcomingPayments() {
+    async getUpcomingPayments(projectId,user) {
+              const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
         const thirtyDaysFromNow = new Date();
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 

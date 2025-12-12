@@ -70,7 +70,7 @@ export default function VendorsPage() {
   const fetchVendors = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/vendors`, {
+      const response = await fetch(`${API_BASE_URL}/vendors/`, {
         credentials: 'include',
       });
       const result = await response.json();
@@ -106,7 +106,7 @@ export default function VendorsPage() {
     e.preventDefault();
     try {
       const payload = buildPayload();
-      const response = await fetch(`${API_BASE_URL}/vendors`, {
+      const response = await fetch(`${API_BASE_URL}/vendors/project/{projectId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

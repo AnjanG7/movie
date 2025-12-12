@@ -4,15 +4,34 @@ import StatusCodes from "http-status-codes";
 
 export class InvoiceService {
   // Create Invoice with PO balance validation
-  async createInvoice(data,user) {
-    const { vendorId, poId, date, amount, attachments } = data;
+  async createInvoice(data,user,projectId) {
 
+    const { vendorId, poId, date, amount, attachments } = data;
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
     // Verify vendor exists
     const vendor = await prisma.vendor.findUnique({ where: { id: vendorId } });
     if (!vendor) {
       throw new ApiError(StatusCodes.NOT_FOUND, "Vendor not found");
     }
 
+    
     // PO is now REQUIRED
     if (!poId) {
       throw new ApiError(StatusCodes.BAD_REQUEST, "Purchase Order is required for creating an invoice");
@@ -43,24 +62,7 @@ export class InvoiceService {
         },
       },
     });
-          const project = await prisma.project.findUnique({
-      where: { id:po.projectId },
-    });
-    if (!project) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
-    }
-
-    const isAdmin = user.roles?.includes("Admin");
-const projectId= po.projectId
-    if (
-      !isAdmin &&
-      project.ownerId !== user?.id &&
-      !(await prisma.projectUser.findFirst({
-        where: { projectId, userId: user?.id },
-      }))
-    ) {
-      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
-    }
+ 
 
     if (!po) {
       throw new ApiError(StatusCodes.NOT_FOUND, "Purchase Order not found");
@@ -108,6 +110,7 @@ const projectId= po.projectId
         amount,
         status: "Pending",
         attachments: attachments || null,
+        projectId
 
       },
       include: {
@@ -124,8 +127,26 @@ const projectId= po.projectId
   }
 
   // Get all invoices (optionally filter by vendor, PO, or project)
-  async getInvoices(query) {
-    const { page = 1, limit = 10, vendorId, poId, status, projectId } = query;
+  async getInvoices(query,user,projectId) {
+        const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+    const { page = 1, limit = 10, vendorId, poId, status } = query;
     const skip = Number(page - 1) * Number(limit);
     const take = Number(limit);
 
@@ -140,6 +161,7 @@ const projectId= po.projectId
         projectId: projectId,
       };
     }
+
 
     const [invoices, total] = await Promise.all([
       prisma.invoice.findMany({
@@ -174,7 +196,25 @@ const projectId= po.projectId
   }
 
   // Get single invoice
-  async getInvoice(id) {
+  async getInvoice(id,user,projectId) {
+        const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
     const invoice = await prisma.invoice.findUnique({
       where: { id },
       include: {
@@ -195,7 +235,25 @@ const projectId= po.projectId
   }
 
   // Update Invoice Status
-  async updateInvoiceStatus(id, status) {
+  async updateInvoiceStatus(id, status,user,projectId) {
+        const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
     if (!["Approved", "Rejected", "Pending", "Paid"].includes(status)) {
       throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid status");
     }
@@ -204,6 +262,7 @@ const projectId= po.projectId
     if (!invoice) {
       throw new ApiError(StatusCodes.NOT_FOUND, "Invoice not found");
     }
+
 
     const updated = await prisma.invoice.update({
       where: { id },
@@ -223,11 +282,30 @@ const projectId= po.projectId
   }
 
   // Delete Invoice
-  async deleteInvoice(id) {
+  async deleteInvoice(id,user,projectId) {
+        const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
     const invoice = await prisma.invoice.findUnique({ where: { id } });
     if (!invoice) {
       throw new ApiError(StatusCodes.NOT_FOUND, "Invoice not found");
     }
+ 
 
     // Check if invoice has payments
     const paymentCount = await prisma.payment.count({ where: { invoiceId: id } });
@@ -243,7 +321,25 @@ const projectId= po.projectId
   }
 
   // NEW: Get PO Balance Information
-  async getPOBalance(poId) {
+  async getPOBalance(poId,user,projectId) {
+        const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
     const po = await prisma.purchaseOrder.findUnique({
       where: { id: poId },
       include: {

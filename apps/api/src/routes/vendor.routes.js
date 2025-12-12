@@ -8,42 +8,42 @@ import {
 } from '../controllers/vendor/vendor.controller.js';
 import { authMiddleware } from '../middlewares/authmiddleware.js';
 import { authorizeRoles } from '../middlewares/rolemiddleware.js';
-
-const router = express.Router();
+import { authorizeProjectRoles } from '../middlewares/projectRoles.middlware.js';
+const router = express.Router({ mergeParams: true });
 
 // Base: /api/vendors
 router.post(
     '/',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     createVendor
 );
 
 router.get(
     '/',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
+  authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     getVendors
 );
 
 router.get(
     '/:id',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
+  authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     getVendor
 );
 
 router.put(
     '/:id',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
+  authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     updateVendor
 );
 
 router.delete(
     '/:id',
     authMiddleware,
-    authorizeRoles("Admin",'Producer'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     deleteVendor
 );
 

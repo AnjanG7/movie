@@ -7,7 +7,8 @@ const invoiceService = new InvoiceService();
 
 // Create Invoice
 export const createInvoice = asyncHandler(async (req, res) => {
-  const invoice = await invoiceService.createInvoice(req.body, req.user);
+const projectId= req.params.projectId
+  const invoice = await invoiceService.createInvoice(req.body, req.user,projectId);
   res
     .status(StatusCodes.CREATED)
     .json(
@@ -21,7 +22,8 @@ export const createInvoice = asyncHandler(async (req, res) => {
 
 // Get all invoices
 export const getInvoices = asyncHandler(async (req, res) => {
-  const result = await invoiceService.getInvoices(req.query);
+  const projectId= req.params.projectId
+  const result = await invoiceService.getInvoices(req.query,req.user,projectId);
   res
     .status(StatusCodes.OK)
     .json(
@@ -31,7 +33,8 @@ export const getInvoices = asyncHandler(async (req, res) => {
 
 // Get single invoice
 export const getInvoice = asyncHandler(async (req, res) => {
-  const invoice = await invoiceService.getInvoice(req.params.id);
+  const projectId= req.params.projectId
+  const invoice = await invoiceService.getInvoice(req.params.id,req.user,projectId);
   res
     .status(StatusCodes.OK)
     .json(
@@ -41,11 +44,13 @@ export const getInvoice = asyncHandler(async (req, res) => {
 
 // Update invoice status
 export const updateInvoiceStatus = asyncHandler(async (req, res) => {
+  const projectId= req.params.projectId
   const { status } = req.body;
   const updated = await invoiceService.updateInvoiceStatus(
     req.params.id,
     status,
-    req.user.id
+    req.user,
+    projectId
   );
   res
     .status(StatusCodes.OK)
@@ -60,7 +65,8 @@ export const updateInvoiceStatus = asyncHandler(async (req, res) => {
 
 // Delete invoice
 export const deleteInvoice = asyncHandler(async (req, res) => {
-  const result = await invoiceService.deleteInvoice(req.params.id);
+  const projectId= req.params.projectId
+  const result = await invoiceService.deleteInvoice(req.params.id,req.user,projectId);
   res
     .status(StatusCodes.OK)
     .json(
@@ -70,7 +76,8 @@ export const deleteInvoice = asyncHandler(async (req, res) => {
 
 // NEW: Get PO Balance
 export const getPOBalance = asyncHandler(async (req, res) => {
-  const balance = await invoiceService.getPOBalance(req.params.poId);
+  const projectId= req.params.projectId
+  const balance = await invoiceService.getPOBalance(req.params.poId,req.user,projectId);
   res
     .status(StatusCodes.OK)
     .json(

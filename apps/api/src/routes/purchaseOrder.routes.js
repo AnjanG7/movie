@@ -7,7 +7,6 @@ import {
     deletePurchaseOrder,
 } from '../controllers/vendor/purchaseOrder.controller.js';
 import { authMiddleware } from '../middlewares/authmiddleware.js';
-import { authorizeRoles } from '../middlewares/rolemiddleware.js';
 import { authorizeProjectRoles } from '../middlewares/projectRoles.middlware.js';
 
 const router = express.Router({ mergeParams: true });

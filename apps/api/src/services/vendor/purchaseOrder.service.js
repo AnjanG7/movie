@@ -5,15 +5,28 @@ import { StatusCodes } from 'http-status-codes';
 export class PurchaseOrderService {
     // Create Purchase Order
 // Update the createPurchaseOrder method to include budgetLineId
-async createPurchaseOrder(projectId, data) {
+async createPurchaseOrder(projectId, data,user) {
   const { vendorId, amount, approvedBy, notes, budgetLineId } = data;
 
   // Verify project exists
-  const project = await prisma.project.findUnique({ where: { id: projectId } });
-  if (!project) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Project not found');
-  }
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
 
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
   // Verify vendor exists
   const vendor = await prisma.vendor.findUnique({ where: { id: vendorId } });
   if (!vendor) {
@@ -58,7 +71,26 @@ async createPurchaseOrder(projectId, data) {
 
 
     // Get all POs for a project
-    async getPurchaseOrders(projectId, query = {}) {
+    async getPurchaseOrders(projectId, query = {},user) {
+
+            const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
         const { page = 1, limit = 10, status } = query;
         const skip = (Number(page) - 1) * Number(limit);
         const take = Number(limit);
@@ -91,7 +123,27 @@ async createPurchaseOrder(projectId, data) {
     }
 
     // Get single PO
-    async getPurchaseOrder(id) {
+    async getPurchaseOrder(projectId,id,user) {
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
         const purchaseOrder = await prisma.purchaseOrder.findUnique({
             where: { id },
             include: {
@@ -110,49 +162,100 @@ async createPurchaseOrder(projectId, data) {
     }
 
     // Approve/Reject PO
-    async updatePOStatus(id, status, userId) {
-        if (!['Approved', 'Rejected', 'Pending'].includes(status)) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid status');
-        }
+// Approve/Reject PO
+async updatePOStatus(id, status, user) {
+    if (!['Approved', 'Rejected', 'Pending'].includes(status)) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid status');
+    }
 
-        const purchaseOrder = await prisma.purchaseOrder.findUnique({ where: { id } });
-        if (!purchaseOrder) {
-            throw new ApiError(StatusCodes.NOT_FOUND, 'Purchase Order not found');
-        }
-        
-            let approverName = null;
-    if (status === 'Approved' && userId) {
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
+    const purchaseOrder = await prisma.purchaseOrder.findUnique({ where: { id } });
+    if (!purchaseOrder) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Purchase Order not found');
+    }
+
+    const projectId = purchaseOrder.projectId;
+
+    const project = await prisma.project.findUnique({
+        where: { id: projectId },
+    });
+
+    if (!project) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+        !isAdmin &&
+        project.ownerId !== user?.id &&
+        !(await prisma.projectUser.findFirst({
+            where: { projectId, userId: user?.id },
+        }))
+    ) {
+        throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
+    // --- FIXED user shadowing and use correct fields ---
+    let approverName = purchaseOrder.approvedBy; // fallback to existing
+
+    if (status === 'Approved' && user?.id) {
+        const approverUser = await prisma.user.findUnique({
+            where: { id: user.id },
             select: { name: true }
         });
-        approverName = user?.name;
+        approverName = approverUser?.name || approverName;
     }
 
+    const updated = await prisma.purchaseOrder.update({
+        where: { id },
+        data: {
+            status,
+            approvedBy: status === 'Approved' ? approverName : purchaseOrder.approvedBy,
+            approvedAt: status === 'Approved' ? new Date() : purchaseOrder.approvedAt,
+        },
+        include: {
+            vendor: true,
+            project: true,
+            budgetLine: true,
+        },
+    });
 
-        const updated = await prisma.purchaseOrder.update({
-            where: { id },
-            data: {
-                status,
-                 approvedBy: status === 'Approved' ? (approverName || userId) : po.approvedBy, // ← Store name instead of ID
-            approvedAt: status === 'Approved' ? new Date() : po.approvedAt,
-            },
-            include: {
-                vendor: true,
-                project: true,
-                budgetLine: true,
-            },
-        });
-
-        return updated;
-    }
+    return updated;
+}
 
     // Delete PO
-    async deletePurchaseOrder(id) {
+    async deletePurchaseOrder(id,user) {
+
         const po = await prisma.purchaseOrder.findUnique({ where: { id } });
         if (!po) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Purchase Order not found');
         }
+            const purchaseOrder = await prisma.purchaseOrder.findUnique({ where: { id } });
+    if (!purchaseOrder) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Purchase Order not found');
+    }
+
+    const projectId = po.projectId;
+
+    const project = await prisma.project.findUnique({
+        where: { id: projectId },
+    });
+
+    if (!project) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+        !isAdmin &&
+        project.ownerId !== user?.id &&
+        !(await prisma.projectUser.findFirst({
+            where: { projectId, userId: user?.id },
+        }))
+    ) {
+        throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
 
         // Check if PO has associated invoices
         const invoiceCount = await prisma.invoice.count({ where: { poId: id } });

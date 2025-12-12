@@ -9,56 +9,55 @@ import {
     getUpcomingPayments,
 } from '../controllers/vendor/payment.controller.js';
 import { authMiddleware } from '../middlewares/authmiddleware.js';
-import { authorizeRoles } from '../middlewares/rolemiddleware.js';
 import { authorizeProjectRoles } from '../middlewares/projectRoles.middlware.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Base: /api/payments
 router.post(
     '/',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Accountant'),
+ authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     createPayment
 );
 
 router.post(
     '/scheduled',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Accountant'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     createScheduledPayment
 );
 
 router.get(
     '/',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
+  authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     getPayments
 );
 
 router.get(
-    '/scheduled',
-    authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
+    '/scheduled/',
+  authMiddleware,
+  authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     getScheduledPayments
 );
 
 router.get(
     '/:id',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Line Producer', 'Accountant'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     getPayment
 );
 
 router.patch(
     '/scheduled/:scheduledPaymentId/installments/:installmentId/pay',
     authMiddleware,
-    authorizeRoles("Admin",'Producer', 'Accountant'),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     markInstallmentPaid
 );
 
 router.get(
-    '/projects/:projectId/upcoming',
+    '/upcoming',
     authMiddleware,
 authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     getUpcomingPayments

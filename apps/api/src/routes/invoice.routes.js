@@ -9,42 +9,43 @@ import {
 } from "../controllers/vendor/invoice.controller.js";
 import { authMiddleware } from "../middlewares/authmiddleware.js";
 import { authorizeRoles } from "../middlewares/rolemiddleware.js";
+import { authorizeProjectRoles } from '../middlewares/projectRoles.middlware.js';
 
 const router = express.Router();
 
 // Base: /api/invoices
 router.post(
-  "/",
+  "/project/:projectId",
   authMiddleware,
-  authorizeRoles("Admin","Producer", "Line Producer", "Accountant"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   createInvoice
 );
 
 router.get(
   "/",
   authMiddleware,
-  authorizeRoles("Admin","Producer", "Line Producer", "Accountant"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   getInvoices
 );
 
 router.get(
   "/:id",
   authMiddleware,
-  authorizeRoles("Admin","Producer", "Line Producer", "Accountant"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   getInvoice
 );
 
 router.patch(
   "/:id/status",
   authMiddleware,
-  authorizeRoles("Admin","Producer", "Accountant"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   updateInvoiceStatus
 );
 
 router.delete(
   "/:id",
   authMiddleware,
-  authorizeRoles("Admin","Producer"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   deleteInvoice
 );
 
@@ -52,7 +53,7 @@ router.delete(
 router.get(
   "/po/:poId/balance",
   authMiddleware,
-  authorizeRoles("Admin","Producer", "Line Producer", "Accountant"),
+authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   getPOBalance
 );
 

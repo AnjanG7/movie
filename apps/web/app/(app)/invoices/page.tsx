@@ -239,7 +239,7 @@ export default function InvoicesPage() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/invoices`, {
+      const response = await fetch(`${API_BASE_URL}/invoices/project/{projectId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

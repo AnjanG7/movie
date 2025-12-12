@@ -6,7 +6,8 @@ import { StatusCodes } from 'http-status-codes';
 const paymentService = new PaymentService();
 
 export const createPayment = asyncHandler(async (req, res) => {
-    const payment = await paymentService.createPayment(req.body, req.user.id);
+    const projectId= req.params.projectId
+    const payment = await paymentService.createPayment(projectId,req.body, req.user);
     res
         .status(StatusCodes.CREATED)
         .json(
@@ -15,9 +16,11 @@ export const createPayment = asyncHandler(async (req, res) => {
 });
 
 export const createScheduledPayment = asyncHandler(async (req, res) => {
+        const projectId= req.params.projectId
     const scheduledPayment = await paymentService.createScheduledPayment(
         req.body,
-        req.user.id
+        req.user,
+        projectId
     );
     res
         .status(StatusCodes.CREATED)
@@ -31,7 +34,8 @@ export const createScheduledPayment = asyncHandler(async (req, res) => {
 });
 
 export const getPayments = asyncHandler(async (req, res) => {
-    const result = await paymentService.getPayments(req.query);
+        const projectId= req.params.projectId
+    const result = await paymentService.getPayments(req.query,req.user,projectId);
     res
         .status(StatusCodes.OK)
         .json(
@@ -40,7 +44,8 @@ export const getPayments = asyncHandler(async (req, res) => {
 });
 
 export const getPayment = asyncHandler(async (req, res) => {
-    const payment = await paymentService.getPayment(req.params.id);
+        const projectId= req.params.projectId
+    const payment = await paymentService.getPayment(req.params.id,req.user,projectId);
     res
         .status(StatusCodes.OK)
         .json(
@@ -49,7 +54,9 @@ export const getPayment = asyncHandler(async (req, res) => {
 });
 
 export const getScheduledPayments = asyncHandler(async (req, res) => {
-    const result = await paymentService.getScheduledPayments(req.query);
+        const projectId= req.params.projectId
+
+    const result = await paymentService.getScheduledPayments(req.query,req.user,projectId);
     res
         .status(StatusCodes.OK)
         .json(
@@ -62,11 +69,13 @@ export const getScheduledPayments = asyncHandler(async (req, res) => {
 });
 
 export const markInstallmentPaid = asyncHandler(async (req, res) => {
+        const projectId= req.params.projectId
     const { scheduledPaymentId, installmentId } = req.params;
     const updated = await paymentService.markInstallmentPaid(
         scheduledPaymentId,
         installmentId,
-        req.body
+        req.body,
+        projectId
     );
     res
         .status(StatusCodes.OK)
@@ -77,7 +86,7 @@ export const markInstallmentPaid = asyncHandler(async (req, res) => {
 
 export const getUpcomingPayments = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
-    const upcoming = await paymentService.getUpcomingPayments(projectId);
+    const upcoming = await paymentService.getUpcomingPayments(projectId,req.user);
     res
         .status(StatusCodes.OK)
         .json(

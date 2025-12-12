@@ -135,7 +135,19 @@ async function main() {
       },
     });
     console.log('   ✅ Equity financing: $30,000');
+   console.log('\n🏢 Creating sample vendors...');
+    const vendors = [
+      { name: 'Camera House Ltd', currency: 'USD',projectId :'7f3b9e38-5065-481e-90c4-1a3be50b7dc8', contactInfo: { phone: '555-0001', email: 'contact@camerahouse.com' } },
+      { name: 'Sound Studios Inc', currency: 'USD', projectId :'7f3b9e38-5065-481e-90c4-1a3be50b7dc8',contactInfo: { phone: '555-0002', email: 'info@soundstudios.com' } },
+      { name: 'Marketing Pro', currency: 'USD', projectId :'7f3b9e38-5065-481e-90c4-1a3be50b7dc8',contactInfo: { phone: '555-0003', email: 'hello@marketingpro.com' } },
+    ];
 
+    for (const vendor of vendors) {
+      await prisma.vendor.create({
+        data: vendor,
+      });
+      console.log(`   ✅ ${vendor.name}`);
+    }
     await prisma.financingSource.create({
       data: {
         projectId: sampleProject.id,
@@ -145,6 +157,47 @@ async function main() {
       },
     });
     console.log('   ✅ Loan financing: $20,000 @ 5%');
+console.log('\n🧾 Creating sample invoices...');
+
+
+const invoices = [
+  {
+    docNo: 'INV-001',
+    date: new Date('2025-01-10'),
+    amount: 1500,
+    attachments: [{ file: "invoice1.pdf" }],
+  },
+  {
+    docNo: 'INV-002',
+    date: new Date('2025-01-15'),
+    amount: 2400,
+    attachments: [{ file: "invoice2.pdf" }],
+  },
+  {
+    docNo: 'INV-003',
+    date: new Date('2025-01-20'),
+    amount: 3200,
+    attachments: [{ file: "invoice3.pdf" }],
+  },
+];
+
+for (const inv of invoices) {
+
+
+
+  await prisma.invoice.create({
+    data: {
+      vendorId: '2b5cc6d0-5913-4318-9404-9327d9fd7309',
+      projectId: '7f3b9e38-5065-481e-90c4-1a3be50b7dc8',
+      docNo: inv.docNo,
+      date: inv.date,
+      amount: inv.amount,
+      attachments: inv.attachments,
+      poId: 'b28927e0-11f0-4aa4-bae8-6db77386b9cd', // only if PO exists
+    },
+  });
+
+}
 
     // ================== SUCCESS ==================
     console.log('\n' + '='.repeat(50));

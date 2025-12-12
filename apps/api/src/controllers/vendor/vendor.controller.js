@@ -7,7 +7,8 @@ const vendorService = new VendorService();
 
 // Create Vendor
 export const createVendor = asyncHandler(async (req, res) => {
-    const vendor = await vendorService.createVendor(req.body);
+    const projectId= req.params.projectId
+    const vendor = await vendorService.createVendor(req.body,projectId,req.user);
     res
         .status(StatusCodes.CREATED)
         .json(
@@ -17,7 +18,8 @@ export const createVendor = asyncHandler(async (req, res) => {
 
 // Get all Vendors
 export const getVendors = asyncHandler(async (req, res) => {
-    const result = await vendorService.getAllVendors(req.query);
+     const projectId= req.params.projectId
+    const result = await vendorService.getAllVendors(projectId,req.query);
     res
         .status(StatusCodes.OK)
         .json(
@@ -27,7 +29,8 @@ export const getVendors = asyncHandler(async (req, res) => {
 
 // Get single Vendor
 export const getVendor = asyncHandler(async (req, res) => {
-    const vendor = await vendorService.getVendor(req.params.id);
+     const projectId= req.params.projectId
+    const vendor = await vendorService.getVendor(projectId,req.params,req.user);
     res
         .status(StatusCodes.OK)
         .json(
@@ -37,7 +40,7 @@ export const getVendor = asyncHandler(async (req, res) => {
 
 // Update Vendor
 export const updateVendor = asyncHandler(async (req, res) => {
-    const updated = await vendorService.updateVendor(req.params.id, req.body);
+    const updated = await vendorService.updateVendor(req.params.id, req.body,req.user);
     res
         .status(StatusCodes.OK)
         .json(new ApiResponse(StatusCodes.OK, updated, 'Vendor updated successfully'));
@@ -45,7 +48,7 @@ export const updateVendor = asyncHandler(async (req, res) => {
 
 // Delete Vendor
 export const deleteVendor = asyncHandler(async (req, res) => {
-    const result = await vendorService.deleteVendor(req.params.id);
+    const result = await vendorService.deleteVendor(req.params.id,req.user);
     res
         .status(StatusCodes.OK)
         .json(new ApiResponse(StatusCodes.OK, result, 'Vendor deleted successfully'));

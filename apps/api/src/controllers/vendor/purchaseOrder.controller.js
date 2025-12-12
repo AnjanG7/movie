@@ -10,7 +10,7 @@ export const createPurchaseOrder = asyncHandler(async (req, res) => {
     const purchaseOrder = await poService.createPurchaseOrder(
         projectId,
         req.body,
-        req.user.id
+        req.user
     );
     res
         .status(StatusCodes.CREATED)
@@ -25,7 +25,7 @@ export const createPurchaseOrder = asyncHandler(async (req, res) => {
 
 export const getPurchaseOrders = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
-    const result = await poService.getPurchaseOrders(projectId, req.query);
+    const result = await poService.getPurchaseOrders(projectId, req.query, req.user);
     res
         .status(StatusCodes.OK)
         .json(
@@ -38,7 +38,10 @@ export const getPurchaseOrders = asyncHandler(async (req, res) => {
 });
 
 export const getPurchaseOrder = asyncHandler(async (req, res) => {
-    const purchaseOrder = await poService.getPurchaseOrder(req.params.id);
+
+const projectId= req.params.projectId
+
+    const purchaseOrder = await poService.getPurchaseOrder(projectId,req.params.id,req.user);
     res
         .status(StatusCodes.OK)
         .json(
@@ -52,7 +55,8 @@ export const getPurchaseOrder = asyncHandler(async (req, res) => {
 
 export const updatePOStatus = asyncHandler(async (req, res) => {
     const { status } = req.body;
-    const updated = await poService.updatePOStatus(req.params.id, status, req.user.id);
+
+    const updated = await poService.updatePOStatus(req.params.id, status, req.user);
     res
         .status(StatusCodes.OK)
         .json(
@@ -61,7 +65,8 @@ export const updatePOStatus = asyncHandler(async (req, res) => {
 });
 
 export const deletePurchaseOrder = asyncHandler(async (req, res) => {
-    const result = await poService.deletePurchaseOrder(req.params.id);
+        
+    const result = await poService.deletePurchaseOrder(req.params.id,req.user);
     res
         .status(StatusCodes.OK)
         .json(new ApiResponse(StatusCodes.OK, result, 'Purchase Order deleted'));
