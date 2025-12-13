@@ -299,10 +299,10 @@ export default function ProjectsPage() {
                   required
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
+                  <option value="NPR">NPR - Nepali Rupee</option>
                   <option value="USD">USD - US Dollar</option>
                   <option value="EUR">EUR - Euro</option>
                   <option value="GBP">GBP - British Pound</option>
-                  <option value="NPR">NPR - Nepali Rupee</option>
                   <option value="INR">INR - Indian Rupee</option>
                 </select>
               </div>

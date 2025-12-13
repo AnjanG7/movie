@@ -69,8 +69,7 @@ interface FormData {
   allocations: AllocationForm[];
 }
 
-interface UpcomingInstallment
-  extends Installment {
+interface UpcomingInstallment extends Installment {
   paymentId: string;
   vendor?: string;
 }
@@ -94,16 +93,19 @@ export default function ScheduledPaymentsPage() {
     allocations: [{ phase: 'PRODUCTION', amount: 0 }],
   });
 
+  // Fetch projects on mount
   useEffect(() => {
     fetchProjects();
-    fetchVendors();
   }, []);
 
+  // Fetch vendors and scheduled payments when project changes
   useEffect(() => {
     if (selectedProjectId) {
-      fetchScheduledPayments();
+      fetchVendors(selectedProjectId);
+      fetchScheduledPayments(selectedProjectId);
     } else {
       setScheduledPayments([]);
+      setVendors([]);
     }
   }, [selectedProjectId]);
 
@@ -121,33 +123,78 @@ export default function ScheduledPaymentsPage() {
     }
   };
 
-  const fetchVendors = async () => {
+  const fetchVendors = async (projectId: string) => {
+    if (!projectId) {
+      setVendors([]);
+      return;
+    }
+
     try {
-      const response = await fetch(`${API_BASE_URL}/vendors`, {
-        credentials: 'include',
-      });
+      console.log('🔍 Fetching vendors for project:', projectId);
+      
+      const response = await fetch(
+        `${API_BASE_URL}/vendors/project/${projectId}`,
+        { credentials: 'include' }
+      );
+      
+      console.log('📡 Vendors response status:', response.status);
+      
+      if (!response.ok) {
+        console.error('❌ Failed to fetch vendors');
+        setVendors([]);
+        return;
+      }
+
       const result = await response.json();
+      console.log('📦 Vendors response:', result);
+      
       if (result.success) {
-        setVendors(result.data.vendors || []);
+        setVendors(result.data?.vendors || []);
+      } else {
+        console.error('❌ API returned error:', result.message);
+        setVendors([]);
       }
     } catch (error) {
-      console.error('Error fetching vendors:', error);
+      console.error('💥 Error fetching vendors:', error);
+      setVendors([]);
     }
   };
 
-  const fetchScheduledPayments = async () => {
-    if (!selectedProjectId) return;
+  const fetchScheduledPayments = async (projectId: string) => {
+    if (!projectId) {
+      setScheduledPayments([]);
+      return;
+    }
+
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/scheduled`, {
-        credentials: 'include',
-      });
+      console.log('🔍 Fetching scheduled payments for project:', projectId);
+      
+      const response = await fetch(
+        `${API_BASE_URL}/payments/scheduled/project/${projectId}`,
+        { credentials: 'include' }
+      );
+
+      console.log('📡 Scheduled payments response status:', response.status);
+
+      if (!response.ok) {
+        console.error('❌ Failed to fetch scheduled payments');
+        setScheduledPayments([]);
+        return;
+      }
+
       const result = await response.json();
+      console.log('📦 Scheduled payments response:', result);
+      
       if (result.success) {
         setScheduledPayments(result.data.scheduledPayments || []);
+      } else {
+        console.error('❌ API returned error:', result.message);
+        setScheduledPayments([]);
       }
     } catch (error) {
-      console.error('Error fetching scheduled payments:', error);
+      console.error('💥 Error fetching scheduled payments:', error);
+      setScheduledPayments([]);
     } finally {
       setLoading(false);
     }
@@ -173,19 +220,22 @@ export default function ScheduledPaymentsPage() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/payments/scheduled`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(formData),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/payments/scheduled/project/${selectedProjectId}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(formData),
+        }
+      );
 
       const result = await response.json();
       if (result.success) {
         alert('Scheduled payment created successfully');
         setShowCreateModal(false);
         resetForm();
-        fetchScheduledPayments();
+        fetchScheduledPayments(selectedProjectId);
       } else {
         alert(result.message || 'Failed to create scheduled payment');
       }
@@ -220,7 +270,9 @@ export default function ScheduledPaymentsPage() {
       const result = await response.json();
       if (result.success) {
         alert('Installment marked as paid');
-        fetchScheduledPayments();
+        if (selectedProjectId) {
+          fetchScheduledPayments(selectedProjectId);
+        }
       } else {
         alert(result.message || 'Failed to update installment');
       }
@@ -422,7 +474,7 @@ export default function ScheduledPaymentsPage() {
                 Total Scheduled
               </div>
               <div className="text-2xl font-bold text-slate-900">
-                {formatCurrency(totalScheduled)}
+                ${formatCurrency(totalScheduled)}
               </div>
               <div className="text-[11px] text-slate-400 mt-1">
                 All vendor commitments
@@ -433,7 +485,7 @@ export default function ScheduledPaymentsPage() {
                 Total Paid
               </div>
               <div className="text-2xl font-bold text-emerald-600">
-                {formatCurrency(totalPaid)}
+                ${formatCurrency(totalPaid)}
               </div>
               <div className="text-[11px] text-slate-400 mt-1">
                 Across all installments
@@ -444,7 +496,7 @@ export default function ScheduledPaymentsPage() {
                 Remaining
               </div>
               <div className="text-2xl font-bold text-amber-600">
-                {formatCurrency(totalRemaining)}
+                ${formatCurrency(totalRemaining)}
               </div>
               <div className="text-[11px] text-slate-400 mt-1">
                 Yet to be paid
@@ -467,7 +519,7 @@ export default function ScheduledPaymentsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1">
-                      Vendor (Payee)
+                      Vendor (Payee) *
                     </label>
                     <select
                       value={formData.payeeId}
@@ -482,10 +534,15 @@ export default function ScheduledPaymentsPage() {
                         </option>
                       ))}
                     </select>
+                    {vendors.length === 0 && (
+                      <p className="text-[11px] text-amber-600 mt-1">
+                        No vendors found for this project. Please add vendors first.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1">
-                      Total Amount
+                      Total Amount *
                     </label>
                     <input
                       type="number"
@@ -576,7 +633,7 @@ export default function ScheduledPaymentsPage() {
                   </div>
                   <div className="text-[11px] text-slate-500 mt-1">
                     Installments Total:{' '}
-                    {formatCurrency(
+                    ${formatCurrency(
                       formData.installments.reduce(
                         (sum, i) => sum + Number(i.amount),
                         0
@@ -722,7 +779,7 @@ export default function ScheduledPaymentsPage() {
                           </td>
                           <td className="px-2 py-1">{inst.vendor}</td>
                           <td className="px-2 py-1 text-right">
-                            {formatCurrency(inst.amount)}
+                            ${formatCurrency(inst.amount)}
                           </td>
                           <td className="px-2 py-1">
                             <button
@@ -789,12 +846,11 @@ export default function ScheduledPaymentsPage() {
                         </div>
                         <div className="text-xs text-slate-500">
                           Total:{' '}
-                          {payment.payee?.currency}{' '}
-                          {formatCurrency(payment.total)}
+                          {payment.payee?.currency} ${formatCurrency(payment.total)}
                         </div>
                         <div className="text-xs text-slate-500">
                           Remaining:{' '}
-                          {payment.payee?.currency}{' '}
+                          {payment.payee?.currency} $
                           {formatCurrency(payment.remainingAmount || 0)}
                         </div>
                       </div>
@@ -850,7 +906,7 @@ export default function ScheduledPaymentsPage() {
                                     ).toLocaleDateString()}
                                   </td>
                                   <td className="px-2 py-1 text-right">
-                                    {formatCurrency(inst.amount)}
+                                    ${formatCurrency(inst.amount)}
                                   </td>
                                   <td className="px-2 py-1">
                                     <span
@@ -915,7 +971,7 @@ export default function ScheduledPaymentsPage() {
                                           {alloc.phase}
                                         </td>
                                         <td className="px-2 py-1 text-right">
-                                          {formatCurrency(alloc.amount)}
+                                          ${formatCurrency(alloc.amount)}
                                         </td>
                                       </tr>
                                     ))}

@@ -11,11 +11,11 @@ import { authMiddleware } from "../middlewares/authmiddleware.js";
 import { authorizeRoles } from "../middlewares/rolemiddleware.js";
 import { authorizeProjectRoles } from '../middlewares/projectRoles.middlware.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Base: /api/invoices
 router.post(
-  "/project/:projectId",
+  "/",
   authMiddleware,
 authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   createInvoice
