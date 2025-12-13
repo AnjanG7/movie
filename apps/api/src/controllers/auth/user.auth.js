@@ -68,7 +68,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
   const requesterId = req.user?.id;
   const roles = req.user?.roles || [];
 
-  const isAdmin = roles.includes("ADMIN");
+  const isAdmin = roles.includes("Admin");
 
   const users = await authService.getAllUsers({
     requesterId,
