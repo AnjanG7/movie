@@ -8,7 +8,8 @@ export class PublicityService {
   /**
    * Create a new publicity/P&A budget item
    */
-  async createPublicityBudget(projectId, data) {
+  async createPublicityBudget(projectId, data,user) {
+    
     const { name, category, description, budgetAmount, vendor, startDate, endDate, notes } = data;
 
     // Validate project exists
@@ -57,7 +58,7 @@ export class PublicityService {
   /**
    * Get all publicity budgets for a project with summary
    */
-  async getPublicityBudgets(projectId, query = {}) {
+  async getPublicityBudgets(projectId, query = {},user) {
 
 
     const project = await prisma.project.findUnique({
@@ -127,21 +128,36 @@ export class PublicityService {
   /**
    * Get single publicity budget with details
    */
-  async getPublicityBudget(id) {
-    const budget = await prisma.publicityBudget.findUnique({
-      where: { id },
-      include: {
-        project: {
-          select: { id: true, title: true, baseCurrency: true }
-        },
-        expenses: {
-          orderBy: { expenseDate: 'desc' }
-        },
-        campaignEvents: {
-          orderBy: { startDate: 'asc' }
-        }
-      }
+  async getPublicityBudget(projectId,publicityId,user) {
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
     });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
+
+const budget = await prisma.publicityBudget.findFirst({
+  where: { id: publicityId, projectId },
+  include: {
+    project: { select: { id: true, title: true, baseCurrency: true } },
+    expenses: { orderBy: { expenseDate: 'desc' } },
+    campaignEvents: { orderBy: { startDate: 'asc' } },
+  },
+});
 
     if (!budget) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Publicity budget not found');
@@ -153,12 +169,30 @@ export class PublicityService {
   /**
    * Update publicity budget
    */
-  async updatePublicityBudget(id, data) {
+  async updatePublicityBudget(id, data,user) {
     const budget = await prisma.publicityBudget.findUnique({ where: { id } });
+    const projectId= budget.projectId
 
-    if (!budget) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Publicity budget not found');
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
     }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
+
 
     const updateData = {};
     if (data.name !== undefined) updateData.name = data.name;
@@ -186,8 +220,29 @@ export class PublicityService {
   /**
    * Delete publicity budget
    */
-  async deletePublicityBudget(id) {
+  async deletePublicityBudget(id,user) {
     const budget = await prisma.publicityBudget.findUnique({ where: { id } });
+    const projectId= budget.projectId
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
 
     if (!budget) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Publicity budget not found');
@@ -203,7 +258,28 @@ export class PublicityService {
   /**
    * Add an expense to a publicity budget item
    */
-  async addPublicityExpense(publicityBudgetId, data) {
+  async addPublicityExpense(projectId,publicityBudgetId,user, data) {
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
+
     const { description, amount, expenseDate, vendor, invoiceNumber, attachmentUrl, notes } = data;
 
     const budget = await prisma.publicityBudget.findUnique({
@@ -244,7 +320,28 @@ export class PublicityService {
   /**
    * Get all expenses for a publicity budget
    */
-  async getPublicityExpenses(publicityBudgetId) {
+  async getPublicityExpenses(projectId,publicityBudgetId,user) {
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
+
     const expenses = await prisma.publicityExpense.findMany({
       where: { publicityBudgetId },
       orderBy: { expenseDate: 'desc' }
@@ -261,7 +358,28 @@ export class PublicityService {
   /**
    * Update an expense
    */
-  async updatePublicityExpense(id, data) {
+  async updatePublicityExpense(projectId,id, data,user) {
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
+
     const expense = await prisma.publicityExpense.findUnique({ where: { id } });
 
     if (!expense) {
@@ -299,7 +417,28 @@ export class PublicityService {
   /**
    * Delete an expense
    */
-  async deletePublicityExpense(id) {
+  async deletePublicityExpense(projectId,id,user) {
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
+
     const expense = await prisma.publicityExpense.findUnique({
       where: { id }
     });
@@ -329,13 +468,29 @@ export class PublicityService {
   /**
    * Create a campaign event
    */
-  async createCampaignEvent(projectId, data) {
+  async createCampaignEvent(projectId, data,user) {
+    
     const { title, description, eventType, startDate, endDate, deliverable, publicityBudgetId, notes } = data;
 
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
     if (!project) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Project not found');
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
     }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
 
     // Validate publicity budget if provided
     if (publicityBudgetId) {
@@ -376,7 +531,7 @@ export class PublicityService {
   /**
    * Get campaign calendar for a project
    */
-  async getCampaignCalendar(projectId, query = {}) {
+  async getCampaignCalendar(projectId, query = {},user) {
 
 
         const project = await prisma.project.findUnique({
@@ -431,9 +586,27 @@ export class PublicityService {
   /**
    * Get single campaign event
    */
-  async getCampaignEvent(id) {
+  async getCampaignEvent(projectId,id,user) {
+        const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
     const event = await prisma.campaignEvent.findUnique({
-      where: { id },
+      where: { id,projectId},
       include: {
         project: true,
         publicityBudget: true
@@ -450,12 +623,34 @@ export class PublicityService {
   /**
    * Update campaign event
    */
-  async updateCampaignEvent(id, data) {
+  async updateCampaignEvent(id, data,user) {
+
     const event = await prisma.campaignEvent.findUnique({ where: { id } });
 
     if (!event) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Campaign event not found');
     }
+    const projectId= event.projectId
+ 
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
 
     const updateData = {};
     if (data.title !== undefined) updateData.title = data.title;
@@ -482,13 +677,37 @@ export class PublicityService {
   /**
    * Delete campaign event
    */
-  async deleteCampaignEvent(id) {
+  async deleteCampaignEvent(id,user) {
+
+
     const event = await prisma.campaignEvent.findUnique({ where: { id } });
 
     if (!event) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Campaign event not found');
     }
 
+    const projectId= event.projectId
+        const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    const users = await prisma.user.findUnique({
+      where: { id: user?.id },
+      include: { role: true },
+    });
+
+    if (!project)
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    const isAdmin = users.role?.name === "Admin";
+    // Only Admin or Project Owner
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
     await prisma.campaignEvent.delete({ where: { id } });
 
     return { message: 'Campaign event deleted successfully' };
@@ -499,7 +718,28 @@ export class PublicityService {
   /**
    * Get comprehensive P&A summary report
    */
-  async getPublicitySummary(projectId) {
+  async getPublicitySummary(projectId,user) {
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
+
     const [budgets, events] = await Promise.all([
       prisma.publicityBudget.findMany({
         where: { projectId },
@@ -590,7 +830,28 @@ export class PublicityService {
   /**
    * Update ROI forecast including P&A costs
    */
-  async updateROIWithPublicity(projectId) {
+  async updateROIWithPublicity(projectId,user) {
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
+
     // Get latest quotation/baseline budget
     const quotation = await prisma.budgetVersion.findFirst({
       where: {

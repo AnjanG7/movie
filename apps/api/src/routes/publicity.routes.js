@@ -41,7 +41,7 @@ authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
 );
 
 router.get(
-  '/budgets/:id',
+  '/budgets/:publicityId',
   authMiddleware,
 authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   getPublicityBudget
