@@ -19,7 +19,7 @@ export const createVendor = asyncHandler(async (req, res) => {
 // Get all Vendors
 export const getVendors = asyncHandler(async (req, res) => {
      const projectId= req.params.projectId
-    const result = await vendorService.getAllVendors(projectId,req.query);
+    const result = await vendorService.getAllVendors(projectId,req.query,req.user);
     res
         .status(StatusCodes.OK)
         .json(
@@ -30,7 +30,7 @@ export const getVendors = asyncHandler(async (req, res) => {
 // Get single Vendor
 export const getVendor = asyncHandler(async (req, res) => {
      const projectId= req.params.projectId
-    const vendor = await vendorService.getVendor(projectId,req.params,req.user);
+    const vendor = await vendorService.getVendor(projectId,req.params.vendorId,req.user);
     res
         .status(StatusCodes.OK)
         .json(

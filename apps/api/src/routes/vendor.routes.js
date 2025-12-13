@@ -27,7 +27,7 @@ router.get(
 );
 
 router.get(
-    '/:id',
+    '/:vendorId',
     authMiddleware,
   authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     getVendor

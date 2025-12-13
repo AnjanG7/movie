@@ -257,7 +257,7 @@ model Vendor {
   bankInfo    Json?
   contactInfo Json? // optional phone/email/address
   projectId   String
-  project     Project @relation(fields: [projectId], references: [id])
+  project     Project @relation(fields: [projectId], references: [id],    onDelete: Cascade)
 
   purchaseOrders    PurchaseOrder[]
   invoices          Invoice[]

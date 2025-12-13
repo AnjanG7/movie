@@ -4,90 +4,100 @@ import { StatusCodes } from 'http-status-codes';
 
 export class VendorService {
     // Get all vendors
-    async getAllVendors(projectId,query = {}) {
-          
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-    });
-    if (!project) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
-    }
+// Get all vendors (project-specific)
+async getAllVendors(projectId, query = {}, user) {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+  });
 
-    const isAdmin = user.roles?.includes("Admin");
+  if (!project) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+  }
 
-    if (
-      !isAdmin &&
-      project.ownerId !== user?.id &&
-      !(await prisma.projectUser.findFirst({
-        where: { projectId, userId: user?.id },
-      }))
-    ) {
-      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
-    }
+  const isAdmin = user.roles?.includes("Admin");
 
-        const { page = 1, limit = 100 } = query; // Default limit high for frontend dropdown
-        const skip = (Number(page) - 1) * Number(limit);
-        const take = Number(limit);
+  const hasAccess =
+    isAdmin ||
+    project.ownerId === user?.id ||
+    (await prisma.projectUser.findFirst({
+      where: { projectId, userId: user?.id },
+    }));
 
-        const [vendors, total] = await Promise.all([
-            prisma.vendor.findMany({
-                skip,
-                take,
-                orderBy: { createdAt: 'desc' },
-            }),
-            prisma.vendor.count(),
-        ]);
+  if (!hasAccess) {
+    throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+  }
 
-        return {
-            total,
-            page: Number(page),
-            totalPages: Math.ceil(total / limit),
-            vendors,
-        };
-    }
+  const { page = 1, limit = 100 } = query;
+  const skip = (Number(page) - 1) * Number(limit);
+  const take = Number(limit);
 
-    // Get single vendor
-    async getVendor(projectId,id,user) {
-          
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-    });
-    if (!project) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
-    }
+  const where = { projectId };
 
-    const isAdmin = user.roles?.includes("Admin");
+  const [vendors, total] = await Promise.all([
+    prisma.vendor.findMany({
+      where,
+      skip,
+      take,
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.vendor.count({ where }),
+  ]);
 
-    if (
-      !isAdmin &&
-      project.ownerId !== user?.id &&
-      !(await prisma.projectUser.findFirst({
-        where: { projectId, userId: user?.id },
-      }))
-    ) {
-      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
-    }
-        const vendor = await prisma.vendor.findUnique({
-            where: { id },
-            include: {
-                purchaseOrders: true,
-                invoices: true,
-                scheduledPayments: {
-                    include: {
-                        installments: true,
-                        allocations: true,
-                    },
-                },
-            },
-        });
-
-        if (!vendor) {
-            throw new ApiError(StatusCodes.NOT_FOUND, 'Vendor not found');
-        }
+  return {
+    total,
+    page: Number(page),
+    totalPages: Math.ceil(total / limit),
+    vendors,
+  };
+}
 
 
-        return vendor;
-    }
+
+async getVendor(projectId, vendorId, user) {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+  });
+
+  if (!project) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+  }
+
+  const isAdmin = user.roles?.includes("Admin");
+
+  const hasAccess =
+    isAdmin ||
+    project.ownerId === user?.id ||
+    (await prisma.projectUser.findFirst({
+      where: { projectId, userId: user?.id },
+    }));
+
+  if (!hasAccess) {
+    throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+  }
+
+  const vendor = await prisma.vendor.findFirst({
+    where: {
+     id:vendorId,
+      projectId, 
+    },
+    include: {
+      purchaseOrders: true,
+      invoices: true,
+      scheduledPayments: {
+        include: {
+          installments: true,
+          allocations: true,
+        },
+      },
+    },
+  });
+
+  if (!vendor) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Vendor not found");
+  }
+
+  return vendor;
+}
 
     // Create vendor
     async createVendor(data,projectId,user) {

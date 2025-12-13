@@ -1,537 +1,702 @@
 'use client';
 
-import React, {
-  useState,
-  useEffect,
-  FormEvent,
-  ChangeEvent,
-} from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Plus, Pencil, Trash2, Building2, X, Save } from 'lucide-react';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+interface Project {
+  id: string;
+  title: string;
+  baseCurrency: string;
+  status: string;
+}
 
 interface Vendor {
   id: string;
   name: string;
   currency: string;
   bankInfo?: {
-    bankName?: string;
+    accountName?: string;
     accountNumber?: string;
+    bankName?: string;
     swiftCode?: string;
-    iban?: string;
-  } | null;
+  };
   contactInfo?: {
-    name?: string;
     email?: string;
     phone?: string;
     address?: string;
-  } | null;
+  };
+  projectId: string;
+  project?: {
+    id: string;
+    title: string;
+  };
+  purchaseOrders?: any[];
+  invoices?: any[];
   createdAt: string;
-  updatedAt?: string;
+  updatedAt: string;
 }
 
 interface VendorFormData {
   name: string;
   currency: string;
-  bankName: string;
-  accountNumber: string;
-  swiftCode: string;
-  iban: string;
-  contactName: string;
-  email: string;
-  phone: string;
-  address: string;
+  bankInfo: {
+    accountName: string;
+    accountNumber: string;
+    bankName: string;
+    swiftCode: string;
+  };
+  contactInfo: {
+    email: string;
+    phone: string;
+    address: string;
+  };
 }
 
 export default function VendorsPage() {
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+  const router = useRouter();
 
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [formData, setFormData] = useState<VendorFormData>({
     name: '',
-    currency: 'USD',
-    bankName: '',
-    accountNumber: '',
-    swiftCode: '',
-    iban: '',
-    contactName: '',
-    email: '',
-    phone: '',
-    address: '',
+    currency: 'NPR',
+    bankInfo: {
+      accountName: '',
+      accountNumber: '',
+      bankName: '',
+      swiftCode: '',
+    },
+    contactInfo: {
+      email: '',
+      phone: '',
+      address: '',
+    },
   });
 
-  useEffect(() => {
-    fetchVendors();
-  }, []);
-
-  const fetchVendors = async () => {
-    setLoading(true);
+  // Fetch all projects
+  const fetchProjects = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/vendors/`, {
+      const response = await fetch(`${API_BASE_URL}/projects?fetchAll=true`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       });
-      const result = await response.json();
-      if (result.success) {
-        setVendors(result.data.vendors || []);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch projects');
       }
-    } catch (error) {
-      console.error('Error fetching vendors:', error);
-      alert('Failed to fetch vendors');
+
+      const result = await response.json();
+      const projectsList = result.data.projects || [];
+      setProjects(projectsList);
+
+      // Auto-select first project if available
+      if (projectsList.length > 0 && !selectedProjectId) {
+        setSelectedProjectId(projectsList[0].id);
+      }
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  // Fetch vendors for selected project
+  const fetchVendors = async (projectId: string) => {
+    if (!projectId) return;
+
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/vendors/project/${projectId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch vendors');
+      }
+
+      const result = await response.json();
+      setVendors(result.data.vendors || []);
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const buildPayload = () => ({
-    name: formData.name,
-    currency: formData.currency,
-    bankInfo: {
-      bankName: formData.bankName,
-      accountNumber: formData.accountNumber,
-      swiftCode: formData.swiftCode,
-      iban: formData.iban,
-    },
-    contactInfo: {
-      name: formData.contactName,
-      email: formData.email,
-      phone: formData.phone,
-      address: formData.address,
-    },
-  });
+  useEffect(() => {
+    fetchProjects();
+  }, []);
 
-  const handleCreateVendor = async (e: FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    if (selectedProjectId) {
+      fetchVendors(selectedProjectId);
+    }
+  }, [selectedProjectId]);
+
+  // Handle project selection
+  const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedProjectId(e.target.value);
+    setVendors([]);
+  };
+
+  // Create vendor
+  const handleCreateVendor = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedProjectId) {
+      setError('Please select a project first');
+      return;
+    }
+
     try {
-      const payload = buildPayload();
-      const response = await fetch(`${API_BASE_URL}/vendors/project/{projectId}`, {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/vendors/project/${selectedProjectId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(payload),
+        body: JSON.stringify(formData),
       });
-      const result = await response.json();
-      if (result.success) {
-        alert('Vendor created successfully');
-        setShowCreateModal(false);
-        resetForm();
-        fetchVendors();
-      } else {
-        alert(result.message || 'Failed to create vendor');
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create vendor');
       }
-    } catch (error) {
-      console.error('Error creating vendor:', error);
-      alert('Failed to create vendor');
+
+      await fetchVendors(selectedProjectId);
+      handleCloseModal();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleUpdateVendor = async (e: FormEvent<HTMLFormElement>) => {
+  // Update vendor
+  const handleUpdateVendor = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedVendor) return;
+    if (!editingVendor || !selectedProjectId) return;
+
     try {
-      const payload = buildPayload();
+      setLoading(true);
       const response = await fetch(
-        `${API_BASE_URL}/vendors/${selectedVendor.id}`,
+        `${API_BASE_URL}/vendors/project/${selectedProjectId}/${editingVendor.id}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify(payload),
+          body: JSON.stringify(formData),
         }
       );
-      const result = await response.json();
-      if (result.success) {
-        alert('Vendor updated successfully');
-        setShowEditModal(false);
-        setSelectedVendor(null);
-        resetForm();
-        fetchVendors();
-      } else {
-        alert(result.message || 'Failed to update vendor');
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update vendor');
       }
-    } catch (error) {
-      console.error('Error updating vendor:', error);
-      alert('Failed to update vendor');
+
+      await fetchVendors(selectedProjectId);
+      handleCloseModal();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleEditClick = (vendor: Vendor) => {
-    setSelectedVendor(vendor);
-    setFormData({
-      name: vendor.name,
-      currency: vendor.currency,
-      bankName: vendor.bankInfo?.bankName || '',
-      accountNumber: vendor.bankInfo?.accountNumber || '',
-      swiftCode: vendor.bankInfo?.swiftCode || '',
-      iban: vendor.bankInfo?.iban || '',
-      contactName: vendor.contactInfo?.name || '',
-      email: vendor.contactInfo?.email || '',
-      phone: vendor.contactInfo?.phone || '',
-      address: vendor.contactInfo?.address || '',
-    });
-    setShowEditModal(true);
-  };
-
-  const handleDelete = async (vendorId: string) => {
+  // Delete vendor
+  const handleDeleteVendor = async (vendorId: string) => {
     if (!confirm('Are you sure you want to delete this vendor?')) return;
+    if (!selectedProjectId) return;
+
     try {
-      const response = await fetch(`${API_BASE_URL}/vendors/${vendorId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      const result = await response.json();
-      if (result.success) {
-        alert('Vendor deleted successfully');
-        fetchVendors();
-      } else {
-        alert(result.message || 'Failed to delete vendor');
+      setLoading(true);
+      const response = await fetch(
+        `${API_BASE_URL}/vendors/project/${selectedProjectId}/${vendorId}`,
+        {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete vendor');
       }
-    } catch (error) {
-      console.error('Error deleting vendor:', error);
-      alert('Failed to delete vendor');
+
+      await fetchVendors(selectedProjectId);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const resetForm = () => {
+  // Open modal for creating
+  const handleOpenCreateModal = () => {
+    if (!selectedProjectId) {
+      setError('Please select a project first');
+      return;
+    }
+
+    setEditingVendor(null);
     setFormData({
       name: '',
       currency: 'USD',
-      bankName: '',
-      accountNumber: '',
-      swiftCode: '',
-      iban: '',
-      contactName: '',
-      email: '',
-      phone: '',
-      address: '',
+      bankInfo: {
+        accountName: '',
+        accountNumber: '',
+        bankName: '',
+        swiftCode: '',
+      },
+      contactInfo: {
+        email: '',
+        phone: '',
+        address: '',
+      },
     });
+    setShowModal(true);
   };
 
-  const handleFormChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
+  // Open modal for editing
+  const handleOpenEditModal = (vendor: Vendor) => {
+    setEditingVendor(vendor);
+    setFormData({
+      name: vendor.name,
+      currency: vendor.currency,
+      bankInfo: {
+        accountName: vendor.bankInfo?.accountName || '',
+        accountNumber: vendor.bankInfo?.accountNumber || '',
+        bankName: vendor.bankInfo?.bankName || '',
+        swiftCode: vendor.bankInfo?.swiftCode || '',
+      },
+      contactInfo: {
+        email: vendor.contactInfo?.email || '',
+        phone: vendor.contactInfo?.phone || '',
+        address: vendor.contactInfo?.address || '',
+      },
+    });
+    setShowModal(true);
+  };
+
+  // Close modal
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingVendor(null);
+    setError('');
+  };
+
+  // Handle basic input changes
+  const handleBasicChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const renderVendorForm = (isEdit: boolean) => (
-    <form
-      onSubmit={isEdit ? handleUpdateVendor : handleCreateVendor}
-      className="space-y-6"
-    >
-      <div>
-        <h3 className="text-sm font-semibold text-slate-800 mb-2">
-          Basic Information
-        </h3>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              Vendor Name *
-            </label>
-            <input
-              name="name"
-              type="text"
-              value={formData.name}
-              onChange={handleFormChange}
-              required
-              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              Currency *
-            </label>
-            <select
-              name="currency"
-              value={formData.currency}
-              onChange={handleFormChange}
-              required
-              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
-            >
-              <option value="USD">USD - US Dollar</option>
-              <option value="EUR">EUR - Euro</option>
-              <option value="GBP">GBP - British Pound</option>
-              <option value="CAD">CAD - Canadian Dollar</option>
-              <option value="AUD">AUD - Australian Dollar</option>
-              <option value="INR">INR - Indian Rupee</option>
-              <option value="NPR">NPR - Nepali Rupee</option>
-            </select>
-          </div>
-        </div>
-      </div>
+  // Handle bank info changes
+  const handleBankInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      bankInfo: {
+        ...prev.bankInfo,
+        [name]: value,
+      },
+    }));
+  };
 
-      <div>
-        <h3 className="text-sm font-semibold text-slate-800 mb-2">
-          Contact Information
-        </h3>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              Contact Name
-            </label>
-            <input
-              name="contactName"
-              type="text"
-              value={formData.contactName}
-              onChange={handleFormChange}
-              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              Email
-            </label>
-            <input
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleFormChange}
-              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              Phone
-            </label>
-            <input
-              name="phone"
-              type="tel"
-              value={formData.phone}
-              onChange={handleFormChange}
-              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              Address
-            </label>
-            <textarea
-              name="address"
-              value={formData.address}
-              onChange={handleFormChange}
-              rows={3}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
-      </div>
+  // Handle contact info changes
+  const handleContactInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      contactInfo: {
+        ...prev.contactInfo,
+        [name]: value,
+      },
+    }));
+  };
 
-      <div>
-        <h3 className="text-sm font-semibold text-slate-800 mb-2">
-          Banking Information
-        </h3>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              Bank Name
-            </label>
-            <input
-              name="bankName"
-              type="text"
-              value={formData.bankName}
-              onChange={handleFormChange}
-              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              Account Number
-            </label>
-            <input
-              name="accountNumber"
-              type="text"
-              value={formData.accountNumber}
-              onChange={handleFormChange}
-              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              SWIFT Code
-            </label>
-            <input
-              name="swiftCode"
-              type="text"
-              value={formData.swiftCode}
-              onChange={handleFormChange}
-              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              IBAN
-            </label>
-            <input
-              name="iban"
-              type="text"
-              value={formData.iban}
-              onChange={handleFormChange}
-              className="w-full h-9 border border-slate-300 rounded-lg px-3 text-sm"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-3 pt-2">
-        <button
-          type="button"
-          onClick={() => {
-            if (isEdit) {
-              setShowEditModal(false);
-              setSelectedVendor(null);
-            } else {
-              setShowCreateModal(false);
-            }
-            resetForm();
-          }}
-          className="px-4 h-9 rounded-lg border border-slate-300 text-sm"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          className="px-4 h-9 rounded-lg bg-slate-900 text-white text-sm font-semibold"
-        >
-          {isEdit ? 'Update Vendor' : 'Create Vendor'}
-        </button>
-      </div>
-    </form>
-  );
+  const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 lg:p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* Header with Project Selector */}
+      <div className="mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Vendors</h1>
-            <p className="text-slate-600">
-              Manage production vendors, currencies, and banking details.
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900">Vendors</h1>
+            <p className="text-gray-600 mt-1">Manage vendors for your projects</p>
           </div>
           <button
-            type="button"
-            onClick={() => {
-              resetForm();
-              setShowCreateModal(true);
-            }}
-            className="px-4 h-10 rounded-lg bg-slate-900 text-white text-sm font-semibold"
+            onClick={handleOpenCreateModal}
+            disabled={!selectedProjectId}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Add New Vendor
+            <Plus size={20} />
+            Add Vendor
           </button>
         </div>
 
-        {/* Create Vendor Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-              <h2 className="text-xl font-bold mb-4">Create New Vendor</h2>
-              {renderVendorForm(false)}
-            </div>
-          </div>
-        )}
-
-        {/* Edit Vendor Modal */}
-        {showEditModal && selectedVendor && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-              <h2 className="text-xl font-bold mb-4">Edit Vendor</h2>
-              {renderVendorForm(true)}
-            </div>
-          </div>
-        )}
-
-        {/* Vendors Table */}
-        {loading ? (
-          <p className="text-center text-slate-600 mt-10">Loading vendors...</p>
-        ) : (
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-4 py-2 text-left">Vendor Name</th>
-                  <th className="px-4 py-2 text-left">Currency</th>
-                  <th className="px-4 py-2 text-left">Contact Name</th>
-                  <th className="px-4 py-2 text-left">Email</th>
-                  <th className="px-4 py-2 text-left">Phone</th>
-                  <th className="px-4 py-2 text-left">Bank Name</th>
-                  <th className="px-4 py-2 text-left">Created</th>
-                  <th className="px-4 py-2 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {vendors.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={8}
-                      className="px-4 py-8 text-center text-slate-600"
-                    >
-                      No vendors found. Click “Add New Vendor” to create one.
-                    </td>
-                  </tr>
-                ) : (
-                  vendors.map((vendor) => (
-                    <tr
-                      key={vendor.id}
-                      className="border-t hover:bg-slate-50"
-                    >
-                      <td className="px-4 py-2 font-semibold">
-                        {vendor.name}
-                      </td>
-                      <td className="px-4 py-2">{vendor.currency}</td>
-                      <td className="px-4 py-2">
-                        {vendor.contactInfo?.name || '-'}
-                      </td>
-                      <td className="px-4 py-2">
-                        {vendor.contactInfo?.email || '-'}
-                      </td>
-                      <td className="px-4 py-2">
-                        {vendor.contactInfo?.phone || '-'}
-                      </td>
-                      <td className="px-4 py-2">
-                        {vendor.bankInfo?.bankName || '-'}
-                      </td>
-                      <td className="px-4 py-2">
-                        {new Date(vendor.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-2">
-                        <button
-                          type="button"
-                          onClick={() => handleEditClick(vendor)}
-                          className="mr-2 px-3 h-8 rounded-md border border-slate-300 text-xs hover:bg-slate-50"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(vendor.id)}
-                          className="px-3 h-8 rounded-md border border-red-300 text-xs text-red-600 hover:bg-red-50"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Summary */}
-        {vendors.length > 0 && (
-          <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-700">
-            <h3 className="font-semibold mb-1">Summary</h3>
-            <p>Total Vendors: {vendors.length}</p>
-            <p>
-              Currencies:{' '}
-              {Array.from(new Set(vendors.map((v) => v.currency))).join(', ')}
+        {/* Project Selector */}
+        <div className="mt-6 bg-white border border-gray-200 rounded-lg p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Select Project *
+          </label>
+          <select
+            value={selectedProjectId}
+            onChange={handleProjectChange}
+            className="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">-- Select a Project --</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.title} ({project.baseCurrency})
+              </option>
+            ))}
+          </select>
+          {selectedProject && (
+            <p className="mt-2 text-sm text-gray-600">
+              <strong>Status:</strong> {selectedProject.status} | <strong>Currency:</strong>{' '}
+              {selectedProject.baseCurrency}
             </p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 flex justify-between items-center">
+          <span>{error}</span>
+          <button onClick={() => setError('')} className="text-red-800 hover:text-red-900">
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && vendors.length === 0 && selectedProjectId && (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading vendors...</div>
+        </div>
+      )}
+
+      {/* No Project Selected */}
+      {!selectedProjectId && (
+        <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+          <Building2 size={48} className="mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Project Selected</h3>
+          <p className="text-gray-600">Please select a project to view and manage vendors</p>
+        </div>
+      )}
+
+      {/* Vendors Grid */}
+      {selectedProjectId && !loading && vendors.length === 0 && (
+        <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+          <Building2 size={48} className="mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No vendors yet</h3>
+          <p className="text-gray-600 mb-4">Get started by adding your first vendor</p>
+          <button
+            onClick={handleOpenCreateModal}
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            <Plus size={20} />
+            Add Vendor
+          </button>
+        </div>
+      )}
+
+      {selectedProjectId && vendors.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {vendors.map((vendor) => (
+            <div
+              key={vendor.id}
+              className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow"
+            >
+              {/* Vendor Header */}
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-100 p-3 rounded-lg">
+                    <Building2 size={24} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg text-gray-900">{vendor.name}</h3>
+                    <span className="text-sm text-gray-500">{vendor.currency}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Info */}
+              {vendor.contactInfo && (
+                <div className="mb-4 space-y-2">
+                  {vendor.contactInfo.email && (
+                    <div className="text-sm">
+                      <span className="font-medium text-gray-700">Email: </span>
+                      <span className="text-gray-600">{vendor.contactInfo.email}</span>
+                    </div>
+                  )}
+                  {vendor.contactInfo.phone && (
+                    <div className="text-sm">
+                      <span className="font-medium text-gray-700">Phone: </span>
+                      <span className="text-gray-600">{vendor.contactInfo.phone}</span>
+                    </div>
+                  )}
+                  {vendor.contactInfo.address && (
+                    <div className="text-sm">
+                      <span className="font-medium text-gray-700">Address: </span>
+                      <span className="text-gray-600">{vendor.contactInfo.address}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Bank Info */}
+              {vendor.bankInfo?.bankName && (
+                <div className="mb-4 pb-4 border-b border-gray-200">
+                  <div className="text-sm text-gray-700">
+                    <strong>Bank:</strong> {vendor.bankInfo.bankName}
+                  </div>
+                  {vendor.bankInfo.accountNumber && (
+                    <div className="text-sm text-gray-600">
+                      A/C: {vendor.bankInfo.accountNumber}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Stats */}
+              <div className="flex gap-4 mb-4 text-sm">
+                <div>
+                  <span className="text-gray-600">POs: </span>
+                  <span className="font-semibold text-gray-900">
+                    {vendor.purchaseOrders?.length || 0}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Invoices: </span>
+                  <span className="font-semibold text-gray-900">
+                    {vendor.invoices?.length || 0}
+                  </span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleOpenEditModal(vendor)}
+                  className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  <Pencil size={16} />
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDeleteVendor(vendor.id)}
+                  className="flex items-center justify-center gap-2 bg-red-50 text-red-600 px-3 py-2 rounded-lg hover:bg-red-100 transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {editingVendor ? 'Edit Vendor' : 'Add New Vendor'}
+              </h2>
+              <button
+                onClick={handleCloseModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={editingVendor ? handleUpdateVendor : handleCreateVendor}>
+              <div className="p-6 space-y-6">
+                {/* Basic Info */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Vendor Name *
+                      </label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleBasicChange}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Enter vendor name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Currency *
+                      </label>
+                      <select
+                        name="currency"
+                        value={formData.currency}
+                        onChange={handleBasicChange}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                        <option value="NPR">NPR</option>
+                        <option value="INR">INR</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Info */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.contactInfo.email}
+                        onChange={handleContactInfoChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="vendor@example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone
+                      </label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.contactInfo.phone}
+                        onChange={handleContactInfoChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="+1 234 567 8900"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Address
+                      </label>
+                      <textarea
+                        name="address"
+                        value={formData.contactInfo.address}
+                        onChange={handleContactInfoChange}
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Enter vendor address"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bank Info */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Bank Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Account Name
+                      </label>
+                      <input
+                        type="text"
+                        name="accountName"
+                        value={formData.bankInfo.accountName}
+                        onChange={handleBankInfoChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Account holder name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Account Number
+                      </label>
+                      <input
+                        type="text"
+                        name="accountNumber"
+                        value={formData.bankInfo.accountNumber}
+                        onChange={handleBankInfoChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="1234567890"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Bank Name
+                      </label>
+                      <input
+                        type="text"
+                        name="bankName"
+                        value={formData.bankInfo.bankName}
+                        onChange={handleBankInfoChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Bank name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        SWIFT Code
+                      </label>
+                      <input
+                        type="text"
+                        name="swiftCode"
+                        value={formData.bankInfo.swiftCode}
+                        onChange={handleBankInfoChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="ABCDUS33XXX"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Save size={20} />
+                  {loading ? 'Saving...' : editingVendor ? 'Update Vendor' : 'Create Vendor'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
