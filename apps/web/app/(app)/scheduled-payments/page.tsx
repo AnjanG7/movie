@@ -171,7 +171,7 @@ export default function ScheduledPaymentsPage() {
       console.log('🔍 Fetching scheduled payments for project:', projectId);
       
       const response = await fetch(
-        `${API_BASE_URL}/payments/scheduled/project/${projectId}`,
+        `${API_BASE_URL}/payments/project/${projectId}/scheduled`,
         { credentials: 'include' }
       );
 
@@ -221,7 +221,7 @@ export default function ScheduledPaymentsPage() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/payments/scheduled/project/${selectedProjectId}`,
+        `${API_BASE_URL}/payments/project/${selectedProjectId}/scheduled`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -254,7 +254,7 @@ export default function ScheduledPaymentsPage() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/payments/scheduled/${scheduledPaymentId}/installments/${installmentId}/pay`,
+        `${API_BASE_URL}/payments/project/${selectedProjectId}/scheduled/${scheduledPaymentId}/installments/${installmentId}/pay`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },

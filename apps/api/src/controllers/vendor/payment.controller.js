@@ -75,7 +75,8 @@ export const markInstallmentPaid = asyncHandler(async (req, res) => {
         scheduledPaymentId,
         installmentId,
         req.body,
-        projectId
+        projectId,
+        req.user
     );
     res
         .status(StatusCodes.OK)

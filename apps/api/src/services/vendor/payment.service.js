@@ -316,7 +316,7 @@ async getPayment(id, user,projectId) {
     }
 
     // Mark installment as paid
-    async markInstallmentPaid(scheduledPaymentId, installmentId, data,projectId) {
+    async markInstallmentPaid(scheduledPaymentId, installmentId, data,projectId,user) {
                   // Verify project exists
     const project = await prisma.project.findUnique({
       where: { id: projectId },

@@ -36,7 +36,7 @@ router.get(
 );
 
 router.get(
-    '/scheduled/',
+    '/scheduled',
   authMiddleware,
   authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
     getScheduledPayments
