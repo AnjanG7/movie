@@ -8,7 +8,6 @@ import { useStore } from "../../(app)/lib/store";
 import { Film, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 import Link from "next/link";
-import { userApi } from "../../(app)/lib/api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");

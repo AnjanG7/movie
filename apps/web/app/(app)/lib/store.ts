@@ -1,17 +1,16 @@
 // lib/store.ts - Zustand global state management
 
 import { create } from "zustand";
-import { persist,  createJSONStorage } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { Project, Participant, PhaseEntity, DashboardStats } from "./types";
-import { projectsApi, investorsApi, phasesApi, userApi } from "./api";
+import { projectsApi, investorsApi, phasesApi } from "./api";
 // import { User, AuditLog, Role, UserRole } from "../../../../../packages/types";
 import { User } from "./types";
-
 
 interface AppState {
   // Data Types
   user: User | null;
-  
+
   projects: Project[];
   investors: Participant[];
   phases: PhaseEntity[];
@@ -24,7 +23,7 @@ interface AppState {
   // Actions
   fetchProjects: () => Promise<void>;
   setUser: (user: User | null) => void;
-  
+
   logout: () => void;
   fetchInvestors: () => Promise<void>;
   fetchPhases: () => Promise<void>;
@@ -37,7 +36,7 @@ export const useStore = create<AppState>()(
     (set, get) => ({
       // Initial state
       user: null,
-      
+
       projects: [],
       investors: [],
       phases: [],
@@ -47,7 +46,7 @@ export const useStore = create<AppState>()(
 
       // Set User
       setUser: (user) => set({ user }),
-      
+
       logout: () => set({ user: null }),
 
       // Fetch projects
@@ -56,26 +55,35 @@ export const useStore = create<AppState>()(
         try {
           const response = await projectsApi.getAll();
           if (response.data.success && response.data.data) {
-            set({ projects: response.data.data.projects || [], loading: false });
+            set({
+              projects: response.data.data.projects || [],
+              loading: false,
+            });
             get().calculateStats();
           } else {
-            set({ error: 'Failed to fetch projects', loading: false });
+            set({ error: "Failed to fetch projects", loading: false });
           }
         } catch (error: any) {
-          set({ error: error.message || 'Failed to fetch projects', loading: false });
+          set({
+            error: error.message || "Failed to fetch projects",
+            loading: false,
+          });
         }
       },
-      
+
       // Fetch investors
       fetchInvestors: async () => {
         set({ loading: true, error: null });
         try {
           const response = await investorsApi.getAll();
           // Backend route is commented out, so this will fail gracefully
-          set({ investors: Array.isArray(response.data) ? response.data : [], loading: false });
+          set({
+            investors: Array.isArray(response.data) ? response.data : [],
+            loading: false,
+          });
         } catch (error: any) {
           // Silently fail since backend route is not implemented yet
-          console.warn('Investors API not available:', error.message);
+          console.warn("Investors API not available:", error.message);
           set({ investors: [], loading: false });
         }
       },
@@ -85,7 +93,10 @@ export const useStore = create<AppState>()(
         set({ loading: true, error: null });
         try {
           const response = await phasesApi.getAll();
-          set({ phases: Array.isArray(response.data) ? response.data : [], loading: false });
+          set({
+            phases: Array.isArray(response.data) ? response.data : [],
+            loading: false,
+          });
         } catch (error: any) {
           set({ error: error.message, loading: false });
         }
@@ -101,15 +112,17 @@ export const useStore = create<AppState>()(
         ).length;
         const totalBudget = projects.reduce((sum, p) => {
           return (
-            sum +
-            (p.financingSources?.reduce((s, f) => s + f.amount, 0) || 0)
+            sum + (p.financingSources?.reduce((s, f) => s + f.amount, 0) || 0)
           );
         }, 0);
 
-        const projectsByPhase = phases.reduce((acc, phase) => {
-          acc[phase.name] = (acc[phase.name] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>);
+        const projectsByPhase = phases.reduce(
+          (acc, phase) => {
+            acc[phase.name] = (acc[phase.name] || 0) + 1;
+            return acc;
+          },
+          {} as Record<string, number>
+        );
 
         set({
           stats: {
