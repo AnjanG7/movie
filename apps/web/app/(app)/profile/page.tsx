@@ -1,5 +1,3 @@
-// app/profile/page.tsx - User Profile Page
-
 "use client";
 
 import { useState, useRef } from "react";
@@ -223,7 +221,6 @@ export default function ProfilePage() {
                   <input
                     type="email"
                     value={user?.email}
-                    
                     disabled
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-600"
                   />
@@ -265,7 +262,6 @@ export default function ProfilePage() {
               {user?.createdAt.slice(0, 10)}
             </span>
           </div>
-          
         </div>
       </div>
     </div>

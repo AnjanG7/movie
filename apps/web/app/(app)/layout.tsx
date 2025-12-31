@@ -1,42 +1,49 @@
-  // app/layout.tsx - Root layout with sidebar and topbar
+// app/layout.tsx - Root layout with sidebar and topbar
 
-  import type { Metadata } from 'next';
-  import { Inter } from 'next/font/google';
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-  import Sidebar from './components/SideBar';
-  import TopBar from './components/TopBar';
+import Sidebar from "./components/SideBar";
+import TopBar from "./components/TopBar";
 
-  const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ["latin"] });
 
-  export const metadata: Metadata = {
-    title: 'FilmFinance - Project Management',
-    description: 'Professional film finance and project management platform',
-  };
+export const metadata: Metadata = {
+  title: "FilmFinance - Project Management",
+  description: "Professional film finance and project management platform",
+};
 
-  export default function AppLayout({
-    children,
-  }: {
-    children: React.ReactNode;
-  }) {
-    return (
-      <html lang="en">
-        <body className={inter.className}>
-          <div className="flex h-screen bg-gray-50">
-            {/* Sidebar */}
-            <Sidebar />
-            
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {/* TopBar */}
-              <TopBar />
-              
-              {/* Page Content */}
-              <main className="flex-1 overflow-y-auto">
-                {children}
-              </main>
-            </div>
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body className={inter.className}>
+        <div className="flex h-screen bg-gray-50">
+          {/* Sidebar */}
+          <Sidebar />
+
+          {/* Main Content */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* TopBar */}
+            <TopBar />
+
+            {/* Page Content */}
+            <main className="flex-1 overflow-y-auto">{children}</main>
           </div>
-        </body>
-      </html>
-    );
-  }
+        </div>
+        {/* Toast Notifications */}
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          pauseOnHover
+          draggable
+          theme="colored"
+        />
+      </body>
+    </html>
+  );
+}

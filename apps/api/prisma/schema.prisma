@@ -1,6 +1,3 @@
-// -------------------------------------------------------
-//  Prisma Schema — Film Finance Planning App (UPDATED)
-// -------------------------------------------------------
 
 generator client {
   provider = "prisma-client-js"
