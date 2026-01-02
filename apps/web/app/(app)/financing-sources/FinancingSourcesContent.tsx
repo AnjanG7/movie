@@ -1,10 +1,19 @@
 "use client";
 import React, { useState, useEffect, FormEvent, ChangeEvent } from "react";
-import { DollarSign, TrendingUp, Plus, Trash2, PiggyBank, Download } from "lucide-react";
+import {
+  DollarSign,
+  TrendingUp,
+  Plus,
+  Trash2,
+  PiggyBank,
+  Download,
+} from "lucide-react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
-const APIBASEURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const APIBASEURL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://film-finance-app.onrender.com/api";
 
 interface FinancingSource {
   id: string;
@@ -91,12 +100,15 @@ const exportFinancingToPDF = (
     };
 
     // Helper function to format currency with proper decimals
-    const formatCurrencySafe = (amount: number | string | undefined): string => {
+    const formatCurrencySafe = (
+      amount: number | string | undefined
+    ): string => {
       try {
         if (amount === undefined || amount === null) return `${currency} 0.00`;
-        const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+        const numAmount =
+          typeof amount === "string" ? parseFloat(amount) : amount;
         if (isNaN(numAmount) || !isFinite(numAmount)) return `${currency} 0.00`;
-        
+
         return `${currency} ${numAmount.toLocaleString("en-US", {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
@@ -139,8 +151,12 @@ const exportFinancingToPDF = (
     // ===== SUMMARY =====
     const totalFinancing = sources.reduce((sum, s) => sum + (s.amount || 0), 0);
     const totalDrawn = sources.reduce((sum, s) => sum + (s.totalDrawn || 0), 0);
-    const totalRemaining = sources.reduce((sum, s) => sum + (s.remaining || 0), 0);
-    const usedPercentage = totalFinancing > 0 ? (totalDrawn / totalFinancing) * 100 : 0;
+    const totalRemaining = sources.reduce(
+      (sum, s) => sum + (s.remaining || 0),
+      0
+    );
+    const usedPercentage =
+      totalFinancing > 0 ? (totalDrawn / totalFinancing) * 100 : 0;
 
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
@@ -156,7 +172,7 @@ const exportFinancingToPDF = (
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...colors.lightText);
-    
+
     // Left Column
     doc.text("Total Allocated:", 20, yPos + 8);
     doc.setFont("helvetica", "bold");
@@ -208,7 +224,9 @@ const exportFinancingToPDF = (
 
       autoTable(doc, {
         startY: yPos,
-        head: [["Type", "Allocated", "Used", "Remaining", "Rate", "Fees", "Created"]],
+        head: [
+          ["Type", "Allocated", "Used", "Remaining", "Rate", "Fees", "Created"],
+        ],
         body: sourceData,
         theme: "striped",
         headStyles: {
@@ -268,43 +286,42 @@ const exportFinancingToPDF = (
         formatCurrencySafe(d.amount),
       ]);
 
-     autoTable(doc, {
-  startY: yPos,
-  head: [["Source Type", "Drawdown Date", "Amount"]],
-  body: drawdownData,
-  theme: "striped",
-  
-  // ADD THESE LINES FOR STRAIGHT BORDERS
-  tableLineWidth: 0.1,
-  tableLineColor: [0, 0, 0],
-  styles: {
-    lineWidth: 0.1,
-    lineColor: [0, 0, 0],
-  },
+      autoTable(doc, {
+        startY: yPos,
+        head: [["Source Type", "Drawdown Date", "Amount"]],
+        body: drawdownData,
+        theme: "striped",
 
-  headStyles: {
-    fillColor: colors.secondary,
-    textColor: [255, 255, 255],
-    fontStyle: "bold",
-    fontSize: 9,
-    cellPadding: 5,
-  },
-  bodyStyles: {
-    fontSize: 8,
-    cellPadding: 2,
-    textColor: colors.text,
-  },
-  alternateRowStyles: {
-    fillColor: [239, 246, 255],
-  },
-  columnStyles: {
-    0: { halign: "left" },
-    1: { halign: "center" },
-    2: { halign: "right" },
-  },
-  margin: { left: 15, right: 5 },
-});
+        // ADD THESE LINES FOR STRAIGHT BORDERS
+        tableLineWidth: 0.1,
+        tableLineColor: [0, 0, 0],
+        styles: {
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+        },
 
+        headStyles: {
+          fillColor: colors.secondary,
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          fontSize: 9,
+          cellPadding: 5,
+        },
+        bodyStyles: {
+          fontSize: 8,
+          cellPadding: 2,
+          textColor: colors.text,
+        },
+        alternateRowStyles: {
+          fillColor: [239, 246, 255],
+        },
+        columnStyles: {
+          0: { halign: "left" },
+          1: { halign: "center" },
+          2: { halign: "right" },
+        },
+        margin: { left: 15, right: 5 },
+      });
 
       yPos = (doc as any).lastAutoTable.finalY + 10;
     }
@@ -332,16 +349,15 @@ const exportFinancingToPDF = (
       { align: "center" }
     );
 
-    doc.save(`FinancingSources-${projectTitle.replace(/\s+/g, "-")}-${Date.now()}.pdf`);
+    doc.save(
+      `FinancingSources-${projectTitle.replace(/\s+/g, "-")}-${Date.now()}.pdf`
+    );
     alert("✅ Financing report PDF generated successfully!");
   } catch (error) {
     console.error("Error generating PDF:", error);
     alert("❌ Failed to generate PDF. Please try again.");
   }
 };
-
-
-
 
 export default function FinancingSourcesPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -400,7 +416,9 @@ export default function FinancingSourcesPage() {
       );
       const result = await response.json();
       if (result.success) {
-        const manualSources = result.data.filter((s: FinancingSource) => !s.sourceQuotationId);
+        const manualSources = result.data.filter(
+          (s: FinancingSource) => !s.sourceQuotationId
+        );
         setSources(manualSources);
       }
     } catch (error) {
@@ -575,7 +593,12 @@ export default function FinancingSourcesPage() {
   const handleDownloadPDF = () => {
     const project = projects.find((p) => p.id === selectedProjectId);
     if (!project) return;
-    exportFinancingToPDF(sources, drawdowns, project.title, project.baseCurrency);
+    exportFinancingToPDF(
+      sources,
+      drawdowns,
+      project.title,
+      project.baseCurrency
+    );
   };
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
@@ -584,8 +607,10 @@ export default function FinancingSourcesPage() {
   const totalRemaining = sources.reduce((sum, s) => sum + s.remaining, 0);
 
   // Calculate percentages for visual graph
-  const usedPercentage = totalFinancing > 0 ? (totalDrawn / totalFinancing) * 100 : 0;
-  const remainingPercentage = totalFinancing > 0 ? (totalRemaining / totalFinancing) * 100 : 0;
+  const usedPercentage =
+    totalFinancing > 0 ? (totalDrawn / totalFinancing) * 100 : 0;
+  const remainingPercentage =
+    totalFinancing > 0 ? (totalRemaining / totalFinancing) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 p-6 lg:p-8">
@@ -669,7 +694,9 @@ export default function FinancingSourcesPage() {
           <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
-                <div className="text-xs text-slate-500 mb-1">Total Allocated</div>
+                <div className="text-xs text-slate-500 mb-1">
+                  Total Allocated
+                </div>
                 <div className="text-2xl font-bold text-slate-900">
                   {formatCurrency(totalFinancing)}
                 </div>
@@ -710,7 +737,8 @@ export default function FinancingSourcesPage() {
                   className="bg-gradient-to-r from-green-500 to-emerald-600 flex items-center justify-center text-white text-sm font-semibold transition-all duration-500"
                   style={{ width: `${remainingPercentage}%` }}
                 >
-                  {remainingPercentage > 10 && `${remainingPercentage.toFixed(1)}% Remaining`}
+                  {remainingPercentage > 10 &&
+                    `${remainingPercentage.toFixed(1)}% Remaining`}
                 </div>
               </div>
               <div className="flex items-center justify-between mt-4 text-sm">
@@ -759,24 +787,48 @@ export default function FinancingSourcesPage() {
                 <table className="min-w-full text-sm">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Type</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Allocated</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Used</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Remaining</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Rate</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Fees</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Created</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Actions</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">
+                        Type
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">
+                        Allocated
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">
+                        Used
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">
+                        Remaining
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">
+                        Rate
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">
+                        Fees
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">
+                        Created
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
                     {sources.map((source) => {
-                      const sourceUsedPct = (source.totalDrawn / source.amount) * 100;
+                      const sourceUsedPct =
+                        (source.totalDrawn / source.amount) * 100;
                       return (
-                        <tr key={source.id} className="hover:bg-slate-50 transition-colors">
+                        <tr
+                          key={source.id}
+                          className="hover:bg-slate-50 transition-colors"
+                        >
                           <td className="px-4 py-3">
-                            <div className="font-semibold text-slate-900">{source.type}</div>
-                            <div className="text-xs text-slate-500">{sourceUsedPct.toFixed(1)}% utilized</div>
+                            <div className="font-semibold text-slate-900">
+                              {source.type}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              {sourceUsedPct.toFixed(1)}% utilized
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-right font-semibold text-slate-900">
                             {formatCurrency(source.amount)}
@@ -836,50 +888,52 @@ export default function FinancingSourcesPage() {
               </div>
             ) : (
               <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-             <table className="min-w-full text-sm border border-slate-300">
-  <thead className="bg-slate-50">
-    <tr>
-      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase border border-slate-300">
-        Source Type
-      </th>
-      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase border border-slate-300">
-        Drawdown Date
-      </th>
-      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase border border-slate-300">
-        Amount
-      </th>
-      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase border border-slate-300">
-        Actions
-      </th>
-    </tr>
-  </thead>
+                <table className="min-w-full text-sm border border-slate-300">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase border border-slate-300">
+                        Source Type
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase border border-slate-300">
+                        Drawdown Date
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase border border-slate-300">
+                        Amount
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase border border-slate-300">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
 
-  <tbody className="divide-y divide-slate-200">
-    {drawdowns.map((drawdown) => (
-      <tr key={drawdown.id} className="hover:bg-slate-50 transition-colors">
-        <td className="px-4 py-3 font-semibold text-slate-900 border border-slate-300">
-          {drawdown.source?.type || "N/A"}
-        </td>
-        <td className="px-4 py-3 text-slate-700 border border-slate-300">
-          {new Date(drawdown.date).toLocaleDateString()}
-        </td>
-        <td className="px-4 py-3 text-right font-semibold text-blue-600 border border-slate-300">
-          {formatCurrency(drawdown.amount)}
-        </td>
-        <td className="px-4 py-3 border border-slate-300">
-          <button
-            onClick={() => handleDeleteDrawdown(drawdown.id)}
-            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            title="Delete Drawdown"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </td>
-      </tr>
-    ))}
-  </tbody>
-</table>
-
+                  <tbody className="divide-y divide-slate-200">
+                    {drawdowns.map((drawdown) => (
+                      <tr
+                        key={drawdown.id}
+                        className="hover:bg-slate-50 transition-colors"
+                      >
+                        <td className="px-4 py-3 font-semibold text-slate-900 border border-slate-300">
+                          {drawdown.source?.type || "N/A"}
+                        </td>
+                        <td className="px-4 py-3 text-slate-700 border border-slate-300">
+                          {new Date(drawdown.date).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-3 text-right font-semibold text-blue-600 border border-slate-300">
+                          {formatCurrency(drawdown.amount)}
+                        </td>
+                        <td className="px-4 py-3 border border-slate-300">
+                          <button
+                            onClick={() => handleDeleteDrawdown(drawdown.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete Drawdown"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
@@ -889,7 +943,9 @@ export default function FinancingSourcesPage() {
         {showSourceModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-              <h2 className="text-xl font-bold mb-4 text-slate-900">Add Financing Source</h2>
+              <h2 className="text-xl font-bold mb-4 text-slate-900">
+                Add Financing Source
+              </h2>
               <form onSubmit={handleCreateSource} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 uppercase mb-2">
@@ -976,7 +1032,9 @@ export default function FinancingSourcesPage() {
         {showDrawdownModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-              <h2 className="text-xl font-bold mb-4 text-slate-900">Record Drawdown</h2>
+              <h2 className="text-xl font-bold mb-4 text-slate-900">
+                Record Drawdown
+              </h2>
               <form onSubmit={handleCreateDrawdown} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 uppercase mb-2">
@@ -992,8 +1050,8 @@ export default function FinancingSourcesPage() {
                     <option value="">-- Select Source --</option>
                     {sources.map((source) => (
                       <option key={source.id} value={source.id}>
-                        {source.type} - {formatCurrency(source.amount)} (Available:{" "}
-                        {formatCurrency(source.remaining)})
+                        {source.type} - {formatCurrency(source.amount)}{" "}
+                        (Available: {formatCurrency(source.remaining)})
                       </option>
                     ))}
                   </select>

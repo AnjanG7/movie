@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   getPublicityBudgets,
   createPublicityBudget,
@@ -14,7 +14,7 @@ import {
   deleteCampaignEvent,
   getPublicitySummary,
   updateROIWithPublicity,
-} from '../lib/api/publicity';
+} from "../lib/api/publicity";
 import type {
   PublicityBudget,
   PublicityExpense,
@@ -24,7 +24,7 @@ import type {
   PublicityStatus,
   CampaignEventType,
   CampaignStatus,
-} from '../lib/types/publicity';
+} from "../lib/types/publicity";
 import {
   Megaphone,
   DollarSign,
@@ -37,11 +37,13 @@ import {
   Film,
   BarChart3,
   Download,
-} from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+} from "lucide-react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://film-finance-app.onrender.com/api";
 
 interface Project {
   id: string;
@@ -52,10 +54,12 @@ interface Project {
 export default function PublicityPage() {
   // Projects list
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
 
   // State
-  const [activeTab, setActiveTab] = useState<'budget' | 'calendar' | 'summary'>('budget');
+  const [activeTab, setActiveTab] = useState<"budget" | "calendar" | "summary">(
+    "budget"
+  );
   const [budgets, setBudgets] = useState<PublicityBudget[]>([]);
   const [campaignEvents, setCampaignEvents] = useState<CampaignEvent[]>([]);
   const [summary, setSummary] = useState<PublicitySummary | null>(null);
@@ -66,9 +70,15 @@ export default function PublicityPage() {
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showCampaignModal, setShowCampaignModal] = useState(false);
-  const [editingBudget, setEditingBudget] = useState<PublicityBudget | null>(null);
-  const [editingCampaign, setEditingCampaign] = useState<CampaignEvent | null>(null);
-  const [selectedBudgetForExpense, setSelectedBudgetForExpense] = useState<string | null>(null);
+  const [editingBudget, setEditingBudget] = useState<PublicityBudget | null>(
+    null
+  );
+  const [editingCampaign, setEditingCampaign] = useState<CampaignEvent | null>(
+    null
+  );
+  const [selectedBudgetForExpense, setSelectedBudgetForExpense] = useState<
+    string | null
+  >(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Form states
@@ -83,15 +93,15 @@ export default function PublicityPage() {
     status: PublicityStatus;
     notes: string;
   }>({
-    name: '',
-    category: 'TRAILER',
-    description: '',
-    budgetAmount: '',
-    vendor: '',
-    startDate: '',
-    endDate: '',
-    status: 'PLANNED',
-    notes: '',
+    name: "",
+    category: "TRAILER",
+    description: "",
+    budgetAmount: "",
+    vendor: "",
+    startDate: "",
+    endDate: "",
+    status: "PLANNED",
+    notes: "",
   });
 
   const [expenseFormData, setExpenseFormData] = useState<{
@@ -102,12 +112,12 @@ export default function PublicityPage() {
     invoiceNumber: string;
     notes: string;
   }>({
-    description: '',
-    amount: '',
-    expenseDate: '',
-    vendor: '',
-    invoiceNumber: '',
-    notes: '',
+    description: "",
+    amount: "",
+    expenseDate: "",
+    vendor: "",
+    invoiceNumber: "",
+    notes: "",
   });
 
   const [campaignFormData, setCampaignFormData] = useState<{
@@ -121,15 +131,15 @@ export default function PublicityPage() {
     status: CampaignStatus;
     notes: string;
   }>({
-    title: '',
-    description: '',
-    eventType: 'TRAILER_RELEASE',
-    startDate: '',
-    endDate: '',
-    deliverable: '',
-    publicityBudgetId: '',
-    status: 'UPCOMING',
-    notes: '',
+    title: "",
+    description: "",
+    eventType: "TRAILER_RELEASE",
+    startDate: "",
+    endDate: "",
+    deliverable: "",
+    publicityBudgetId: "",
+    status: "UPCOMING",
+    notes: "",
   });
 
   // Fetch projects on mount
@@ -148,20 +158,20 @@ export default function PublicityPage() {
     try {
       setLoading(true);
       const response = await fetch(`${API_BASE_URL}/projects?limit=999999`, {
-        credentials: 'include',
+        credentials: "include",
       });
       const result = await response.json();
       if (result.success) {
         setProjects(result.data.projects || []);
-         const params = new URLSearchParams(window.location.search);
-      const projectId = params.get('projectId');
-      if (projectId) {
-        setSelectedProjectId(projectId);
-      }
+        const params = new URLSearchParams(window.location.search);
+        const projectId = params.get("projectId");
+        if (projectId) {
+          setSelectedProjectId(projectId);
+        }
       }
     } catch (error) {
-      console.error('Error fetching projects:', error);
-      setError('Failed to load projects');
+      console.error("Error fetching projects:", error);
+      setError("Failed to load projects");
     } finally {
       setLoading(false);
     }
@@ -169,7 +179,7 @@ export default function PublicityPage() {
 
   const fetchAllData = async () => {
     if (!selectedProjectId) return;
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -190,8 +200,9 @@ export default function PublicityPage() {
         setSummary(summaryRes.data);
       }
     } catch (err: unknown) {
-      console.error('Error fetching publicity data:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load data';
+      console.error("Error fetching publicity data:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load data";
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -200,14 +211,14 @@ export default function PublicityPage() {
 
   // HELPER FUNCTIONS
   const formatDateForInput = (dateString?: string | null): string => {
-    return dateString?.split('T')[0] ?? '';
+    return dateString?.split("T")[0] ?? "";
   };
 
   const formatCurrency = (amount: number) => {
     const project = projects.find((p) => p.id === selectedProjectId);
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: project?.baseCurrency || 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: project?.baseCurrency || "USD",
     }).format(amount);
   };
 
@@ -227,21 +238,30 @@ export default function PublicityPage() {
 
       let response;
       if (editingBudget) {
-        response = await updatePublicityBudget(selectedProjectId, editingBudget.id, data);
+        response = await updatePublicityBudget(
+          selectedProjectId,
+          editingBudget.id,
+          data
+        );
       } else {
         response = await createPublicityBudget(selectedProjectId, data);
       }
 
       if (response.success) {
-        alert(editingBudget ? 'Budget updated successfully!' : 'Budget created successfully!');
+        alert(
+          editingBudget
+            ? "Budget updated successfully!"
+            : "Budget created successfully!"
+        );
         closeBudgetModal();
         fetchAllData();
       } else {
-        throw new Error(response.message || 'Failed to save budget');
+        throw new Error(response.message || "Failed to save budget");
       }
     } catch (err: unknown) {
-      console.error('Error saving budget:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save budget';
+      console.error("Error saving budget:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to save budget";
       alert(errorMessage);
     } finally {
       setSubmitting(false);
@@ -249,18 +269,19 @@ export default function PublicityPage() {
   };
 
   const handleDeleteBudget = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this budget?')) return;
+    if (!confirm("Are you sure you want to delete this budget?")) return;
     if (!selectedProjectId) return;
 
     try {
       const response = await deletePublicityBudget(selectedProjectId, id);
       if (response.success) {
-        alert('Budget deleted successfully!');
+        alert("Budget deleted successfully!");
         fetchAllData();
       }
     } catch (err: unknown) {
-      console.error('Error deleting budget:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete budget';
+      console.error("Error deleting budget:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to delete budget";
       alert(errorMessage);
     }
   };
@@ -271,26 +292,26 @@ export default function PublicityPage() {
       setBudgetFormData({
         name: budget.name,
         category: budget.category,
-        description: budget.description || '',
+        description: budget.description || "",
         budgetAmount: budget.budgetAmount.toString(),
-        vendor: budget.vendor || '',
+        vendor: budget.vendor || "",
         startDate: formatDateForInput(budget.startDate),
         endDate: formatDateForInput(budget.endDate),
         status: budget.status,
-        notes: budget.notes || '',
+        notes: budget.notes || "",
       });
     } else {
       setEditingBudget(null);
       setBudgetFormData({
-        name: '',
-        category: 'TRAILER',
-        description: '',
-        budgetAmount: '',
-        vendor: '',
-        startDate: '',
-        endDate: '',
-        status: 'PLANNED',
-        notes: '',
+        name: "",
+        category: "TRAILER",
+        description: "",
+        budgetAmount: "",
+        vendor: "",
+        startDate: "",
+        endDate: "",
+        status: "PLANNED",
+        notes: "",
       });
     }
     setShowBudgetModal(true);
@@ -313,18 +334,23 @@ export default function PublicityPage() {
         amount: parseFloat(expenseFormData.amount),
       };
 
-      const response = await addPublicityExpense(selectedProjectId, selectedBudgetForExpense, data);
+      const response = await addPublicityExpense(
+        selectedProjectId,
+        selectedBudgetForExpense,
+        data
+      );
 
       if (response.success) {
-        alert('Expense added successfully!');
+        alert("Expense added successfully!");
         closeExpenseModal();
         fetchAllData();
       } else {
-        throw new Error(response.message || 'Failed to add expense');
+        throw new Error(response.message || "Failed to add expense");
       }
     } catch (err: unknown) {
-      console.error('Error adding expense:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to add expense';
+      console.error("Error adding expense:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to add expense";
       alert(errorMessage);
     } finally {
       setSubmitting(false);
@@ -334,12 +360,12 @@ export default function PublicityPage() {
   const openExpenseModal = (budgetId: string) => {
     setSelectedBudgetForExpense(budgetId);
     setExpenseFormData({
-      description: '',
-      amount: '',
-      expenseDate: new Date().toISOString().split('T')[0] as string,
-      vendor: '',
-      invoiceNumber: '',
-      notes: '',
+      description: "",
+      amount: "",
+      expenseDate: new Date().toISOString().split("T")[0] as string,
+      vendor: "",
+      invoiceNumber: "",
+      notes: "",
     });
     setShowExpenseModal(true);
   };
@@ -363,21 +389,30 @@ export default function PublicityPage() {
 
       let response;
       if (editingCampaign) {
-        response = await updateCampaignEvent(selectedProjectId, editingCampaign.id, data);
+        response = await updateCampaignEvent(
+          selectedProjectId,
+          editingCampaign.id,
+          data
+        );
       } else {
         response = await createCampaignEvent(selectedProjectId, data);
       }
 
       if (response.success) {
-        alert(editingCampaign ? 'Event updated successfully!' : 'Event created successfully!');
+        alert(
+          editingCampaign
+            ? "Event updated successfully!"
+            : "Event created successfully!"
+        );
         closeCampaignModal();
         fetchAllData();
       } else {
-        throw new Error(response.message || 'Failed to save event');
+        throw new Error(response.message || "Failed to save event");
       }
     } catch (err: unknown) {
-      console.error('Error saving event:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save event';
+      console.error("Error saving event:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to save event";
       alert(errorMessage);
     } finally {
       setSubmitting(false);
@@ -385,18 +420,19 @@ export default function PublicityPage() {
   };
 
   const handleDeleteCampaign = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this event?')) return;
+    if (!confirm("Are you sure you want to delete this event?")) return;
     if (!selectedProjectId) return;
 
     try {
       const response = await deleteCampaignEvent(selectedProjectId, id);
       if (response.success) {
-        alert('Event deleted successfully!');
+        alert("Event deleted successfully!");
         fetchAllData();
       }
     } catch (err: unknown) {
-      console.error('Error deleting event:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete event';
+      console.error("Error deleting event:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to delete event";
       alert(errorMessage);
     }
   };
@@ -406,27 +442,27 @@ export default function PublicityPage() {
       setEditingCampaign(event);
       setCampaignFormData({
         title: event.title,
-        description: event.description || '',
+        description: event.description || "",
         eventType: event.eventType,
         startDate: formatDateForInput(event.startDate),
         endDate: formatDateForInput(event.endDate),
-        deliverable: event.deliverable || '',
-        publicityBudgetId: event.publicityBudgetId || '',
+        deliverable: event.deliverable || "",
+        publicityBudgetId: event.publicityBudgetId || "",
         status: event.status,
-        notes: event.notes || '',
+        notes: event.notes || "",
       });
     } else {
       setEditingCampaign(null);
       setCampaignFormData({
-        title: '',
-        description: '',
-        eventType: 'TRAILER_RELEASE',
-        startDate: '',
-        endDate: '',
-        deliverable: '',
-        publicityBudgetId: '',
-        status: 'UPCOMING',
-        notes: '',
+        title: "",
+        description: "",
+        eventType: "TRAILER_RELEASE",
+        startDate: "",
+        endDate: "",
+        deliverable: "",
+        publicityBudgetId: "",
+        status: "UPCOMING",
+        notes: "",
       });
     }
     setShowCampaignModal(true);
@@ -445,14 +481,15 @@ export default function PublicityPage() {
       setSubmitting(true);
       const response = await updateROIWithPublicity(selectedProjectId);
       if (response.success) {
-        alert('ROI updated successfully with P&A costs!');
-        console.log('Updated metrics:', response.data);
+        alert("ROI updated successfully with P&A costs!");
+        console.log("Updated metrics:", response.data);
       } else {
-        throw new Error(response.message || 'Failed to update ROI');
+        throw new Error(response.message || "Failed to update ROI");
       }
     } catch (err: unknown) {
-      console.error('Error updating ROI:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update ROI';
+      console.error("Error updating ROI:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update ROI";
       alert(errorMessage);
     } finally {
       setSubmitting(false);
@@ -461,7 +498,7 @@ export default function PublicityPage() {
 
   const exportToPDF = () => {
     if (!selectedProjectId || !selectedProject) {
-      alert('Please select a project first');
+      alert("Please select a project first");
       return;
     }
 
@@ -469,8 +506,8 @@ export default function PublicityPage() {
 
     // Header
     doc.setFontSize(18);
-    doc.text('Publicity & P&A Report', 14, 20);
-    
+    doc.text("Publicity & P&A Report", 14, 20);
+
     doc.setFontSize(11);
     doc.text(`Project: ${selectedProject.title}`, 14, 30);
     doc.text(`Currency: ${selectedProject.baseCurrency}`, 14, 36);
@@ -479,14 +516,30 @@ export default function PublicityPage() {
     // Summary Section
     if (summary) {
       doc.setFillColor(240, 240, 240);
-      doc.rect(14, 50, 180, 35, 'F');
+      doc.rect(14, 50, 180, 35, "F");
       doc.setFontSize(12);
-      doc.text('Summary', 16, 57);
+      doc.text("Summary", 16, 57);
       doc.setFontSize(10);
-      doc.text(`Total Budget: ${formatCurrency(summary.summary.totalBudget)}`, 16, 64);
-      doc.text(`Total Spent: ${formatCurrency(summary.summary.totalActual)}`, 16, 71);
-      doc.text(`Variance: ${formatCurrency(Math.abs(summary.summary.totalVariance))} ${summary.summary.totalVariance < 0 ? 'over' : 'under'}`, 16, 78);
-      doc.text(`Budget Used: ${summary.summary.percentSpent.toFixed(1)}%`, 120, 64);
+      doc.text(
+        `Total Budget: ${formatCurrency(summary.summary.totalBudget)}`,
+        16,
+        64
+      );
+      doc.text(
+        `Total Spent: ${formatCurrency(summary.summary.totalActual)}`,
+        16,
+        71
+      );
+      doc.text(
+        `Variance: ${formatCurrency(Math.abs(summary.summary.totalVariance))} ${summary.summary.totalVariance < 0 ? "over" : "under"}`,
+        16,
+        78
+      );
+      doc.text(
+        `Budget Used: ${summary.summary.percentSpent.toFixed(1)}%`,
+        120,
+        64
+      );
       doc.text(`Total Items: ${summary.summary.itemCount}`, 120, 71);
       doc.text(`Total Events: ${summary.summary.totalEvents}`, 120, 78);
     }
@@ -494,12 +547,12 @@ export default function PublicityPage() {
     // Budgets Table
     let startY = 95;
     doc.setFontSize(14);
-    doc.text('Publicity Budgets', 14, startY);
+    doc.text("Publicity Budgets", 14, startY);
 
-    const budgetData = budgets.map(budget => [
+    const budgetData = budgets.map((budget) => [
       budget.name,
-      budget.category.replace(/_/g, ' '),
-      budget.status.replace(/_/g, ' '),
+      budget.category.replace(/_/g, " "),
+      budget.status.replace(/_/g, " "),
       formatCurrency(budget.budgetAmount),
       formatCurrency(budget.actualAmount),
       formatCurrency(Math.abs(budget.budgetAmount - budget.actualAmount)),
@@ -507,43 +560,43 @@ export default function PublicityPage() {
 
     autoTable(doc, {
       startY: startY + 5,
-      head: [['Name', 'Category', 'Status', 'Budget', 'Actual', 'Remaining']],
+      head: [["Name", "Category", "Status", "Budget", "Actual", "Remaining"]],
       body: budgetData,
-      theme: 'striped',
+      theme: "striped",
       headStyles: { fillColor: [219, 39, 119] },
       styles: { fontSize: 9 },
       columnStyles: {
-        3: { halign: 'right' },
-        4: { halign: 'right' },
-        5: { halign: 'right' }
-      }
+        3: { halign: "right" },
+        4: { halign: "right" },
+        5: { halign: "right" },
+      },
     });
 
     // Campaign Events
     if (campaignEvents.length > 0) {
       const finalY = (doc as any).lastAutoTable.finalY + 10;
       doc.setFontSize(14);
-      doc.text('Campaign Calendar', 14, finalY);
+      doc.text("Campaign Calendar", 14, finalY);
 
-      const eventData = campaignEvents.map(event => [
+      const eventData = campaignEvents.map((event) => [
         event.title,
-        event.eventType.replace(/_/g, ' '),
+        event.eventType.replace(/_/g, " "),
         new Date(event.startDate).toLocaleDateString(),
-        event.status.replace(/_/g, ' '),
+        event.status.replace(/_/g, " "),
       ]);
 
       autoTable(doc, {
         startY: finalY + 5,
-        head: [['Event', 'Type', 'Date', 'Status']],
+        head: [["Event", "Type", "Date", "Status"]],
         body: eventData,
-        theme: 'striped',
+        theme: "striped",
         headStyles: { fillColor: [219, 39, 119] },
-        styles: { fontSize: 9 }
+        styles: { fontSize: 9 },
       });
     }
 
     // Save
-    const filename = `Publicity_${selectedProject.title}_${new Date().toISOString().split('T')[0]}.pdf`;
+    const filename = `Publicity_${selectedProject.title}_${new Date().toISOString().split("T")[0]}.pdf`;
     doc.save(filename);
   };
 
@@ -557,9 +610,13 @@ export default function PublicityPage() {
               <div className="p-3 bg-pink-100 rounded-lg">
                 <Megaphone className="w-8 h-8 text-pink-600" />
               </div>
-              <h1 className="text-3xl font-bold text-gray-900">Publicity & P&A</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Publicity & P&A
+              </h1>
             </div>
-            <p className="text-gray-600">Manage marketing budget, campaign calendar, and track expenses</p>
+            <p className="text-gray-600">
+              Manage marketing budget, campaign calendar, and track expenses
+            </p>
           </div>
           {selectedProjectId && (
             <div className="flex items-center gap-3">
@@ -576,7 +633,7 @@ export default function PublicityPage() {
                 className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors flex items-center gap-2 disabled:opacity-50"
               >
                 <TrendingUp className="w-5 h-5" />
-                {submitting ? 'Updating...' : 'Update ROI'}
+                {submitting ? "Updating..." : "Update ROI"}
               </button>
             </div>
           )}
@@ -585,7 +642,9 @@ export default function PublicityPage() {
 
       {/* Project Selector */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
-        <label className="block text-sm font-semibold text-gray-700 mb-2">Select Project</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Select Project
+        </label>
         <select
           value={selectedProjectId}
           onChange={(e) => setSelectedProjectId(e.target.value)}
@@ -639,11 +698,13 @@ export default function PublicityPage() {
                 </div>
                 <p
                   className={`text-2xl font-bold ${
-                    summary.summary.totalVariance < 0 ? 'text-red-600' : 'text-green-600'
+                    summary.summary.totalVariance < 0
+                      ? "text-red-600"
+                      : "text-green-600"
                   }`}
                 >
                   {formatCurrency(Math.abs(summary.summary.totalVariance))}
-                  {summary.summary.totalVariance < 0 ? ' over' : ' under'}
+                  {summary.summary.totalVariance < 0 ? " over" : " under"}
                 </p>
               </div>
 
@@ -679,17 +740,20 @@ export default function PublicityPage() {
             <div className="border-b border-gray-200">
               <nav className="flex -mb-px">
                 {[
-                  { key: 'budget', label: `Budgets (${budgets.length})` },
-                  { key: 'calendar', label: `Calendar (${campaignEvents.length})` },
-                  { key: 'summary', label: 'Summary' },
+                  { key: "budget", label: `Budgets (${budgets.length})` },
+                  {
+                    key: "calendar",
+                    label: `Calendar (${campaignEvents.length})`,
+                  },
+                  { key: "summary", label: "Summary" },
                 ].map((tab) => (
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key as any)}
                     className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                       activeTab === tab.key
-                        ? 'border-pink-600 text-pink-600'
-                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                        ? "border-pink-600 text-pink-600"
+                        : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
                     }`}
                   >
                     {tab.label}
@@ -700,10 +764,12 @@ export default function PublicityPage() {
 
             <div className="p-6">
               {/* BUDGET TAB */}
-              {activeTab === 'budget' && (
+              {activeTab === "budget" && (
                 <div>
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Publicity Budgets</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Publicity Budgets
+                    </h3>
                     <button
                       onClick={() => openBudgetModal()}
                       className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors flex items-center gap-2"
@@ -752,26 +818,27 @@ export default function PublicityPage() {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {budgets.map((budget) => {
-                            const remaining = budget.budgetAmount - budget.actualAmount;
+                            const remaining =
+                              budget.budgetAmount - budget.actualAmount;
                             return (
                               <tr key={budget.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 text-sm font-medium text-gray-900">
                                   {budget.name}
                                 </td>
                                 <td className="px-6 py-4 text-sm text-gray-600">
-                                  {budget.category.replace(/_/g, ' ')}
+                                  {budget.category.replace(/_/g, " ")}
                                 </td>
                                 <td className="px-6 py-4">
                                   <span
                                     className={`px-2 py-1 text-xs font-medium rounded ${
-                                      budget.status === 'COMPLETED'
-                                        ? 'bg-green-100 text-green-800'
-                                        : budget.status === 'IN_PROGRESS'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : 'bg-gray-100 text-gray-800'
+                                      budget.status === "COMPLETED"
+                                        ? "bg-green-100 text-green-800"
+                                        : budget.status === "IN_PROGRESS"
+                                          ? "bg-blue-100 text-blue-800"
+                                          : "bg-gray-100 text-gray-800"
                                     }`}
                                   >
-                                    {budget.status.replace(/_/g, ' ')}
+                                    {budget.status.replace(/_/g, " ")}
                                   </span>
                                 </td>
                                 <td className="px-6 py-4 text-sm text-right text-gray-900">
@@ -784,11 +851,13 @@ export default function PublicityPage() {
                                 </td>
                                 <td
                                   className={`px-6 py-4 text-sm text-right font-medium ${
-                                    remaining < 0 ? 'text-red-600' : 'text-green-600'
+                                    remaining < 0
+                                      ? "text-red-600"
+                                      : "text-green-600"
                                   }`}
                                 >
                                   {formatCurrency(Math.abs(remaining))}
-                                  {remaining < 0 && ' over'}
+                                  {remaining < 0 && " over"}
                                 </td>
                                 <td className="px-6 py-4 text-right text-sm">
                                   <button
@@ -804,7 +873,9 @@ export default function PublicityPage() {
                                     + Expense
                                   </button>
                                   <button
-                                    onClick={() => handleDeleteBudget(budget.id)}
+                                    onClick={() =>
+                                      handleDeleteBudget(budget.id)
+                                    }
                                     className="text-red-600 hover:text-red-900"
                                   >
                                     Delete
@@ -821,10 +892,12 @@ export default function PublicityPage() {
               )}
 
               {/* CALENDAR TAB */}
-              {activeTab === 'calendar' && (
+              {activeTab === "calendar" && (
                 <div>
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Campaign Calendar</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Campaign Calendar
+                    </h3>
                     <button
                       onClick={() => openCampaignModal()}
                       className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors flex items-center gap-2"
@@ -851,7 +924,9 @@ export default function PublicityPage() {
                           className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow"
                         >
                           <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-semibold text-gray-900">{event.title}</h4>
+                            <h4 className="font-semibold text-gray-900">
+                              {event.title}
+                            </h4>
                             <div className="flex gap-1">
                               <button
                                 onClick={() => openCampaignModal(event)}
@@ -867,20 +942,22 @@ export default function PublicityPage() {
                               </button>
                             </div>
                           </div>
-                          <p className="text-sm text-gray-600 mb-2">{event.eventType.replace(/_/g, ' ')}</p>
+                          <p className="text-sm text-gray-600 mb-2">
+                            {event.eventType.replace(/_/g, " ")}
+                          </p>
                           <p className="text-xs text-gray-500">
                             {new Date(event.startDate).toLocaleDateString()}
                           </p>
                           <span
                             className={`mt-2 inline-block px-2 py-1 text-xs font-medium rounded ${
-                              event.status === 'COMPLETED'
-                                ? 'bg-green-100 text-green-800'
-                                : event.status === 'IN_PROGRESS'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-gray-100 text-gray-800'
+                              event.status === "COMPLETED"
+                                ? "bg-green-100 text-green-800"
+                                : event.status === "IN_PROGRESS"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-gray-100 text-gray-800"
                             }`}
                           >
-                            {event.status.replace(/_/g, ' ')}
+                            {event.status.replace(/_/g, " ")}
                           </span>
                         </div>
                       ))}
@@ -890,35 +967,59 @@ export default function PublicityPage() {
               )}
 
               {/* SUMMARY TAB */}
-              {activeTab === 'summary' && summary && (
+              {activeTab === "summary" && summary && (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Summary</h3>
-                  
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Summary
+                  </h3>
+
                   {/* By Category */}
                   {summary.byCategory && summary.byCategory.length > 0 && (
                     <div className="mb-6">
-                      <h4 className="text-md font-semibold text-gray-800 mb-3">By Category</h4>
+                      <h4 className="text-md font-semibold text-gray-800 mb-3">
+                        By Category
+                      </h4>
                       <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                           <thead className="bg-gray-50">
                             <tr>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Budgeted</th>
-                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Actual</th>
-                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Variance</th>
-                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Count</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Category
+                              </th>
+                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                                Budgeted
+                              </th>
+                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                                Actual
+                              </th>
+                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                                Variance
+                              </th>
+                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                                Count
+                              </th>
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
                             {summary.byCategory.map((cat: any) => (
                               <tr key={cat.category}>
-                                <td className="px-4 py-2 text-sm font-medium text-gray-900">{cat.category}</td>
-                                <td className="px-4 py-2 text-sm text-right">{formatCurrency(cat.budgeted)}</td>
-                                <td className="px-4 py-2 text-sm text-right">{formatCurrency(cat.actual)}</td>
-                                <td className={`px-4 py-2 text-sm text-right ${cat.variance < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                <td className="px-4 py-2 text-sm font-medium text-gray-900">
+                                  {cat.category}
+                                </td>
+                                <td className="px-4 py-2 text-sm text-right">
+                                  {formatCurrency(cat.budgeted)}
+                                </td>
+                                <td className="px-4 py-2 text-sm text-right">
+                                  {formatCurrency(cat.actual)}
+                                </td>
+                                <td
+                                  className={`px-4 py-2 text-sm text-right ${cat.variance < 0 ? "text-red-600" : "text-green-600"}`}
+                                >
                                   {formatCurrency(Math.abs(cat.variance))}
                                 </td>
-                                <td className="px-4 py-2 text-sm text-right">{cat.count}</td>
+                                <td className="px-4 py-2 text-sm text-right">
+                                  {cat.count}
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -930,24 +1031,42 @@ export default function PublicityPage() {
                   {/* By Status */}
                   {summary.byStatus && summary.byStatus.length > 0 && (
                     <div>
-                      <h4 className="text-md font-semibold text-gray-800 mb-3">By Status</h4>
+                      <h4 className="text-md font-semibold text-gray-800 mb-3">
+                        By Status
+                      </h4>
                       <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                           <thead className="bg-gray-50">
                             <tr>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Budgeted</th>
-                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Actual</th>
-                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Count</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Status
+                              </th>
+                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                                Budgeted
+                              </th>
+                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                                Actual
+                              </th>
+                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                                Count
+                              </th>
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
                             {summary.byStatus.map((stat: any) => (
                               <tr key={stat.status}>
-                                <td className="px-4 py-2 text-sm font-medium text-gray-900">{stat.status}</td>
-                                <td className="px-4 py-2 text-sm text-right">{formatCurrency(stat.budgeted)}</td>
-                                <td className="px-4 py-2 text-sm text-right">{formatCurrency(stat.actual)}</td>
-                                <td className="px-4 py-2 text-sm text-right">{stat.count}</td>
+                                <td className="px-4 py-2 text-sm font-medium text-gray-900">
+                                  {stat.status}
+                                </td>
+                                <td className="px-4 py-2 text-sm text-right">
+                                  {formatCurrency(stat.budgeted)}
+                                </td>
+                                <td className="px-4 py-2 text-sm text-right">
+                                  {formatCurrency(stat.actual)}
+                                </td>
+                                <td className="px-4 py-2 text-sm text-right">
+                                  {stat.count}
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -963,8 +1082,12 @@ export default function PublicityPage() {
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <Film className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Project Selected</h3>
-          <p className="text-gray-600">Please select a project to manage publicity</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            No Project Selected
+          </h3>
+          <p className="text-gray-600">
+            Please select a project to manage publicity
+          </p>
         </div>
       )}
 
@@ -975,9 +1098,12 @@ export default function PublicityPage() {
             <div className="border-b border-gray-200 px-6 py-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-gray-900">
-                  {editingBudget ? 'Edit Budget' : 'Create Budget'}
+                  {editingBudget ? "Edit Budget" : "Create Budget"}
                 </h2>
-                <button onClick={closeBudgetModal} className="text-gray-400 hover:text-gray-600">
+                <button
+                  onClick={closeBudgetModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
                   <X className="w-6 h-6" />
                 </button>
               </div>
@@ -993,7 +1119,10 @@ export default function PublicityPage() {
                     type="text"
                     value={budgetFormData.name}
                     onChange={(e) =>
-                      setBudgetFormData({ ...budgetFormData, name: e.target.value })
+                      setBudgetFormData({
+                        ...budgetFormData,
+                        name: e.target.value,
+                      })
                     }
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
@@ -1062,7 +1191,10 @@ export default function PublicityPage() {
                     type="number"
                     value={budgetFormData.budgetAmount}
                     onChange={(e) =>
-                      setBudgetFormData({ ...budgetFormData, budgetAmount: e.target.value })
+                      setBudgetFormData({
+                        ...budgetFormData,
+                        budgetAmount: e.target.value,
+                      })
                     }
                     required
                     min="0"
@@ -1080,7 +1212,10 @@ export default function PublicityPage() {
                     type="text"
                     value={budgetFormData.vendor}
                     onChange={(e) =>
-                      setBudgetFormData({ ...budgetFormData, vendor: e.target.value })
+                      setBudgetFormData({
+                        ...budgetFormData,
+                        vendor: e.target.value,
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   />
@@ -1094,7 +1229,10 @@ export default function PublicityPage() {
                     type="date"
                     value={budgetFormData.startDate}
                     onChange={(e) =>
-                      setBudgetFormData({ ...budgetFormData, startDate: e.target.value })
+                      setBudgetFormData({
+                        ...budgetFormData,
+                        startDate: e.target.value,
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   />
@@ -1108,7 +1246,10 @@ export default function PublicityPage() {
                     type="date"
                     value={budgetFormData.endDate}
                     onChange={(e) =>
-                      setBudgetFormData({ ...budgetFormData, endDate: e.target.value })
+                      setBudgetFormData({
+                        ...budgetFormData,
+                        endDate: e.target.value,
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   />
@@ -1121,7 +1262,10 @@ export default function PublicityPage() {
                   <textarea
                     value={budgetFormData.description}
                     onChange={(e) =>
-                      setBudgetFormData({ ...budgetFormData, description: e.target.value })
+                      setBudgetFormData({
+                        ...budgetFormData,
+                        description: e.target.value,
+                      })
                     }
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
@@ -1135,7 +1279,10 @@ export default function PublicityPage() {
                   <textarea
                     value={budgetFormData.notes}
                     onChange={(e) =>
-                      setBudgetFormData({ ...budgetFormData, notes: e.target.value })
+                      setBudgetFormData({
+                        ...budgetFormData,
+                        notes: e.target.value,
+                      })
                     }
                     rows={2}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
@@ -1157,7 +1304,11 @@ export default function PublicityPage() {
                   className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50"
                   disabled={submitting}
                 >
-                  {submitting ? 'Saving...' : editingBudget ? 'Update Budget' : 'Create Budget'}
+                  {submitting
+                    ? "Saving..."
+                    : editingBudget
+                      ? "Update Budget"
+                      : "Create Budget"}
                 </button>
               </div>
             </form>
@@ -1171,8 +1322,13 @@ export default function PublicityPage() {
           <div className="bg-white rounded-lg max-w-lg w-full">
             <div className="border-b border-gray-200 px-6 py-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">Add Expense</h2>
-                <button onClick={closeExpenseModal} className="text-gray-400 hover:text-gray-600">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Add Expense
+                </h2>
+                <button
+                  onClick={closeExpenseModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
                   <X className="w-6 h-6" />
                 </button>
               </div>
@@ -1188,7 +1344,10 @@ export default function PublicityPage() {
                     type="text"
                     value={expenseFormData.description}
                     onChange={(e) =>
-                      setExpenseFormData({ ...expenseFormData, description: e.target.value })
+                      setExpenseFormData({
+                        ...expenseFormData,
+                        description: e.target.value,
+                      })
                     }
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
@@ -1203,7 +1362,10 @@ export default function PublicityPage() {
                     type="number"
                     value={expenseFormData.amount}
                     onChange={(e) =>
-                      setExpenseFormData({ ...expenseFormData, amount: e.target.value })
+                      setExpenseFormData({
+                        ...expenseFormData,
+                        amount: e.target.value,
+                      })
                     }
                     required
                     min="0"
@@ -1221,7 +1383,10 @@ export default function PublicityPage() {
                     type="date"
                     value={expenseFormData.expenseDate}
                     onChange={(e) =>
-                      setExpenseFormData({ ...expenseFormData, expenseDate: e.target.value })
+                      setExpenseFormData({
+                        ...expenseFormData,
+                        expenseDate: e.target.value,
+                      })
                     }
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
@@ -1236,7 +1401,10 @@ export default function PublicityPage() {
                     type="text"
                     value={expenseFormData.vendor}
                     onChange={(e) =>
-                      setExpenseFormData({ ...expenseFormData, vendor: e.target.value })
+                      setExpenseFormData({
+                        ...expenseFormData,
+                        vendor: e.target.value,
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   />
@@ -1250,7 +1418,10 @@ export default function PublicityPage() {
                     type="text"
                     value={expenseFormData.invoiceNumber}
                     onChange={(e) =>
-                      setExpenseFormData({ ...expenseFormData, invoiceNumber: e.target.value })
+                      setExpenseFormData({
+                        ...expenseFormData,
+                        invoiceNumber: e.target.value,
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   />
@@ -1263,7 +1434,10 @@ export default function PublicityPage() {
                   <textarea
                     value={expenseFormData.notes}
                     onChange={(e) =>
-                      setExpenseFormData({ ...expenseFormData, notes: e.target.value })
+                      setExpenseFormData({
+                        ...expenseFormData,
+                        notes: e.target.value,
+                      })
                     }
                     rows={2}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
@@ -1285,7 +1459,7 @@ export default function PublicityPage() {
                   className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50"
                   disabled={submitting}
                 >
-                  {submitting ? 'Adding...' : 'Add Expense'}
+                  {submitting ? "Adding..." : "Add Expense"}
                 </button>
               </div>
             </form>
@@ -1300,9 +1474,14 @@ export default function PublicityPage() {
             <div className="border-b border-gray-200 px-6 py-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-gray-900">
-                  {editingCampaign ? 'Edit Campaign Event' : 'Create Campaign Event'}
+                  {editingCampaign
+                    ? "Edit Campaign Event"
+                    : "Create Campaign Event"}
                 </h2>
-                <button onClick={closeCampaignModal} className="text-gray-400 hover:text-gray-600">
+                <button
+                  onClick={closeCampaignModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
                   <X className="w-6 h-6" />
                 </button>
               </div>
@@ -1318,7 +1497,10 @@ export default function PublicityPage() {
                     type="text"
                     value={campaignFormData.title}
                     onChange={(e) =>
-                      setCampaignFormData({ ...campaignFormData, title: e.target.value })
+                      setCampaignFormData({
+                        ...campaignFormData,
+                        title: e.target.value,
+                      })
                     }
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
@@ -1383,7 +1565,10 @@ export default function PublicityPage() {
                     type="date"
                     value={campaignFormData.startDate}
                     onChange={(e) =>
-                      setCampaignFormData({ ...campaignFormData, startDate: e.target.value })
+                      setCampaignFormData({
+                        ...campaignFormData,
+                        startDate: e.target.value,
+                      })
                     }
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
@@ -1398,7 +1583,10 @@ export default function PublicityPage() {
                     type="date"
                     value={campaignFormData.endDate}
                     onChange={(e) =>
-                      setCampaignFormData({ ...campaignFormData, endDate: e.target.value })
+                      setCampaignFormData({
+                        ...campaignFormData,
+                        endDate: e.target.value,
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   />
@@ -1434,7 +1622,10 @@ export default function PublicityPage() {
                   <textarea
                     value={campaignFormData.description}
                     onChange={(e) =>
-                      setCampaignFormData({ ...campaignFormData, description: e.target.value })
+                      setCampaignFormData({
+                        ...campaignFormData,
+                        description: e.target.value,
+                      })
                     }
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
@@ -1449,7 +1640,10 @@ export default function PublicityPage() {
                     type="text"
                     value={campaignFormData.deliverable}
                     onChange={(e) =>
-                      setCampaignFormData({ ...campaignFormData, deliverable: e.target.value })
+                      setCampaignFormData({
+                        ...campaignFormData,
+                        deliverable: e.target.value,
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   />
@@ -1462,7 +1656,10 @@ export default function PublicityPage() {
                   <textarea
                     value={campaignFormData.notes}
                     onChange={(e) =>
-                      setCampaignFormData({ ...campaignFormData, notes: e.target.value })
+                      setCampaignFormData({
+                        ...campaignFormData,
+                        notes: e.target.value,
+                      })
                     }
                     rows={2}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
@@ -1484,7 +1681,11 @@ export default function PublicityPage() {
                   className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50"
                   disabled={submitting}
                 >
-                  {submitting ? 'Saving...' : editingCampaign ? 'Update Event' : 'Create Event'}
+                  {submitting
+                    ? "Saving..."
+                    : editingCampaign
+                      ? "Update Event"
+                      : "Create Event"}
                 </button>
               </div>
             </form>

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, {
   useState,
@@ -6,8 +6,8 @@ import React, {
   useCallback,
   FormEvent,
   ChangeEvent,
-} from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+} from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Film,
   FileText,
@@ -18,15 +18,16 @@ import {
   Calendar,
   DollarSign,
   Loader2,
-} from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { Download } from 'lucide-react';
+} from "lucide-react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import { Download } from "lucide-react";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
+  process.env.NEXT_PUBLIC_API_URL ??
+  "https://film-finance-app.onrender.com/api";
 
-type TemplateType = 'FEATURE' | 'SERIES' | 'SHORT';
+type TemplateType = "FEATURE" | "SERIES" | "SHORT";
 
 interface Project {
   id: string;
@@ -37,7 +38,7 @@ interface Project {
 interface Quotation {
   id: string;
   version: string;
-  type: 'QUOTE' | 'BASELINE' | 'WORKING';
+  type: "QUOTE" | "BASELINE" | "WORKING";
   template?: TemplateType;
   total?: number;
   createdAt: string;
@@ -54,25 +55,25 @@ export default function QuotationsContent() {
   const searchParams = useSearchParams();
 
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(
-    undefined,
-  );
+  const [selectedProjectId, setSelectedProjectId] = useState<
+    string | undefined
+  >(undefined);
 
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [loading, setLoading] = useState(false);
   const [projectsLoading, setProjectsLoading] = useState(true);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [formData, setFormData] = useState<CreateFormData>({
-    template: 'FEATURE',
-    versionNo: 'v1.0',
+    template: "FEATURE",
+    versionNo: "v1.0",
   });
 
   // Restore project selection from URL
   useEffect(() => {
-    const pid = searchParams.get('projectId');
+    const pid = searchParams.get("projectId");
     if (pid && pid !== selectedProjectId) {
       setSelectedProjectId(pid);
     }
@@ -83,23 +84,22 @@ export default function QuotationsContent() {
     setProjectsLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/projects?limit=1000`, {
-        credentials: 'include',
+        credentials: "include",
       });
       if (!response.ok) return;
       const result = await response.json();
       if (result.success) {
         setProjects(result.data.projects as Project[]);
-          
-      // ✅ ADD THESE LINES - Auto-select from URL
-      const params = new URLSearchParams(window.location.search);
-      const projectId = params.get('projectId');
-      if (projectId) {
-        setSelectedProjectId(projectId);
-      }
-      }
 
+        // ✅ ADD THESE LINES - Auto-select from URL
+        const params = new URLSearchParams(window.location.search);
+        const projectId = params.get("projectId");
+        if (projectId) {
+          setSelectedProjectId(projectId);
+        }
+      }
     } catch (error) {
-      console.error('Error fetching projects', error);
+      console.error("Error fetching projects", error);
     } finally {
       setProjectsLoading(false);
     }
@@ -119,7 +119,7 @@ export default function QuotationsContent() {
     try {
       const response = await fetch(
         `${API_BASE_URL}/projects/${selectedProjectId}/quotations`,
-        { credentials: 'include' },
+        { credentials: "include" }
       );
       if (!response.ok) return;
       const result = await response.json();
@@ -127,7 +127,7 @@ export default function QuotationsContent() {
         setQuotations(result.data as Quotation[]);
       }
     } catch (error) {
-      console.error('Error fetching quotations', error);
+      console.error("Error fetching quotations", error);
     } finally {
       setLoading(false);
     }
@@ -143,8 +143,8 @@ export default function QuotationsContent() {
     const id = e.target.value || undefined;
     setSelectedProjectId(id);
     const params = new URLSearchParams(searchParams.toString());
-    if (id) params.set('projectId', id);
-    else params.delete('projectId');
+    if (id) params.set("projectId", id);
+    else params.delete("projectId");
     router.push(`?${params.toString()}`);
   };
 
@@ -169,17 +169,17 @@ export default function QuotationsContent() {
   const handleCreateQuotation = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedProjectId) {
-      alert('Please select a project first');
+      alert("Please select a project first");
       return;
     }
     if (!formData.versionNo.trim()) {
-      alert('Please enter a version number');
+      alert("Please enter a version number");
       return;
     }
 
     const payload = {
       version: formData.versionNo.trim(),
-      type: 'QUOTE',
+      type: "QUOTE",
       template: formData.template,
     };
 
@@ -187,25 +187,25 @@ export default function QuotationsContent() {
       const response = await fetch(
         `${API_BASE_URL}/projects/${selectedProjectId}/quotations`,
         {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify(payload),
-        },
+        }
       );
 
       const result = await response.json();
       if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Failed to create quotation');
+        throw new Error(result.message || "Failed to create quotation");
       }
 
-      alert('Quotation created successfully');
+      alert("Quotation created successfully");
       setShowCreateModal(false);
-      setFormData({ template: 'FEATURE', versionNo: 'v1.0' });
+      setFormData({ template: "FEATURE", versionNo: "v1.0" });
       fetchQuotations();
     } catch (error: any) {
-      console.error('Error creating quotation', error);
-      alert(error.message || 'Failed to create quotation');
+      console.error("Error creating quotation", error);
+      alert(error.message || "Failed to create quotation");
     }
   };
 
@@ -213,7 +213,7 @@ export default function QuotationsContent() {
     if (
       !selectedProjectId ||
       !confirm(
-        'Are you sure you want to delete this quotation? This action cannot be undone.',
+        "Are you sure you want to delete this quotation? This action cannot be undone."
       )
     ) {
       return;
@@ -223,27 +223,27 @@ export default function QuotationsContent() {
       const response = await fetch(
         `${API_BASE_URL}/projects/${selectedProjectId}/quotations/${quotationId}`,
         {
-          method: 'DELETE',
-          credentials: 'include',
-        },
+          method: "DELETE",
+          credentials: "include",
+        }
       );
       const result = await response.json();
       if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Failed to delete quotation');
+        throw new Error(result.message || "Failed to delete quotation");
       }
-      alert('Quotation deleted successfully');
+      alert("Quotation deleted successfully");
       fetchQuotations();
     } catch (error: any) {
-      console.error('Error deleting quotation', error);
-      alert(error.message || 'Failed to delete quotation');
+      console.error("Error deleting quotation", error);
+      alert(error.message || "Failed to delete quotation");
     }
   };
 
   const formatCurrency = (amount: number) => {
     const project = projects.find((p) => p.id === selectedProjectId);
-    const currency = project?.baseCurrency ?? 'USD';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
+    const currency = project?.baseCurrency ?? "USD";
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
       currency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
@@ -254,179 +254,217 @@ export default function QuotationsContent() {
     const term = searchTerm.toLowerCase();
     return (
       q.version.toLowerCase().includes(term) ||
-      (q.template ?? '').toLowerCase().includes(term)
+      (q.template ?? "").toLowerCase().includes(term)
     );
   });
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
-const exportToPDF = (quotation: any) => {
-  const doc = new jsPDF();
+  const exportToPDF = (quotation: any) => {
+    const doc = new jsPDF();
 
-  // Header
-  doc.setFontSize(20);
-  doc.text('QUOTATION', 14, 20);
-  
-  doc.setFontSize(11);
-  doc.text(`Version: ${quotation.version}`, 14, 32);
-  doc.text(`Type: ${quotation.type}`, 14, 38);
-  doc.text(`Template: ${quotation.template || 'N/A'}`, 14, 44);
-  doc.text(`Created: ${new Date(quotation.createdAt).toLocaleDateString()}`, 14, 50);
+    // Header
+    doc.setFontSize(20);
+    doc.text("QUOTATION", 14, 20);
 
-  if (quotation.lockedAt) {
-    doc.setTextColor(220, 38, 38);
-    doc.text('LOCKED', 14, 56);
-    doc.setTextColor(0, 0, 0);
-  }
-
-  // Total Summary Box
-  doc.setFillColor(240, 248, 255);
-  doc.rect(14, 65, 180, 15, 'F');
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`Total: ${formatCurrency(quotation.total || 0)}`, 16, 75);
-  doc.setFont('helvetica', 'normal');
-
-  // Assumptions
-  if (quotation.assumptions) {
-    doc.setFontSize(12);
-    doc.text('Assumptions', 14, 92);
-    doc.setFontSize(9);
-    doc.text(`Currency: ${quotation.assumptions.currency || 'USD'}`, 16, 98);
-    doc.text(`Tax: ${quotation.assumptions.taxPercent || 0}%`, 16, 104);
-    doc.text(`Contingency: ${quotation.assumptions.contingencyPercent || 0}%`, 60, 98);
-    doc.text(`Insurance: ${quotation.assumptions.insurancePercent || 0}%`, 60, 104);
-  }
-
-  // Budget Lines
-  if (quotation.lines && quotation.lines.length > 0) {
-    doc.setFontSize(14);
-    doc.text('Budget Lines', 14, 118);
-
-    const lineData = quotation.lines.map((line: any) => {
-      const subtotal = line.qty * line.rate;
-      const tax = subtotal * ((line.taxPercent || 0) / 100);
-      const total = subtotal + tax;
-      
-      return [
-        line.phase,
-        line.department || '-',
-        line.name,
-        line.qty.toString(),
-        line.rate.toLocaleString(),
-        `${line.taxPercent || 0}%`,
-        total.toLocaleString()
-      ];
-    });
-
-    autoTable(doc, {
-      startY: 123,
-      head: [['Phase', 'Dept', 'Item', 'Qty', 'Rate', 'Tax', 'Total']],
-      body: lineData,
-      foot: [['', '', '', '', '', 'GRAND TOTAL:', (quotation.total || 0).toLocaleString()]],
-      theme: 'striped',
-      headStyles: { fillColor: [59, 130, 246] },
-      footStyles: { fillColor: [241, 245, 249], textColor: [0, 0, 0], fontStyle: 'bold' },
-      styles: { fontSize: 8 },
-      columnStyles: {
-        3: { halign: 'right' },
-        4: { halign: 'right' },
-        5: { halign: 'right' },
-        6: { halign: 'right' }
-      }
-    });
-  }
-
-  // ROI Metrics
-  if (quotation.metrics) {
-    const finalY = (doc as any).lastAutoTable?.finalY + 15 || 180;
-    doc.setFontSize(14);
-    doc.text('ROI Metrics', 14, finalY);
-
-    const metricsData = [
-      ['Total Cost', formatCurrency(quotation.metrics.totalCost || 0)],
-      ['Projected Revenue', formatCurrency(quotation.metrics.projectedRevenue || 0)],
-      ['Distribution Fees', formatCurrency(quotation.metrics.distributionFees || 0)],
-      ['Net Revenue', formatCurrency(quotation.metrics.netRevenue || 0)],
-      ['Profit', formatCurrency(quotation.metrics.profit || 0)],
-      ['ROI', `${quotation.metrics.roi?.toFixed(1) || 0}%`],
-      ['Profit Margin', `${quotation.metrics.profitMargin?.toFixed(1) || 0}%`],
-    ];
-
-    autoTable(doc, {
-      startY: finalY + 5,
-      body: metricsData,
-      theme: 'plain',
-      styles: { fontSize: 10, cellPadding: 2 },
-      columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 60 },
-        1: { halign: 'right' }
-      }
-    });
-  }
-
-  // Financing Plan
-  if (quotation.financingPlan?.sources && quotation.financingPlan.sources.length > 0) {
-    const currentY = (doc as any).lastAutoTable?.finalY + 15 || 200;
-    
-let startY: number;
-
-if (currentY > 250) {
-  doc.addPage();
-  doc.setFontSize(14);
-  doc.text('Financing Plan', 14, 20);
-  startY = 25;
-} else {
-  doc.setFontSize(14);
-  doc.text('Financing Plan', 14, currentY);
-  startY = currentY + 5;
-}
-
-
-    const financingData = quotation.financingPlan.sources.map((source: any) => [
-      source.type,
-      source.description || '-',
-      formatCurrency(source.amount || 0),
-      source.rate ? `${source.rate}%` : '-'
-    ]);
-
-    autoTable(doc, {
-      startY: startY,
-      head: [['Type', 'Description', 'Amount', 'Rate']],
-      body: financingData,
-      theme: 'striped',
-      headStyles: { fillColor: [34, 197, 94] },
-      columnStyles: {
-        2: { halign: 'right' },
-        3: { halign: 'right' }
-      }
-    });
-  }
-
-  // Footer
-  const pageCount = doc.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(128, 128, 128);
+    doc.setFontSize(11);
+    doc.text(`Version: ${quotation.version}`, 14, 32);
+    doc.text(`Type: ${quotation.type}`, 14, 38);
+    doc.text(`Template: ${quotation.template || "N/A"}`, 14, 44);
     doc.text(
-      `Page ${i} of ${pageCount}`,
-      doc.internal.pageSize.width / 2,
-      doc.internal.pageSize.height - 10,
-      { align: 'center' }
-    );
-    doc.text(
-      `Generated on ${new Date().toLocaleDateString()}`,
+      `Created: ${new Date(quotation.createdAt).toLocaleDateString()}`,
       14,
-      doc.internal.pageSize.height - 10
+      50
     );
-  }
 
-  // Save
-  const filename = `Quotation_${quotation.version}_${new Date().toISOString().split('T')[0]}.pdf`;
-  doc.save(filename);
-};
+    if (quotation.lockedAt) {
+      doc.setTextColor(220, 38, 38);
+      doc.text("LOCKED", 14, 56);
+      doc.setTextColor(0, 0, 0);
+    }
 
+    // Total Summary Box
+    doc.setFillColor(240, 248, 255);
+    doc.rect(14, 65, 180, 15, "F");
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total: ${formatCurrency(quotation.total || 0)}`, 16, 75);
+    doc.setFont("helvetica", "normal");
+
+    // Assumptions
+    if (quotation.assumptions) {
+      doc.setFontSize(12);
+      doc.text("Assumptions", 14, 92);
+      doc.setFontSize(9);
+      doc.text(`Currency: ${quotation.assumptions.currency || "USD"}`, 16, 98);
+      doc.text(`Tax: ${quotation.assumptions.taxPercent || 0}%`, 16, 104);
+      doc.text(
+        `Contingency: ${quotation.assumptions.contingencyPercent || 0}%`,
+        60,
+        98
+      );
+      doc.text(
+        `Insurance: ${quotation.assumptions.insurancePercent || 0}%`,
+        60,
+        104
+      );
+    }
+
+    // Budget Lines
+    if (quotation.lines && quotation.lines.length > 0) {
+      doc.setFontSize(14);
+      doc.text("Budget Lines", 14, 118);
+
+      const lineData = quotation.lines.map((line: any) => {
+        const subtotal = line.qty * line.rate;
+        const tax = subtotal * ((line.taxPercent || 0) / 100);
+        const total = subtotal + tax;
+
+        return [
+          line.phase,
+          line.department || "-",
+          line.name,
+          line.qty.toString(),
+          line.rate.toLocaleString(),
+          `${line.taxPercent || 0}%`,
+          total.toLocaleString(),
+        ];
+      });
+
+      autoTable(doc, {
+        startY: 123,
+        head: [["Phase", "Dept", "Item", "Qty", "Rate", "Tax", "Total"]],
+        body: lineData,
+        foot: [
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "GRAND TOTAL:",
+            (quotation.total || 0).toLocaleString(),
+          ],
+        ],
+        theme: "striped",
+        headStyles: { fillColor: [59, 130, 246] },
+        footStyles: {
+          fillColor: [241, 245, 249],
+          textColor: [0, 0, 0],
+          fontStyle: "bold",
+        },
+        styles: { fontSize: 8 },
+        columnStyles: {
+          3: { halign: "right" },
+          4: { halign: "right" },
+          5: { halign: "right" },
+          6: { halign: "right" },
+        },
+      });
+    }
+
+    // ROI Metrics
+    if (quotation.metrics) {
+      const finalY = (doc as any).lastAutoTable?.finalY + 15 || 180;
+      doc.setFontSize(14);
+      doc.text("ROI Metrics", 14, finalY);
+
+      const metricsData = [
+        ["Total Cost", formatCurrency(quotation.metrics.totalCost || 0)],
+        [
+          "Projected Revenue",
+          formatCurrency(quotation.metrics.projectedRevenue || 0),
+        ],
+        [
+          "Distribution Fees",
+          formatCurrency(quotation.metrics.distributionFees || 0),
+        ],
+        ["Net Revenue", formatCurrency(quotation.metrics.netRevenue || 0)],
+        ["Profit", formatCurrency(quotation.metrics.profit || 0)],
+        ["ROI", `${quotation.metrics.roi?.toFixed(1) || 0}%`],
+        [
+          "Profit Margin",
+          `${quotation.metrics.profitMargin?.toFixed(1) || 0}%`,
+        ],
+      ];
+
+      autoTable(doc, {
+        startY: finalY + 5,
+        body: metricsData,
+        theme: "plain",
+        styles: { fontSize: 10, cellPadding: 2 },
+        columnStyles: {
+          0: { fontStyle: "bold", cellWidth: 60 },
+          1: { halign: "right" },
+        },
+      });
+    }
+
+    // Financing Plan
+    if (
+      quotation.financingPlan?.sources &&
+      quotation.financingPlan.sources.length > 0
+    ) {
+      const currentY = (doc as any).lastAutoTable?.finalY + 15 || 200;
+
+      let startY: number;
+
+      if (currentY > 250) {
+        doc.addPage();
+        doc.setFontSize(14);
+        doc.text("Financing Plan", 14, 20);
+        startY = 25;
+      } else {
+        doc.setFontSize(14);
+        doc.text("Financing Plan", 14, currentY);
+        startY = currentY + 5;
+      }
+
+      const financingData = quotation.financingPlan.sources.map(
+        (source: any) => [
+          source.type,
+          source.description || "-",
+          formatCurrency(source.amount || 0),
+          source.rate ? `${source.rate}%` : "-",
+        ]
+      );
+
+      autoTable(doc, {
+        startY: startY,
+        head: [["Type", "Description", "Amount", "Rate"]],
+        body: financingData,
+        theme: "striped",
+        headStyles: { fillColor: [34, 197, 94] },
+        columnStyles: {
+          2: { halign: "right" },
+          3: { halign: "right" },
+        },
+      });
+    }
+
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(128, 128, 128);
+      doc.text(
+        `Page ${i} of ${pageCount}`,
+        doc.internal.pageSize.width / 2,
+        doc.internal.pageSize.height - 10,
+        { align: "center" }
+      );
+      doc.text(
+        `Generated on ${new Date().toLocaleDateString()}`,
+        14,
+        doc.internal.pageSize.height - 10
+      );
+    }
+
+    // Save
+    const filename = `Quotation_${quotation.version}_${new Date().toISOString().split("T")[0]}.pdf`;
+    doc.save(filename);
+  };
 
   // ------- Render -------
 
@@ -455,7 +493,7 @@ if (currentY > 250) {
                 Project
               </label>
               <select
-                value={selectedProjectId ?? ''}
+                value={selectedProjectId ?? ""}
                 onChange={handleProjectChange}
                 className="h-11 min-w-[220px] rounded-xl border border-slate-300 px-3 bg-white shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
@@ -492,7 +530,6 @@ if (currentY > 250) {
             )}
           </div>
         </div>
-
 
         {/* Search & summary */}
         {selectedProjectId && (
@@ -546,12 +583,12 @@ if (currentY > 250) {
           <div className="text-center py-20 px-6 bg-white rounded-2xl shadow border border-slate-200">
             <FileText className="w-20 h-20 text-gray-300 mx-auto mb-6" />
             <h3 className="text-2xl font-bold text-gray-900 mb-2">
-              {searchTerm ? 'No matching quotations' : 'No quotations yet'}
+              {searchTerm ? "No matching quotations" : "No quotations yet"}
             </h3>
             <p className="text-xl text-gray-500 mb-8 max-w-md mx-auto">
               {searchTerm
-                ? 'Try adjusting your search terms.'
-                : 'Create your first quotation to start planning project finances.'}
+                ? "Try adjusting your search terms."
+                : "Create your first quotation to start planning project finances."}
             </p>
             {!searchTerm && (
               <button
@@ -590,70 +627,69 @@ if (currentY > 250) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">
-             {filteredQuotations.map((q) => ( 
-  <tr key={q.id} className="hover:bg-slate-50">
-    <td className="px-6 py-4 font-semibold text-gray-900">
-      {q.version}
-    </td>
-    <td className="px-6 py-4 text-gray-700">
-      {q.template ?? '-'}
-    </td>
-    <td className="px-6 py-4 text-gray-600">
-      <div className="flex items-center gap-2">
-        <Calendar className="w-4 h-4 text-gray-400" />
-        <span>
-          {new Date(q.createdAt).toLocaleDateString()}
-        </span>
-      </div>
-    </td>
-    <td className="px-6 py-4">
-      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-        {q.type}
-      </span>
-    </td>
-    <td className="px-6 py-4 text-right font-semibold text-gray-900">
-      {q.total != null ? formatCurrency(q.total) : '-'}
-    </td>
-    <td className="px-6 py-4">
-      <div className="flex items-center gap-2">
-        {/* View Button */}
-        <button
-          type="button"
-          onClick={() =>
-            router.push(
-              `/quotations/${q.id}/view?projectId=${selectedProjectId}`
-            )
-          }
-          className="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors"
-          title="View Quotation"
-        >
-          <Eye className="w-4 h-4" />
-        </button>
+                {filteredQuotations.map((q) => (
+                  <tr key={q.id} className="hover:bg-slate-50">
+                    <td className="px-6 py-4 font-semibold text-gray-900">
+                      {q.version}
+                    </td>
+                    <td className="px-6 py-4 text-gray-700">
+                      {q.template ?? "-"}
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <span>
+                          {new Date(q.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {q.type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right font-semibold text-gray-900">
+                      {q.total != null ? formatCurrency(q.total) : "-"}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        {/* View Button */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            router.push(
+                              `/quotations/${q.id}/view?projectId=${selectedProjectId}`
+                            )
+                          }
+                          className="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors"
+                          title="View Quotation"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
 
-        {/* Download PDF Button */}
-        <button
-          type="button"
-          onClick={() => exportToPDF(q)}
-          className="p-2 rounded-lg text-green-600 hover:bg-green-50 transition-colors"
-          title="Download PDF"
-        >
-          <Download className="w-4 h-4" />
-        </button>
+                        {/* Download PDF Button */}
+                        <button
+                          type="button"
+                          onClick={() => exportToPDF(q)}
+                          className="p-2 rounded-lg text-green-600 hover:bg-green-50 transition-colors"
+                          title="Download PDF"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
 
-        {/* Delete Button */}
-        <button
-          type="button"
-          onClick={() => handleDeleteQuotation(q.id)}
-          className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
-          title="Delete Quotation"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
-    </td>
-  </tr>
-))}
-
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteQuotation(q.id)}
+                          className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                          title="Delete Quotation"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

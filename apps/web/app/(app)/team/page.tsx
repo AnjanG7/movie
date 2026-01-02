@@ -55,7 +55,7 @@ interface ProjectUserAssignment {
 }
 
 const AVAILABLE_ROLES = ["Investor", "LineProducer", "Accountant"] as const;
-const API_BASE_URL = "http://localhost:4000/api";
+const API_BASE_URL = "https://film-finance-app.onrender.com/api";
 
 // Helper function to get role name from string or object
 const getRoleName = (role: string | Role | null): string => {
@@ -170,7 +170,10 @@ export default function TeamManagementPage() {
             }
           }
         } catch (error) {
-          console.error(`Failed to fetch users for project ${project.id}:`, error);
+          console.error(
+            `Failed to fetch users for project ${project.id}:`,
+            error
+          );
         }
       })
     );
@@ -209,7 +212,10 @@ export default function TeamManagementPage() {
     return map;
   }, [projects, projectAssignments]);
 
-  const getUserProjectRole = (userId: string, projectId: string): string | null => {
+  const getUserProjectRole = (
+    userId: string,
+    projectId: string
+  ): string | null => {
     const assignments = projectAssignments.get(projectId);
     const assignment = assignments?.find((a) => a.userId === userId);
     return assignment?.role || null;
@@ -298,23 +304,28 @@ export default function TeamManagementPage() {
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/projects/${projectId}/users`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: selectedUser.email,
-          role: "Investor", // Default role for new assignment
-        }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/projects/${projectId}/users`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: selectedUser.email,
+            role: "Investor", // Default role for new assignment
+          }),
+        }
+      );
 
       const data = await response.json();
 
       if (response.ok) {
         const project = projects.find((p) => p.id === projectId);
-        alert(`${selectedUser.name} assigned to ${project?.title} successfully!`);
+        alert(
+          `${selectedUser.name} assigned to ${project?.title} successfully!`
+        );
         setShowAssignModal(false);
         setSelectedUserId("");
         await fetchAllProjectAssignments(projects);
@@ -481,7 +492,9 @@ export default function TeamManagementPage() {
                 <p className="text-gray-500 text-sm">Assigned</p>
                 <Check className="w-8 h-8 text-green-500 opacity-20" />
               </div>
-              <p className="text-3xl font-bold text-gray-900">{stats.assigned}</p>
+              <p className="text-3xl font-bold text-gray-900">
+                {stats.assigned}
+              </p>
             </div>
 
             <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
@@ -819,7 +832,9 @@ export default function TeamManagementPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full max-h-90vh overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">Create New User</h2>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Create New User
+              </h2>
               <button
                 onClick={() => {
                   setShowCreateModal(false);
@@ -846,7 +861,9 @@ export default function TeamManagementPage() {
               {createError && (
                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
                   <AlertTriangle className="w-5 h-5 text-red-600" />
-                  <p className="text-sm text-red-700 font-medium">{createError}</p>
+                  <p className="text-sm text-red-700 font-medium">
+                    {createError}
+                  </p>
                 </div>
               )}
 
@@ -956,8 +973,8 @@ export default function TeamManagementPage() {
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    All users are assigned &quot;User&quot; role. Project-specific
-                    roles can be assigned after creation.
+                    All users are assigned &quot;User&quot; role.
+                    Project-specific roles can be assigned after creation.
                   </p>
                 </div>
 
@@ -1031,7 +1048,9 @@ export default function TeamManagementPage() {
               ) : (
                 projects.map((project) => {
                   const userProjects = getUserProjects(selectedUserId);
-                  const isAssigned = userProjects.some((p) => p.id === project.id);
+                  const isAssigned = userProjects.some(
+                    (p) => p.id === project.id
+                  );
                   const projectRole = getUserProjectRole(
                     selectedUserId,
                     project.id
@@ -1065,7 +1084,9 @@ export default function TeamManagementPage() {
                                 <div className="flex items-center gap-2">
                                   <select
                                     value={editingRole}
-                                    onChange={(e) => setEditingRole(e.target.value)}
+                                    onChange={(e) =>
+                                      setEditingRole(e.target.value)
+                                    }
                                     className="px-3 py-1.5 border border-blue-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   >
                                     {AVAILABLE_ROLES.map((role) => (

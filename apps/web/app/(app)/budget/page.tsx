@@ -1,19 +1,15 @@
-'use client';
+"use client";
 
-import React, {
-  useState,
-  useEffect,
-  FormEvent,
-  ChangeEvent,
-} from 'react';
-import { useRouter } from 'next/navigation';
-import { Film, Plus, Edit2, Trash2 } from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { Download } from 'lucide-react';
+import React, { useState, useEffect, FormEvent, ChangeEvent } from "react";
+import { useRouter } from "next/navigation";
+import { Film, Plus, Edit2, Trash2 } from "lucide-react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import { Download } from "lucide-react";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://film-finance-app.onrender.com/api";
 
 interface Project {
   id: string;
@@ -58,23 +54,24 @@ interface LineFormData {
 export default function BudgetPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState("");
   const [budgetVersions, setBudgetVersions] = useState<BudgetVersion[]>([]);
-  const [selectedVersion, setSelectedVersion] =
-    useState<BudgetVersion | null>(null);
+  const [selectedVersion, setSelectedVersion] = useState<BudgetVersion | null>(
+    null
+  );
   const [loading, setLoading] = useState(false);
   const [showAddLineModal, setShowAddLineModal] = useState(false);
   const [editingLine, setEditingLine] = useState<BudgetLine | null>(null);
 
   const [lineFormData, setLineFormData] = useState<LineFormData>({
-    phase: 'PRODUCTION',
-    department: '',
-    name: '',
+    phase: "PRODUCTION",
+    department: "",
+    name: "",
     qty: 1,
     rate: 0,
     taxPercent: 0,
-    vendor: '',
-    notes: '',
+    vendor: "",
+    notes: "",
   });
 
   useEffect(() => {
@@ -90,20 +87,20 @@ export default function BudgetPage() {
   const fetchProjects = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/projects?limit=1000`, {
-        credentials: 'include',
+        credentials: "include",
       });
       const result = await response.json();
       if (result.success) {
         setProjects(result.data.projects || []);
 
         const params = new URLSearchParams(window.location.search);
-        const projectId = params.get('projectId');
+        const projectId = params.get("projectId");
         if (projectId) {
           setSelectedProjectId(projectId);
         }
       }
     } catch (error) {
-      console.error('Error fetching projects:', error);
+      console.error("Error fetching projects:", error);
     }
   };
 
@@ -113,19 +110,19 @@ export default function BudgetPage() {
     try {
       const response = await fetch(
         `${API_BASE_URL}/projects/${selectedProjectId}/budget`,
-        { credentials: 'include' }
+        { credentials: "include" }
       );
       const result = await response.json();
       if (result.success) {
         const versions: BudgetVersion[] = result.data.versions || [];
         setBudgetVersions(versions);
         const workingBudget = versions.find(
-          (v: BudgetVersion) => v.type === 'WORKING'
+          (v: BudgetVersion) => v.type === "WORKING"
         );
         setSelectedVersion(workingBudget || versions[0] || null);
       }
     } catch (error) {
-      console.error('Error fetching budget versions:', error);
+      console.error("Error fetching budget versions:", error);
     } finally {
       setLoading(false);
     }
@@ -135,7 +132,7 @@ export default function BudgetPage() {
     e.preventDefault();
 
     if (!selectedVersion) {
-      alert('Please select a budget version first');
+      alert("Please select a budget version first");
       return;
     }
 
@@ -144,28 +141,30 @@ export default function BudgetPage() {
         ? `${API_BASE_URL}/projects/${selectedProjectId}/budget/lines/${editingLine.id}`
         : `${API_BASE_URL}/projects/${selectedProjectId}/budget/${selectedVersion.id}/lines`;
 
-      const method = editingLine ? 'PUT' : 'POST';
+      const method = editingLine ? "PUT" : "POST";
 
       const response = await fetch(endpoint, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(lineFormData),
       });
 
       const result = await response.json();
       if (result.success) {
-        alert(editingLine ? 'Line updated successfully' : 'Line added successfully');
+        alert(
+          editingLine ? "Line updated successfully" : "Line added successfully"
+        );
         setShowAddLineModal(false);
         setEditingLine(null);
         resetLineForm();
         fetchBudgetVersions();
       } else {
-        alert(result.message || 'Failed to save line');
+        alert(result.message || "Failed to save line");
       }
     } catch (error) {
-      console.error('Error saving line:', error);
-      alert('Failed to save line');
+      console.error("Error saving line:", error);
+      alert("Failed to save line");
     }
   };
 
@@ -173,59 +172,59 @@ export default function BudgetPage() {
     setEditingLine(line);
     setLineFormData({
       phase: line.phase,
-      department: line.department || '',
+      department: line.department || "",
       name: line.name,
       qty: line.qty,
       rate: line.rate,
       taxPercent: line.taxPercent,
-      vendor: '',
-      notes: '',
+      vendor: "",
+      notes: "",
     });
     setShowAddLineModal(true);
   };
 
   const handleDeleteLine = async (lineId: string) => {
-    if (!confirm('Delete this budget line?')) return;
+    if (!confirm("Delete this budget line?")) return;
     if (!selectedVersion) return;
 
     try {
       const response = await fetch(
         `${API_BASE_URL}/projects/${selectedProjectId}/budget/lines/${lineId}`,
         {
-          method: 'DELETE',
-          credentials: 'include',
+          method: "DELETE",
+          credentials: "include",
         }
       );
 
       const result = await response.json();
       if (result.success) {
-        alert('Line deleted successfully');
+        alert("Line deleted successfully");
         fetchBudgetVersions();
       } else {
-        alert(result.message || 'Failed to delete line');
+        alert(result.message || "Failed to delete line");
       }
     } catch (error) {
-      console.error('Error deleting line:', error);
-      alert('Failed to delete line');
+      console.error("Error deleting line:", error);
+      alert("Failed to delete line");
     }
   };
 
   const resetLineForm = () => {
     setLineFormData({
-      phase: 'PRODUCTION',
-      department: '',
-      name: '',
+      phase: "PRODUCTION",
+      department: "",
+      name: "",
       qty: 1,
       rate: 0,
       taxPercent: 0,
-      vendor: '',
-      notes: '',
+      vendor: "",
+      notes: "",
     });
   };
 
   const formatCurrency = (amount: number) => {
     const project = projects.find((p) => p.id === selectedProjectId);
-    const currency = project?.baseCurrency || 'USD';
+    const currency = project?.baseCurrency || "USD";
     return `${currency} ${amount.toLocaleString(undefined, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -233,15 +232,15 @@ export default function BudgetPage() {
   };
 
   const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return '—';
+    if (!dateString) return "—";
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
       });
     } catch {
-      return '—';
+      return "—";
     }
   };
 
@@ -284,7 +283,7 @@ export default function BudgetPage() {
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    if (name === 'qty' || name === 'rate' || name === 'taxPercent') {
+    if (name === "qty" || name === "rate" || name === "taxPercent") {
       setLineFormData((prev) => ({
         ...prev,
         [name]: Number(value),
@@ -301,11 +300,11 @@ export default function BudgetPage() {
 
   const exportToPDF = () => {
     if (!selectedVersion) {
-      alert('No budget version selected');
+      alert("No budget version selected");
       return;
     }
 
-    const project = projects.find(p => p.id === selectedProjectId);
+    const project = projects.find((p) => p.id === selectedProjectId);
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -334,7 +333,12 @@ export default function BudgetPage() {
     doc.text("Film Finance Management System", 15, 32);
 
     doc.setFontSize(9);
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - 15, 22, { align: "right" });
+    doc.text(
+      `Generated: ${new Date().toLocaleDateString()}`,
+      pageWidth - 15,
+      22,
+      { align: "right" }
+    );
 
     doc.setTextColor(...colors.text);
     yPos = 60;
@@ -357,14 +361,18 @@ export default function BudgetPage() {
     doc.text("Project:", 20, yPos + 8);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...colors.text);
-    doc.text(project?.title || 'N/A', 50, yPos + 8);
+    doc.text(project?.title || "N/A", 50, yPos + 8);
 
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...colors.lightText);
     doc.text("Version:", 20, yPos + 16);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...colors.text);
-    doc.text(`${selectedVersion.version} (${selectedVersion.type})`, 50, yPos + 16);
+    doc.text(
+      `${selectedVersion.version} (${selectedVersion.type})`,
+      50,
+      yPos + 16
+    );
 
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...colors.lightText);
@@ -389,25 +397,35 @@ export default function BudgetPage() {
 
     yPos += 5;
 
-    const phaseData = Object.entries(calculateTotalsByPhase()).map(([phase, total]) => [
-      phase,
-      formatCurrency(total),
-      `${((total / calculateGrandTotal()) * 100).toFixed(1)}%`
-    ]);
+    const phaseData = Object.entries(calculateTotalsByPhase()).map(
+      ([phase, total]) => [
+        phase,
+        formatCurrency(total),
+        `${((total / calculateGrandTotal()) * 100).toFixed(1)}%`,
+      ]
+    );
 
     autoTable(doc, {
       startY: yPos,
-      head: [['Phase', 'Total', '% of Budget']],
+      head: [["Phase", "Total", "% of Budget"]],
       body: phaseData,
-      foot: [['TOTAL', formatCurrency(calculateGrandTotal()), '100%']],
-      theme: 'striped',
-      headStyles: { fillColor: colors.primary, textColor: [255, 255, 255], fontStyle: 'bold' },
-      footStyles: { fillColor: [241, 245, 249], textColor: colors.text, fontStyle: 'bold' },
+      foot: [["TOTAL", formatCurrency(calculateGrandTotal()), "100%"]],
+      theme: "striped",
+      headStyles: {
+        fillColor: colors.primary,
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+      },
+      footStyles: {
+        fillColor: [241, 245, 249],
+        textColor: colors.text,
+        fontStyle: "bold",
+      },
       styles: { fontSize: 9 },
       columnStyles: {
-        1: { halign: 'right' },
-        2: { halign: 'right' }
-      }
+        1: { halign: "right" },
+        2: { halign: "right" },
+      },
     });
 
     yPos = (doc as any).lastAutoTable.finalY + 15;
@@ -426,9 +444,9 @@ export default function BudgetPage() {
 
     yPos += 5;
 
-    const lineData = selectedVersion.lines.map(line => [
+    const lineData = selectedVersion.lines.map((line) => [
       line.phase,
-      line.department || '-',
+      line.department || "-",
       line.name,
       line.qty.toString(),
       formatCurrency(line.rate),
@@ -440,25 +458,37 @@ export default function BudgetPage() {
 
     autoTable(doc, {
       startY: yPos,
-      head: [['Phase', 'Dept', 'Line Item', 'Qty', 'Rate', 'Tax', 'Total', 'Created', 'Updated']],
+      head: [
+        [
+          "Phase",
+          "Dept",
+          "Line Item",
+          "Qty",
+          "Rate",
+          "Tax",
+          "Total",
+          "Created",
+          "Updated",
+        ],
+      ],
       body: lineData,
-      theme: 'striped',
-      headStyles: { 
-        fillColor: colors.primary, 
-        textColor: [255, 255, 255], 
-        fontStyle: 'bold',
-        fontSize: 8
+      theme: "striped",
+      headStyles: {
+        fillColor: colors.primary,
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        fontSize: 8,
       },
       bodyStyles: { fontSize: 7 },
       columnStyles: {
-        3: { halign: 'center' },
-        4: { halign: 'right' },
-        5: { halign: 'center' },
-        6: { halign: 'right' },
-        7: { halign: 'center' },
-        8: { halign: 'center' }
+        3: { halign: "center" },
+        4: { halign: "right" },
+        5: { halign: "center" },
+        6: { halign: "right" },
+        7: { halign: "center" },
+        8: { halign: "center" },
       },
-      margin: { left: 10, right: 10 }
+      margin: { left: 10, right: 10 },
     });
 
     yPos = (doc as any).lastAutoTable.finalY + 10;
@@ -475,20 +505,17 @@ export default function BudgetPage() {
       doc.setFont("helvetica", "normal");
       doc.setTextColor(...colors.lightText);
       doc.text(
-        `${project?.title || 'Budget'} - ${selectedVersion.version}`,
+        `${project?.title || "Budget"} - ${selectedVersion.version}`,
         pageWidth / 2,
         pageHeight - 8,
-        { align: 'center' }
+        { align: "center" }
       );
-      doc.text(
-        `Page ${i} of ${pageCount}`,
-        pageWidth - 10,
-        pageHeight - 8,
-        { align: 'right' }
-      );
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth - 10, pageHeight - 8, {
+        align: "right",
+      });
     }
 
-    const filename = `Budget_${project?.title}_${selectedVersion.version}_${new Date().toISOString().split('T')[0]}.pdf`;
+    const filename = `Budget_${project?.title}_${selectedVersion.version}_${new Date().toISOString().split("T")[0]}.pdf`;
     doc.save(filename);
   };
 
@@ -515,7 +542,7 @@ export default function BudgetPage() {
             <div className="bg-white/70 border border-slate-200 rounded-xl px-4 py-3 shadow-sm text-sm text-slate-700">
               <div className="font-semibold">{selectedProject.title}</div>
               <div>
-                Version:{' '}
+                Version:{" "}
                 <span className="font-medium">
                   {selectedVersion.version} ({selectedVersion.type})
                 </span>
@@ -550,7 +577,7 @@ export default function BudgetPage() {
                 Budget Version
               </label>
               <select
-                value={selectedVersion?.id || ''}
+                value={selectedVersion?.id || ""}
                 onChange={handleVersionChange}
                 className="h-11 min-w-[220px] rounded-lg border border-slate-300 px-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
@@ -597,7 +624,7 @@ export default function BudgetPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
               <h2 className="text-xl font-bold mb-4">
-                {editingLine ? 'Edit Budget Line' : 'Add Budget Line'}
+                {editingLine ? "Edit Budget Line" : "Add Budget Line"}
               </h2>
               <form onSubmit={handleAddLine} className="space-y-4">
                 <div>
@@ -722,7 +749,7 @@ export default function BudgetPage() {
                 </div>
 
                 <p className="text-sm text-slate-600">
-                  <span className="font-semibold">Line Total:</span>{' '}
+                  <span className="font-semibold">Line Total:</span>{" "}
                   {formatCurrency(
                     lineFormData.qty *
                       lineFormData.rate *
@@ -746,7 +773,7 @@ export default function BudgetPage() {
                     type="submit"
                     className="px-4 h-10 rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
                   >
-                    {editingLine ? 'Update Line' : 'Add Line'}
+                    {editingLine ? "Update Line" : "Add Line"}
                   </button>
                 </div>
               </form>
@@ -765,7 +792,8 @@ export default function BudgetPage() {
                   No budget version found for this project.
                 </p>
                 <p className="text-sm text-slate-500">
-                  Create a quotation first, then convert it to a baseline budget.
+                  Create a quotation first, then convert it to a baseline
+                  budget.
                 </p>
                 <button
                   type="button"
@@ -800,7 +828,7 @@ export default function BudgetPage() {
                     <div>
                       <div className="text-xs text-slate-600">Status</div>
                       <div className="font-semibold text-slate-900">
-                        {selectedVersion.lockedAt ? '🔒 Locked' : 'Active'}
+                        {selectedVersion.lockedAt ? "🔒 Locked" : "Active"}
                       </div>
                     </div>
                     <div>
@@ -829,7 +857,10 @@ export default function BudgetPage() {
                       <tbody>
                         {Object.entries(calculateTotalsByPhase()).map(
                           ([phase, total]) => (
-                            <tr key={phase} className="border-t hover:bg-slate-50">
+                            <tr
+                              key={phase}
+                              className="border-t hover:bg-slate-50"
+                            >
                               <td className="px-4 py-2 font-semibold">
                                 {phase}
                               </td>
@@ -896,7 +927,7 @@ export default function BudgetPage() {
                             >
                               <td className="px-4 py-2">{line.phase}</td>
                               <td className="px-4 py-2">
-                                {line.department || '-'}
+                                {line.department || "-"}
                               </td>
                               <td className="px-4 py-2">{line.name}</td>
                               <td className="px-4 py-2 text-right">

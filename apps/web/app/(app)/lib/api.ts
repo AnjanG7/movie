@@ -5,7 +5,7 @@ import { Project, Participant, PhaseEntity } from "./types";
 // import { User } from '../../../../../packages/types';
 
 const api = axios.create({
-  baseURL: "http://localhost:4000/api",
+  baseURL: "https://film-finance-app.onrender.com/api",
   headers: {
     "Content-Type": "application/json",
   },

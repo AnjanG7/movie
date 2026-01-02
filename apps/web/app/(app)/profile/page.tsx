@@ -41,12 +41,15 @@ export default function ProfilePage() {
 
     try {
       // API call to update profile
-      const response = await fetch("http://localhost:4000/api/auth/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(formData),
-      });
+      const response = await fetch(
+        "https://film-finance-app.onrender.com/api/auth/profile",
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(formData),
+        }
+      );
 
       if (!response.ok) throw new Error("Failed to update profile");
 

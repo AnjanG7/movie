@@ -1,11 +1,24 @@
 "use client";
 
 import React, { useState, useEffect, FormEvent, ChangeEvent } from "react";
-import { FileText, DollarSign, Calendar, AlertCircle, Plus, Filter, Download, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import {
+  FileText,
+  DollarSign,
+  Calendar,
+  AlertCircle,
+  Plus,
+  Filter,
+  Download,
+  ChevronDown,
+  ChevronRight,
+  Trash2,
+} from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://film-finance-app.onrender.com/api";
 
 interface Invoice {
   id: string;
@@ -75,7 +88,9 @@ export default function InvoicesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [poBalance, setPOBalance] = useState<POBalance | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | null>(null);
+  const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | null>(
+    null
+  );
   const [formData, setFormData] = useState<InvoiceFormData>({
     poId: "",
     amount: 0,
@@ -120,7 +135,8 @@ export default function InvoicesPage() {
 
     setLoading(true);
     try {
-      const statusQuery = selectedStatus !== "all" ? `?status=${selectedStatus}` : "";
+      const statusQuery =
+        selectedStatus !== "all" ? `?status=${selectedStatus}` : "";
       const response = await fetch(
         `${API_BASE_URL}/invoices/project/${selectedProjectId}${statusQuery}`,
         {
@@ -288,8 +304,12 @@ export default function InvoicesPage() {
   // Delete invoice
   const handleDeleteInvoice = async (invoiceId: string) => {
     if (!selectedProjectId) return;
-    
-    if (!confirm("Are you sure you want to delete this invoice? This action cannot be undone.")) {
+
+    if (
+      !confirm(
+        "Are you sure you want to delete this invoice? This action cannot be undone."
+      )
+    ) {
       return;
     }
 
@@ -323,7 +343,7 @@ export default function InvoicesPage() {
     }
 
     const doc = new jsPDF("l", "mm", "a4"); // Landscape
-    const selectedProject = projects.find(p => p.id === selectedProjectId);
+    const selectedProject = projects.find((p) => p.id === selectedProjectId);
     const projectName = selectedProject?.title || "Project";
 
     // Add header
@@ -338,14 +358,24 @@ export default function InvoicesPage() {
 
     // Calculate totals
     const totalInvoiced = invoices.reduce((sum, inv) => sum + inv.amount, 0);
-    const approvedCount = invoices.filter(inv => inv.status === "Approved").length;
-    const paidCount = invoices.filter(inv => inv.status === "Paid").length;
-    const pendingCount = invoices.filter(inv => inv.status === "Pending").length;
-    const rejectedCount = invoices.filter(inv => inv.status === "Rejected").length;
+    const approvedCount = invoices.filter(
+      (inv) => inv.status === "Approved"
+    ).length;
+    const paidCount = invoices.filter((inv) => inv.status === "Paid").length;
+    const pendingCount = invoices.filter(
+      (inv) => inv.status === "Pending"
+    ).length;
+    const rejectedCount = invoices.filter(
+      (inv) => inv.status === "Rejected"
+    ).length;
 
     // Add summary
     doc.setFontSize(10);
-    doc.text(`Total Invoices: ${invoices.length} | Approved: ${approvedCount} | Paid: ${paidCount} | Pending: ${pendingCount} | Rejected: ${rejectedCount}`, 14, 42);
+    doc.text(
+      `Total Invoices: ${invoices.length} | Approved: ${approvedCount} | Paid: ${paidCount} | Pending: ${pendingCount} | Rejected: ${rejectedCount}`,
+      14,
+      42
+    );
     doc.text(`Total Amount: $${totalInvoiced.toLocaleString()}`, 14, 48);
 
     // Prepare table data
@@ -362,7 +392,18 @@ export default function InvoicesPage() {
 
     // Add table
     autoTable(doc, {
-      head: [["Invoice #", "Vendor", "PO #", "Amount", "Invoice Date", "Due Date", "Status", "Notes"]],
+      head: [
+        [
+          "Invoice #",
+          "Vendor",
+          "PO #",
+          "Amount",
+          "Invoice Date",
+          "Due Date",
+          "Status",
+          "Notes",
+        ],
+      ],
       body: tableData,
       startY: 55,
       theme: "striped",
@@ -432,7 +473,10 @@ export default function InvoicesPage() {
   const totalInvoiced = invoices.reduce((sum, inv) => sum + inv.amount, 0);
   const approvedInvoices = invoices.filter((inv) => inv.status === "Approved");
   const paidInvoices = invoices.filter((inv) => inv.status === "Paid");
-  const totalApproved = approvedInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+  const totalApproved = approvedInvoices.reduce(
+    (sum, inv) => sum + inv.amount,
+    0
+  );
   const totalPaid = paidInvoices.reduce((sum, inv) => sum + inv.amount, 0);
   const distinctVendors = Array.from(
     new Set(invoices.map((inv) => inv.vendor?.name).filter(Boolean))
@@ -457,7 +501,9 @@ export default function InvoicesPage() {
 
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-600">Project:</span>
+              <span className="text-xs font-semibold text-slate-600">
+                Project:
+              </span>
               <select
                 value={selectedProjectId}
                 onChange={(e) => setSelectedProjectId(e.target.value)}
@@ -503,7 +549,8 @@ export default function InvoicesPage() {
               No Project Selected
             </h3>
             <p className="text-slate-600">
-              Please select a project from the dropdown above to view and manage invoices.
+              Please select a project from the dropdown above to view and manage
+              invoices.
             </p>
           </div>
         ) : (
@@ -520,7 +567,9 @@ export default function InvoicesPage() {
                 <div className="text-2xl font-bold text-slate-900">
                   ${totalInvoiced.toLocaleString()}
                 </div>
-                <div className="text-xs text-slate-400 mt-1">All invoice amounts</div>
+                <div className="text-xs text-slate-400 mt-1">
+                  All invoice amounts
+                </div>
               </div>
 
               <div className="rounded-2xl border border-amber-100 bg-white shadow-sm p-4">
@@ -541,7 +590,9 @@ export default function InvoicesPage() {
               <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <DollarSign className="text-emerald-600" size={18} />
-                  <div className="text-xs font-semibold text-slate-500 uppercase">Paid</div>
+                  <div className="text-xs font-semibold text-slate-500 uppercase">
+                    Paid
+                  </div>
                 </div>
                 <div className="text-2xl font-bold text-emerald-600">
                   ${totalPaid.toLocaleString()}
@@ -558,8 +609,12 @@ export default function InvoicesPage() {
                     Vendors
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-purple-600">{distinctVendors}</div>
-                <div className="text-xs text-slate-400 mt-1">Unique vendors</div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {distinctVendors}
+                </div>
+                <div className="text-xs text-slate-400 mt-1">
+                  Unique vendors
+                </div>
               </div>
             </div>
 
@@ -586,7 +641,8 @@ export default function InvoicesPage() {
               ) : invoices.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
                   <p className="text-slate-600">
-                    No invoices found. Create your first invoice to start tracking vendor bills.
+                    No invoices found. Create your first invoice to start
+                    tracking vendor bills.
                   </p>
                 </div>
               ) : (
@@ -603,29 +659,49 @@ export default function InvoicesPage() {
                       >
                         <div className="flex items-center gap-4 flex-1">
                           {expandedInvoiceId === invoice.id ? (
-                            <ChevronDown size={20} className="text-slate-400 flex-shrink-0" />
+                            <ChevronDown
+                              size={20}
+                              className="text-slate-400 flex-shrink-0"
+                            />
                           ) : (
-                            <ChevronRight size={20} className="text-slate-400 flex-shrink-0" />
+                            <ChevronRight
+                              size={20}
+                              className="text-slate-400 flex-shrink-0"
+                            />
                           )}
-                          
+
                           <div className="flex items-center gap-6 flex-1">
                             <div>
-                              <div className="text-xs text-slate-500 mb-1">Invoice #</div>
-                              <div className="font-semibold text-blue-600">{invoice.docNo}</div>
+                              <div className="text-xs text-slate-500 mb-1">
+                                Invoice #
+                              </div>
+                              <div className="font-semibold text-blue-600">
+                                {invoice.docNo}
+                              </div>
                             </div>
-                            
+
                             <div>
-                              <div className="text-xs text-slate-500 mb-1">Vendor</div>
-                              <div className="font-medium text-slate-900">{invoice.vendor?.name || "N/A"}</div>
+                              <div className="text-xs text-slate-500 mb-1">
+                                Vendor
+                              </div>
+                              <div className="font-medium text-slate-900">
+                                {invoice.vendor?.name || "N/A"}
+                              </div>
                             </div>
-                            
+
                             <div>
-                              <div className="text-xs text-slate-500 mb-1">Amount</div>
-                              <div className="font-semibold text-slate-900">${invoice.amount.toLocaleString()}</div>
+                              <div className="text-xs text-slate-500 mb-1">
+                                Amount
+                              </div>
+                              <div className="font-semibold text-slate-900">
+                                ${invoice.amount.toLocaleString()}
+                              </div>
                             </div>
-                            
+
                             <div>
-                              <div className="text-xs text-slate-500 mb-1">Status</div>
+                              <div className="text-xs text-slate-500 mb-1">
+                                Status
+                              </div>
                               <div>
                                 {invoice.status === "Paid" && (
                                   <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
@@ -658,55 +734,93 @@ export default function InvoicesPage() {
                         <div className="border-t border-slate-200 bg-slate-50 p-6">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
-                              <h4 className="text-sm font-semibold text-slate-700 mb-3">Invoice Details</h4>
+                              <h4 className="text-sm font-semibold text-slate-700 mb-3">
+                                Invoice Details
+                              </h4>
                               <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                  <span className="text-slate-600">Invoice Number:</span>
-                                  <span className="font-medium">{invoice.docNo}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-slate-600">PO Number:</span>
-                                  <span className="font-medium">{invoice.po?.poNo || "N/A"}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-slate-600">Invoice Date:</span>
+                                  <span className="text-slate-600">
+                                    Invoice Number:
+                                  </span>
                                   <span className="font-medium">
-                                    {invoice.date && !isNaN(new Date(invoice.date).getTime())
-                                      ? new Date(invoice.date).toLocaleDateString()
+                                    {invoice.docNo}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-slate-600">
+                                    PO Number:
+                                  </span>
+                                  <span className="font-medium">
+                                    {invoice.po?.poNo || "N/A"}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-slate-600">
+                                    Invoice Date:
+                                  </span>
+                                  <span className="font-medium">
+                                    {invoice.date &&
+                                    !isNaN(new Date(invoice.date).getTime())
+                                      ? new Date(
+                                          invoice.date
+                                        ).toLocaleDateString()
                                       : "N/A"}
                                   </span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-slate-600">Due Date:</span>
+                                  <span className="text-slate-600">
+                                    Due Date:
+                                  </span>
                                   <span className="font-medium">
-                                    {invoice.dueDate && !isNaN(new Date(invoice.dueDate).getTime())
-                                      ? new Date(invoice.dueDate).toLocaleDateString()
+                                    {invoice.dueDate &&
+                                    !isNaN(new Date(invoice.dueDate).getTime())
+                                      ? new Date(
+                                          invoice.dueDate
+                                        ).toLocaleDateString()
                                       : "N/A"}
                                   </span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-slate-600">Created:</span>
+                                  <span className="text-slate-600">
+                                    Created:
+                                  </span>
                                   <span className="font-medium">
-                                    {new Date(invoice.createdAt).toLocaleDateString()}
+                                    {new Date(
+                                      invoice.createdAt
+                                    ).toLocaleDateString()}
                                   </span>
                                 </div>
                               </div>
                             </div>
-                            
+
                             <div>
-                              <h4 className="text-sm font-semibold text-slate-700 mb-3">Vendor Information</h4>
+                              <h4 className="text-sm font-semibold text-slate-700 mb-3">
+                                Vendor Information
+                              </h4>
                               <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                  <span className="text-slate-600">Vendor Name:</span>
-                                  <span className="font-medium">{invoice.vendor?.name || "N/A"}</span>
+                                  <span className="text-slate-600">
+                                    Vendor Name:
+                                  </span>
+                                  <span className="font-medium">
+                                    {invoice.vendor?.name || "N/A"}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-slate-600">Invoice Amount:</span>
-                                  <span className="font-semibold text-lg">${invoice.amount.toLocaleString()}</span>
+                                  <span className="text-slate-600">
+                                    Invoice Amount:
+                                  </span>
+                                  <span className="font-semibold text-lg">
+                                    ${invoice.amount.toLocaleString()}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-slate-600">Current Status:</span>
-                                  <span className="font-medium">{invoice.status}</span>
+                                  <span className="text-slate-600">
+                                    Current Status:
+                                  </span>
+                                  <span className="font-medium">
+                                    {invoice.status}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -714,7 +828,9 @@ export default function InvoicesPage() {
 
                           {invoice.notes && (
                             <div className="mb-6">
-                              <h4 className="text-sm font-semibold text-slate-700 mb-2">Notes</h4>
+                              <h4 className="text-sm font-semibold text-slate-700 mb-2">
+                                Notes
+                              </h4>
                               <p className="text-sm text-slate-600 bg-white p-3 rounded-lg border border-slate-200">
                                 {invoice.notes}
                               </p>
@@ -727,13 +843,17 @@ export default function InvoicesPage() {
                               {invoice.status === "Pending" && (
                                 <>
                                   <button
-                                    onClick={() => handleUpdateStatus(invoice.id, "Approved")}
+                                    onClick={() =>
+                                      handleUpdateStatus(invoice.id, "Approved")
+                                    }
                                     className="text-xs px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 font-semibold"
                                   >
                                     Approve
                                   </button>
                                   <button
-                                    onClick={() => handleUpdateStatus(invoice.id, "Rejected")}
+                                    onClick={() =>
+                                      handleUpdateStatus(invoice.id, "Rejected")
+                                    }
                                     className="text-xs px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 font-semibold"
                                   >
                                     Reject
@@ -742,14 +862,16 @@ export default function InvoicesPage() {
                               )}
                               {invoice.status === "Approved" && (
                                 <button
-                                  onClick={() => handleUpdateStatus(invoice.id, "Paid")}
+                                  onClick={() =>
+                                    handleUpdateStatus(invoice.id, "Paid")
+                                  }
                                   className="text-xs px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 font-semibold"
                                 >
                                   Mark Paid
                                 </button>
                               )}
                             </div>
-                            
+
                             <button
                               onClick={() => handleDeleteInvoice(invoice.id)}
                               className="text-xs px-4 py-2 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 font-semibold flex items-center gap-2"
@@ -773,7 +895,10 @@ export default function InvoicesPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
               <h2 className="text-xl font-bold mb-4">Create Invoice</h2>
-              <form onSubmit={handleCreateInvoice} className="space-y-4 text-sm">
+              <form
+                onSubmit={handleCreateInvoice}
+                className="space-y-4 text-sm"
+              >
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">
                     Purchase Order *
@@ -788,7 +913,8 @@ export default function InvoicesPage() {
                     <option value="">-- Select Purchase Order --</option>
                     {purchaseOrders.map((po) => (
                       <option key={po.id} value={po.id}>
-                        {po.poNo} - {po.vendor.name} (${po.amount.toLocaleString()})
+                        {po.poNo} - {po.vendor.name} ($
+                        {po.amount.toLocaleString()})
                       </option>
                     ))}
                   </select>

@@ -28,7 +28,9 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://film-finance-app.onrender.com/api";
 
 // Types
 interface CashflowForecast {
@@ -108,7 +110,7 @@ export default function CashflowPage() {
       const result = await response.json();
       if (result.success) {
         setProjects(result.data.projects);
-        
+
         // Check URL params for projectId
         const params = new URLSearchParams(window.location.search);
         const projectId = params.get("projectId");
@@ -291,8 +293,8 @@ export default function CashflowPage() {
         f.cumulative < 0
           ? "Shortfall"
           : f.cumulative < 10000
-          ? "Low Balance"
-          : "OK",
+            ? "Low Balance"
+            : "OK",
     }));
 
     const ws = XLSX.utils.json_to_sheet(data);
@@ -388,13 +390,15 @@ export default function CashflowPage() {
       forecast.cumulative < 0
         ? "Shortfall"
         : forecast.cumulative < 10000
-        ? "Low"
-        : "OK",
+          ? "Low"
+          : "OK",
     ]);
 
     autoTable(doc, {
       startY: 95,
-      head: [["Week Starting", "Inflows", "Outflows", "Net", "Cumulative", "Status"]],
+      head: [
+        ["Week Starting", "Inflows", "Outflows", "Net", "Cumulative", "Status"],
+      ],
       body: tableData,
       theme: "striped",
       headStyles: { fillColor: [66, 139, 202] },
@@ -552,7 +556,9 @@ export default function CashflowPage() {
                 disabled={loading}
                 className="px-3 h-10 rounded-lg border border-slate-300 text-sm flex items-center gap-2 hover:bg-slate-50 disabled:opacity-50"
               >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+                />
                 Recalculate
               </button>
 
@@ -747,7 +753,9 @@ export default function CashflowPage() {
                             isNegative ? "bg-red-50" : ""
                           }`}
                         >
-                          <td className="px-4 py-3">{formatDate(f.weekStart)}</td>
+                          <td className="px-4 py-3">
+                            {formatDate(f.weekStart)}
+                          </td>
                           <td className="px-4 py-3 text-right text-emerald-600 font-medium">
                             {formatCurrency(f.inflows)}
                           </td>
