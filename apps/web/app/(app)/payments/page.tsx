@@ -1,14 +1,10 @@
-'use client';
+"use client";
 
-import React, {
-  useState,
-  useEffect,
-  FormEvent,
-  ChangeEvent,
-} from 'react';
+import React, { useState, useEffect, FormEvent, ChangeEvent } from "react";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://film-finance-app.onrender.com/api";
 
 interface Payment {
   id: string;
@@ -57,10 +53,10 @@ export default function PaymentsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const [formData, setFormData] = useState<PaymentFormData>({
-    invoiceId: '',
+    invoiceId: "",
     amount: 0,
-    paidOn: new Date().toISOString().split('T')[0]!,
-    method: 'Bank Transfer',
+    paidOn: new Date().toISOString().split("T")[0]!,
+    method: "Bank Transfer",
   });
 
   // Fetch projects on mount
@@ -82,14 +78,14 @@ export default function PaymentsPage() {
   const fetchProjects = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/projects?limit=99999`, {
-        credentials: 'include',
+        credentials: "include",
       });
       const result = await response.json();
       if (result.success) {
         setProjects(result.data.projects || []);
       }
     } catch (error) {
-      console.error('Error fetching projects:', error);
+      console.error("Error fetching projects:", error);
     }
   };
 
@@ -101,18 +97,18 @@ export default function PaymentsPage() {
       const response = await fetch(
         `${API_BASE_URL}/invoices/project/${projectId}?status=Approved`,
         {
-          credentials: 'include',
+          credentials: "include",
         }
       );
       const result = await response.json();
       if (result.success) {
         setInvoices(result.data.invoices || []);
       } else {
-        console.error('Error:', result.message);
+        console.error("Error:", result.message);
         setInvoices([]);
       }
     } catch (error) {
-      console.error('Error fetching invoices:', error);
+      console.error("Error fetching invoices:", error);
       setInvoices([]);
     } finally {
       setLoading(false);
@@ -127,18 +123,18 @@ export default function PaymentsPage() {
       const response = await fetch(
         `${API_BASE_URL}/payments/project/${projectId}`,
         {
-          credentials: 'include',
+          credentials: "include",
         }
       );
       const result = await response.json();
       if (result.success) {
         setPayments(result.data.payments || []);
       } else {
-        console.error('Error:', result.message);
+        console.error("Error:", result.message);
         setPayments([]);
       }
     } catch (error) {
-      console.error('Error fetching payments:', error);
+      console.error("Error fetching payments:", error);
       setPayments([]);
     } finally {
       setLoading(false);
@@ -147,9 +143,9 @@ export default function PaymentsPage() {
 
   const handleCreatePayment = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     if (!selectedProjectId) {
-      alert('Please select a project first');
+      alert("Please select a project first");
       return;
     }
 
@@ -157,31 +153,31 @@ export default function PaymentsPage() {
       const response = await fetch(
         `${API_BASE_URL}/payments/project/${selectedProjectId}`,
         {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify(formData),
         }
       );
 
       const result = await response.json();
       if (result.success) {
-        alert('Payment recorded successfully');
+        alert("Payment recorded successfully");
         setShowCreateModal(false);
         setFormData({
-          invoiceId: '',
+          invoiceId: "",
           amount: 0,
-          paidOn: new Date().toISOString().split('T')[0]!,
-          method: 'Bank Transfer',
+          paidOn: new Date().toISOString().split("T")[0]!,
+          method: "Bank Transfer",
         });
         fetchPayments(selectedProjectId);
         fetchInvoices(selectedProjectId);
       } else {
-        alert(result.message || 'Failed to record payment');
+        alert(result.message || "Failed to record payment");
       }
     } catch (error) {
-      console.error('Error creating payment:', error);
-      alert('Failed to record payment');
+      console.error("Error creating payment:", error);
+      alert("Failed to record payment");
     }
   };
 
@@ -189,9 +185,9 @@ export default function PaymentsPage() {
     e: ChangeEvent<HTMLSelectElement | HTMLInputElement>
   ) => {
     const { name, value } = e.target;
-    if (name === 'amount') {
+    if (name === "amount") {
       setFormData((prev) => ({ ...prev, [name]: Number(value) }));
-    } else if (name === 'invoiceId') {
+    } else if (name === "invoiceId") {
       const selectedInvoice = invoices.find((inv) => inv.id === value);
       setFormData((prev) => ({
         ...prev,
@@ -204,12 +200,14 @@ export default function PaymentsPage() {
   };
 
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-  const paidToday = payments.filter((p) => {
-    if (!p.paidOn) return false;
-    const d = new Date(p.paidOn).toISOString().split('T')[0];
-    const today = new Date().toISOString().split('T')[0];
-    return d === today;
-  }).reduce((sum, p) => sum + p.amount, 0);
+  const paidToday = payments
+    .filter((p) => {
+      if (!p.paidOn) return false;
+      const d = new Date(p.paidOn).toISOString().split("T")[0];
+      const today = new Date().toISOString().split("T")[0];
+      return d === today;
+    })
+    .reduce((sum, p) => sum + p.amount, 0);
 
   const distinctVendors = Array.from(
     new Set(payments.map((p) => p.invoice?.vendor?.name).filter(Boolean))
@@ -228,12 +226,15 @@ export default function PaymentsPage() {
               Payments Ledger
             </h1>
             <p className="text-slate-600 mt-2 text-sm lg:text-base">
-              Monitor vendor settlements, payment methods, and timing at a glance.
+              Monitor vendor settlements, payment methods, and timing at a
+              glance.
             </p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-600">Project:</span>
+              <span className="text-xs font-semibold text-slate-600">
+                Project:
+              </span>
               <select
                 value={selectedProjectId}
                 onChange={(e) => setSelectedProjectId(e.target.value)}
@@ -265,7 +266,8 @@ export default function PaymentsPage() {
               No Project Selected
             </h3>
             <p className="text-slate-600">
-              Please select a project from the dropdown above to view and manage payments.
+              Please select a project from the dropdown above to view and manage
+              payments.
             </p>
           </div>
         ) : (
@@ -352,7 +354,8 @@ export default function PaymentsPage() {
                         className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm"
                       />
                       <p className="text-[11px] text-slate-400 mt-1">
-                        Defaults to the full invoice amount, but can be adjusted for partial payments.
+                        Defaults to the full invoice amount, but can be adjusted
+                        for partial payments.
                       </p>
                     </div>
 
@@ -394,10 +397,10 @@ export default function PaymentsPage() {
                         onClick={() => {
                           setShowCreateModal(false);
                           setFormData({
-                            invoiceId: '',
+                            invoiceId: "",
                             amount: 0,
-                            paidOn: new Date().toISOString().split('T')[0]!,
-                            method: 'Bank Transfer',
+                            paidOn: new Date().toISOString().split("T")[0]!,
+                            method: "Bank Transfer",
                           });
                         }}
                         className="px-4 h-9 rounded-lg border border-slate-300 text-sm"
@@ -452,8 +455,8 @@ export default function PaymentsPage() {
                             colSpan={6}
                             className="px-4 py-8 text-center text-slate-600"
                           >
-                            No payments found. Record your first vendor payment to
-                            start tracking cash outflows.
+                            No payments found. Record your first vendor payment
+                            to start tracking cash outflows.
                           </td>
                         </tr>
                       ) : (
@@ -463,29 +466,30 @@ export default function PaymentsPage() {
                             className="border-t hover:bg-slate-50"
                           >
                             <td className="px-4 py-2 font-semibold">
-                              {payment.invoice?.docNo || 'N/A'}
+                              {payment.invoice?.docNo || "N/A"}
                             </td>
                             <td className="px-4 py-2">
-                              {payment.invoice?.vendor?.name || 'N/A'}
+                              {payment.invoice?.vendor?.name || "N/A"}
                             </td>
                             <td className="px-4 py-2 text-right font-semibold">
                               ${payment.amount.toLocaleString()}
                             </td>
                             <td className="px-4 py-2">
-                              {payment.paidOn && !isNaN(new Date(payment.paidOn).getTime())
+                              {payment.paidOn &&
+                              !isNaN(new Date(payment.paidOn).getTime())
                                 ? new Date(payment.paidOn).toLocaleDateString()
-                                : 'N/A'}
+                                : "N/A"}
                             </td>
                             <td className="px-4 py-2">
-                              {payment.method || 'N/A'}
+                              {payment.method || "N/A"}
                             </td>
                             <td className="px-4 py-2">
-                              {payment.status === 'Paid' && (
+                              {payment.status === "Paid" && (
                                 <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
                                   Paid
                                 </span>
                               )}
-                              {payment.status !== 'Paid' && (
+                              {payment.status !== "Paid" && (
                                 <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
                                   {payment.status}
                                 </span>

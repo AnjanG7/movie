@@ -1,14 +1,10 @@
-'use client';
+"use client";
 
-import React, {
-  useState,
-  useEffect,
-  FormEvent,
-  ChangeEvent,
-} from 'react';
+import React, { useState, useEffect, FormEvent, ChangeEvent } from "react";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://film-finance-app.onrender.com/api";
 
 interface Installment {
   id: string;
@@ -76,21 +72,23 @@ interface UpcomingInstallment extends Installment {
 
 export default function ScheduledPaymentsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState('');
-  const [scheduledPayments, setScheduledPayments] = useState<ScheduledPayment[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [scheduledPayments, setScheduledPayments] = useState<
+    ScheduledPayment[]
+  >([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [expandedPayment, setExpandedPayment] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<FormData>({
-    payeeId: '',
+    payeeId: "",
     total: 0,
     installments: [
-      { dueDate: '', amount: 0 },
-      { dueDate: '', amount: 0 },
+      { dueDate: "", amount: 0 },
+      { dueDate: "", amount: 0 },
     ],
-    allocations: [{ phase: 'PRODUCTION', amount: 0 }],
+    allocations: [{ phase: "PRODUCTION", amount: 0 }],
   });
 
   // Fetch projects on mount
@@ -112,14 +110,14 @@ export default function ScheduledPaymentsPage() {
   const fetchProjects = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/projects?limit=99999`, {
-        credentials: 'include',
+        credentials: "include",
       });
       const result = await response.json();
       if (result.success) {
         setProjects(result.data.projects || []);
       }
     } catch (error) {
-      console.error('Error fetching projects:', error);
+      console.error("Error fetching projects:", error);
     }
   };
 
@@ -130,32 +128,32 @@ export default function ScheduledPaymentsPage() {
     }
 
     try {
-      console.log('🔍 Fetching vendors for project:', projectId);
-      
+      console.log("🔍 Fetching vendors for project:", projectId);
+
       const response = await fetch(
         `${API_BASE_URL}/vendors/project/${projectId}`,
-        { credentials: 'include' }
+        { credentials: "include" }
       );
-      
-      console.log('📡 Vendors response status:', response.status);
-      
+
+      console.log("📡 Vendors response status:", response.status);
+
       if (!response.ok) {
-        console.error('❌ Failed to fetch vendors');
+        console.error("❌ Failed to fetch vendors");
         setVendors([]);
         return;
       }
 
       const result = await response.json();
-      console.log('📦 Vendors response:', result);
-      
+      console.log("📦 Vendors response:", result);
+
       if (result.success) {
         setVendors(result.data?.vendors || []);
       } else {
-        console.error('❌ API returned error:', result.message);
+        console.error("❌ API returned error:", result.message);
         setVendors([]);
       }
     } catch (error) {
-      console.error('💥 Error fetching vendors:', error);
+      console.error("💥 Error fetching vendors:", error);
       setVendors([]);
     }
   };
@@ -168,43 +166,45 @@ export default function ScheduledPaymentsPage() {
 
     setLoading(true);
     try {
-      console.log('🔍 Fetching scheduled payments for project:', projectId);
-      
+      console.log("🔍 Fetching scheduled payments for project:", projectId);
+
       const response = await fetch(
         `${API_BASE_URL}/payments/project/${projectId}/scheduled`,
-        { credentials: 'include' }
+        { credentials: "include" }
       );
 
-      console.log('📡 Scheduled payments response status:', response.status);
+      console.log("📡 Scheduled payments response status:", response.status);
 
       if (!response.ok) {
-        console.error('❌ Failed to fetch scheduled payments');
+        console.error("❌ Failed to fetch scheduled payments");
         setScheduledPayments([]);
         return;
       }
 
       const result = await response.json();
-      console.log('📦 Scheduled payments response:', result);
-      
+      console.log("📦 Scheduled payments response:", result);
+
       if (result.success) {
         setScheduledPayments(result.data.scheduledPayments || []);
       } else {
-        console.error('❌ API returned error:', result.message);
+        console.error("❌ API returned error:", result.message);
         setScheduledPayments([]);
       }
     } catch (error) {
-      console.error('💥 Error fetching scheduled payments:', error);
+      console.error("💥 Error fetching scheduled payments:", error);
       setScheduledPayments([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateScheduledPayment = async (e: FormEvent<HTMLFormElement>) => {
+  const handleCreateScheduledPayment = async (
+    e: FormEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
 
     if (!selectedProjectId) {
-      alert('Please select a project first');
+      alert("Please select a project first");
       return;
     }
 
@@ -223,25 +223,25 @@ export default function ScheduledPaymentsPage() {
       const response = await fetch(
         `${API_BASE_URL}/payments/project/${selectedProjectId}/scheduled`,
         {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify(formData),
         }
       );
 
       const result = await response.json();
       if (result.success) {
-        alert('Scheduled payment created successfully');
+        alert("Scheduled payment created successfully");
         setShowCreateModal(false);
         resetForm();
         fetchScheduledPayments(selectedProjectId);
       } else {
-        alert(result.message || 'Failed to create scheduled payment');
+        alert(result.message || "Failed to create scheduled payment");
       }
     } catch (error) {
-      console.error('Error creating scheduled payment:', error);
-      alert('Failed to create scheduled payment');
+      console.error("Error creating scheduled payment:", error);
+      alert("Failed to create scheduled payment");
     }
   };
 
@@ -250,18 +250,18 @@ export default function ScheduledPaymentsPage() {
     installmentId: string,
     amount: number
   ) => {
-    if (!confirm('Mark this installment as paid?')) return;
+    if (!confirm("Mark this installment as paid?")) return;
 
     try {
       const response = await fetch(
         `${API_BASE_URL}/payments/project/${selectedProjectId}/scheduled/${scheduledPaymentId}/installments/${installmentId}/pay`,
         {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             paidAmount: amount,
-            paymentMethod: 'Bank Transfer',
+            paymentMethod: "Bank Transfer",
             paidDate: new Date().toISOString(),
           }),
         }
@@ -269,21 +269,21 @@ export default function ScheduledPaymentsPage() {
 
       const result = await response.json();
       if (result.success) {
-        alert('Installment marked as paid');
+        alert("Installment marked as paid");
         if (selectedProjectId) {
           fetchScheduledPayments(selectedProjectId);
         }
       } else {
-        alert(result.message || 'Failed to update installment');
+        alert(result.message || "Failed to update installment");
       }
     } catch (error) {
-      console.error('Error updating installment:', error);
-      alert('Failed to update installment');
+      console.error("Error updating installment:", error);
+      alert("Failed to update installment");
     }
   };
 
   const addInstallment = () => {
-    const newInstallment: InstallmentForm = { dueDate: '', amount: 0 };
+    const newInstallment: InstallmentForm = { dueDate: "", amount: 0 };
     setFormData((prev) => ({
       ...prev,
       installments: [...prev.installments, newInstallment],
@@ -308,7 +308,7 @@ export default function ScheduledPaymentsPage() {
         i === index
           ? {
               ...inst,
-              [field]: field === 'amount' ? Number(value) : value,
+              [field]: field === "amount" ? Number(value) : value,
             }
           : inst
       ),
@@ -316,7 +316,7 @@ export default function ScheduledPaymentsPage() {
   };
 
   const addAllocation = () => {
-    const newAllocation: AllocationForm = { phase: 'PRODUCTION', amount: 0 };
+    const newAllocation: AllocationForm = { phase: "PRODUCTION", amount: 0 };
     setFormData((prev) => ({
       ...prev,
       allocations: [...prev.allocations, newAllocation],
@@ -341,7 +341,7 @@ export default function ScheduledPaymentsPage() {
         i === index
           ? {
               ...alloc,
-              [field]: field === 'amount' ? Number(value) : value,
+              [field]: field === "amount" ? Number(value) : value,
             }
           : alloc
       ),
@@ -350,13 +350,13 @@ export default function ScheduledPaymentsPage() {
 
   const resetForm = () => {
     setFormData({
-      payeeId: '',
+      payeeId: "",
       total: 0,
       installments: [
-        { dueDate: '', amount: 0 },
-        { dueDate: '', amount: 0 },
+        { dueDate: "", amount: 0 },
+        { dueDate: "", amount: 0 },
       ],
-      allocations: [{ phase: 'PRODUCTION', amount: 0 }],
+      allocations: [{ phase: "PRODUCTION", amount: 0 }],
     });
   };
 
@@ -386,7 +386,7 @@ export default function ScheduledPaymentsPage() {
     scheduledPayments.forEach((payment) => {
       payment.installments.forEach((installment) => {
         if (
-          installment.status === 'Pending' &&
+          installment.status === "Pending" &&
           new Date(installment.dueDate) <= thirtyDaysFromNow
         ) {
           upcoming.push({
@@ -405,10 +405,7 @@ export default function ScheduledPaymentsPage() {
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
-  const totalScheduled = scheduledPayments.reduce(
-    (sum, p) => sum + p.total,
-    0
-  );
+  const totalScheduled = scheduledPayments.reduce((sum, p) => sum + p.total, 0);
   const totalRemaining = scheduledPayments.reduce(
     (sum, p) => sum + (p.remainingAmount || 0),
     0
@@ -536,7 +533,8 @@ export default function ScheduledPaymentsPage() {
                     </select>
                     {vendors.length === 0 && (
                       <p className="text-[11px] text-amber-600 mt-1">
-                        No vendors found for this project. Please add vendors first.
+                        No vendors found for this project. Please add vendors
+                        first.
                       </p>
                     )}
                   </div>
@@ -589,7 +587,7 @@ export default function ScheduledPaymentsPage() {
                             onChange={(e) =>
                               updateInstallment(
                                 index,
-                                'dueDate',
+                                "dueDate",
                                 e.target.value
                               )
                             }
@@ -607,7 +605,7 @@ export default function ScheduledPaymentsPage() {
                             onChange={(e) =>
                               updateInstallment(
                                 index,
-                                'amount',
+                                "amount",
                                 Number(e.target.value)
                               )
                             }
@@ -632,8 +630,8 @@ export default function ScheduledPaymentsPage() {
                     ))}
                   </div>
                   <div className="text-[11px] text-slate-500 mt-1">
-                    Installments Total:{' '}
-                    ${formatCurrency(
+                    Installments Total: $
+                    {formatCurrency(
                       formData.installments.reduce(
                         (sum, i) => sum + Number(i.amount),
                         0
@@ -669,11 +667,7 @@ export default function ScheduledPaymentsPage() {
                           <select
                             value={alloc.phase}
                             onChange={(e) =>
-                              updateAllocation(
-                                index,
-                                'phase',
-                                e.target.value
-                              )
+                              updateAllocation(index, "phase", e.target.value)
                             }
                             required
                             className="w-full h-9 border border-slate-300 rounded-lg px-2 text-sm"
@@ -694,7 +688,7 @@ export default function ScheduledPaymentsPage() {
                             onChange={(e) =>
                               updateAllocation(
                                 index,
-                                'amount',
+                                "amount",
                                 Number(e.target.value)
                               )
                             }
@@ -838,34 +832,33 @@ export default function ScheduledPaymentsPage() {
                     >
                       <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 text-sm text-slate-800">
                         <div className="font-semibold">
-                          {payment.payee?.name || 'Unknown Vendor'}
+                          {payment.payee?.name || "Unknown Vendor"}
                         </div>
                         <div className="text-xs text-slate-500">
-                          Created:{' '}
+                          Created:{" "}
                           {new Date(payment.createdAt).toLocaleDateString()}
                         </div>
                         <div className="text-xs text-slate-500">
-                          Total:{' '}
-                          {payment.payee?.currency} ${formatCurrency(payment.total)}
+                          Total: {payment.payee?.currency} $
+                          {formatCurrency(payment.total)}
                         </div>
                         <div className="text-xs text-slate-500">
-                          Remaining:{' '}
-                          {payment.payee?.currency} $
+                          Remaining: {payment.payee?.currency} $
                           {formatCurrency(payment.remainingAmount || 0)}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <span
                           className={`inline-flex px-2 py-1 rounded-full text-[11px] font-semibold ${
-                            payment.status === 'Completed'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-amber-100 text-amber-800'
+                            payment.status === "Completed"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-amber-100 text-amber-800"
                           }`}
                         >
                           {payment.status}
                         </span>
                         <span className="text-slate-400 text-xs">
-                          {expandedPayment === payment.id ? '▼' : '▶'}
+                          {expandedPayment === payment.id ? "▼" : "▶"}
                         </span>
                       </div>
                     </button>
@@ -884,13 +877,9 @@ export default function ScheduledPaymentsPage() {
                                 <th className="px-2 py-1 text-left">
                                   Due Date
                                 </th>
-                                <th className="px-2 py-1 text-right">
-                                  Amount
-                                </th>
+                                <th className="px-2 py-1 text-right">Amount</th>
                                 <th className="px-2 py-1 text-left">Status</th>
-                                <th className="px-2 py-1 text-left">
-                                  Actions
-                                </th>
+                                <th className="px-2 py-1 text-left">Actions</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -911,16 +900,16 @@ export default function ScheduledPaymentsPage() {
                                   <td className="px-2 py-1">
                                     <span
                                       className={`inline-flex px-2 py-1 rounded-full text-[11px] font-semibold ${
-                                        inst.status === 'Paid'
-                                          ? 'bg-emerald-100 text-emerald-800'
-                                          : 'bg-amber-100 text-amber-800'
+                                        inst.status === "Paid"
+                                          ? "bg-emerald-100 text-emerald-800"
+                                          : "bg-amber-100 text-amber-800"
                                       }`}
                                     >
                                       {inst.status}
                                     </span>
                                   </td>
                                   <td className="px-2 py-1">
-                                    {inst.status === 'Pending' && (
+                                    {inst.status === "Pending" && (
                                       <button
                                         type="button"
                                         onClick={() =>

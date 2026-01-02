@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { useState, useEffect } from "react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   getPostTasks,
   getPostBudgetLines,
@@ -11,12 +11,27 @@ import {
   createPostTask,
   updatePostTask,
   deletePostTask,
-  addPostBudgetLine
-} from '../lib/api/postProduction';
-import { PostTask, BudgetLine, PostProductionForecast } from '../lib/types/postProduction';
-import { Film, TrendingUp, DollarSign, Package, X, Plus, Download, Video } from 'lucide-react';
+  addPostBudgetLine,
+} from "../lib/api/postProduction";
+import {
+  PostTask,
+  BudgetLine,
+  PostProductionForecast,
+} from "../lib/types/postProduction";
+import {
+  Film,
+  TrendingUp,
+  DollarSign,
+  Package,
+  X,
+  Plus,
+  Download,
+  Video,
+} from "lucide-react";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://film-finance-app.onrender.com/api";
 
 interface Project {
   id: string;
@@ -30,7 +45,9 @@ export default function PostProductionPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'tasks' | 'budget' | 'forecast'>('tasks');
+  const [activeTab, setActiveTab] = useState<"tasks" | "budget" | "forecast">(
+    "tasks"
+  );
   const [tasks, setTasks] = useState<PostTask[]>([]);
   const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([]);
   const [forecast, setForecast] = useState<PostProductionForecast | null>(null);
@@ -43,32 +60,32 @@ export default function PostProductionPage() {
   const [editingTask, setEditingTask] = useState<PostTask | null>(null);
   const [taskFormData, setTaskFormData] = useState<{
     name: string;
-    type: 'EDITING' | 'COLOR' | 'AUDIO' | 'MUSIC' | 'VFX' | 'QC';
+    type: "EDITING" | "COLOR" | "AUDIO" | "MUSIC" | "VFX" | "QC";
     costEstimate: string;
     actualCost: string;
     dueDate: string;
-    status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+    status: "PENDING" | "IN_PROGRESS" | "COMPLETED";
     notes: string;
     vendorId: string;
   }>({
-    name: '',
-    type: 'EDITING',
-    costEstimate: '',
-    actualCost: '',
-    dueDate: '',
-    status: 'PENDING',
-    notes: '',
-    vendorId: ''
+    name: "",
+    type: "EDITING",
+    costEstimate: "",
+    actualCost: "",
+    dueDate: "",
+    status: "PENDING",
+    notes: "",
+    vendorId: "",
   });
 
   const [budgetFormData, setBudgetFormData] = useState({
-    name: '',
-    department: 'Post Production',
-    vendor: '',
+    name: "",
+    department: "Post Production",
+    vendor: "",
     qty: 1,
-    rate: '',
+    rate: "",
     taxPercent: 0,
-    notes: ''
+    notes: "",
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -88,23 +105,24 @@ export default function PostProductionPage() {
   const fetchProjects = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/projects?limit=999`, {
-        credentials: 'include',
+        credentials: "include",
       });
       const json = await res.json();
       if (json?.success) {
         setProjects(json.data.projects || []);
         const params = new URLSearchParams(window.location.search);
-      const projectId = params.get('projectId');
-      if (projectId) {
-        const project = json.data.projects.find((p: Project) => p.id === projectId);
-        if (project) {
-          setSelectedProject(project); // ✅ Set the full project object
+        const projectId = params.get("projectId");
+        if (projectId) {
+          const project = json.data.projects.find(
+            (p: Project) => p.id === projectId
+          );
+          if (project) {
+            setSelectedProject(project); // ✅ Set the full project object
+          }
         }
       }
-        
-      }
     } catch (error) {
-      console.error('Failed to fetch projects:', error);
+      console.error("Failed to fetch projects:", error);
     }
   };
 
@@ -118,32 +136,32 @@ export default function PostProductionPage() {
       const [tasksRes, budgetRes, forecastRes] = await Promise.all([
         getPostTasks(selectedProject.id),
         getPostBudgetLines(selectedProject.id),
-        getPostProductionForecast(selectedProject.id)
+        getPostProductionForecast(selectedProject.id),
       ]);
 
       if (tasksRes.success) setTasks(tasksRes.data.postTasks || []);
       if (budgetRes.success) setBudgetLines(budgetRes.data.lines || []);
       if (forecastRes.success) setForecast(forecastRes.data);
     } catch (err: any) {
-      console.error('Error fetching post-production data:', err);
-      setError(err.message || 'Failed to load data');
+      console.error("Error fetching post-production data:", err);
+      setError(err.message || "Failed to load data");
     } finally {
       setLoading(false);
     }
   };
 
   const formatCurrency = (amount: number) => {
-    const currency = selectedProject?.baseCurrency || 'USD';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency
+    const currency = selectedProject?.baseCurrency || "USD";
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
     }).format(amount);
   };
 
   // PDF Export Function
   const exportPostProdToPDF = () => {
     if (!selectedProject) {
-      alert('Please select a project first');
+      alert("Please select a project first");
       return;
     }
 
@@ -151,7 +169,7 @@ export default function PostProductionPage() {
 
     // Header
     doc.setFontSize(18);
-    doc.text('Post-Production Report', 14, 20);
+    doc.text("Post-Production Report", 14, 20);
     doc.setFontSize(11);
     doc.text(`Project: ${selectedProject.title}`, 14, 30);
     doc.text(`Report Date: ${new Date().toLocaleDateString()}`, 14, 36);
@@ -159,40 +177,60 @@ export default function PostProductionPage() {
     // Summary Section
     if (forecast) {
       doc.setFillColor(240, 240, 240);
-      doc.rect(14, 45, 180, 35, 'F');
+      doc.rect(14, 45, 180, 35, "F");
       doc.setFontSize(10);
-      doc.text('Financial Summary', 16, 52);
-      doc.text(`Total Estimated: ${formatCurrency(forecast.summary.totalEstimated)}`, 16, 59);
-      doc.text(`Total Actual: ${formatCurrency(forecast.summary.totalActual)}`, 16, 66);
-      doc.text(`Remaining: ${formatCurrency(forecast.summary.remaining)}`, 16, 73);
-      doc.text(`Completion: ${forecast.summary.completionPercentage.toFixed(1)}%`, 120, 59);
+      doc.text("Financial Summary", 16, 52);
+      doc.text(
+        `Total Estimated: ${formatCurrency(forecast.summary.totalEstimated)}`,
+        16,
+        59
+      );
+      doc.text(
+        `Total Actual: ${formatCurrency(forecast.summary.totalActual)}`,
+        16,
+        66
+      );
+      doc.text(
+        `Remaining: ${formatCurrency(forecast.summary.remaining)}`,
+        16,
+        73
+      );
+      doc.text(
+        `Completion: ${forecast.summary.completionPercentage.toFixed(1)}%`,
+        120,
+        59
+      );
       doc.text(`Total Tasks: ${forecast.tasks.total}`, 120, 66);
-      doc.text(`Variance: ${formatCurrency(forecast.summary.variance)}`, 120, 73);
+      doc.text(
+        `Variance: ${formatCurrency(forecast.summary.variance)}`,
+        120,
+        73
+      );
     }
 
     // Tasks Table
     if (tasks?.length) {
       const startY = forecast ? 90 : 50;
       doc.setFontSize(14);
-      doc.text('Post-Production Tasks', 14, startY);
+      doc.text("Post-Production Tasks", 14, startY);
 
       const taskBody: string[][] = tasks.map((t) => [
-        t.name || 'N/A',
-        t.type || 'N/A',
-        (t.status || 'N/A').replace('_', ' '),
+        t.name || "N/A",
+        t.type || "N/A",
+        (t.status || "N/A").replace("_", " "),
         formatCurrency(t.costEstimate ?? 0),
         formatCurrency(t.actualCost ?? 0),
       ]);
 
       autoTable(doc, {
         startY: startY + 5,
-        head: [['Task', 'Type', 'Status', 'Estimated', 'Actual']],
+        head: [["Task", "Type", "Status", "Estimated", "Actual"]],
         body: taskBody,
-        theme: 'striped',
+        theme: "striped",
         headStyles: { fillColor: [147, 51, 234] },
         columnStyles: {
-          3: { halign: 'right' },
-          4: { halign: 'right' },
+          3: { halign: "right" },
+          4: { halign: "right" },
         },
       });
     }
@@ -200,15 +238,17 @@ export default function PostProductionPage() {
     // Budget Lines Table
     if (budgetLines?.length) {
       // @ts-expect-error - autoTable adds finalY property
-      const startY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 15 : 140;
+      const startY = doc.lastAutoTable?.finalY
+        ? doc.lastAutoTable.finalY + 15
+        : 140;
       doc.setFontSize(14);
-      doc.text('Budget Lines', 14, startY);
+      doc.text("Budget Lines", 14, startY);
 
       const budgetBody: string[][] = budgetLines.map((line) => {
         const total = line.qty * line.rate * (1 + line.taxPercent / 100);
         return [
-          line.name || 'N/A',
-          line.department || '-',
+          line.name || "N/A",
+          line.department || "-",
           String(line.qty),
           formatCurrency(line.rate),
           formatCurrency(total),
@@ -217,14 +257,14 @@ export default function PostProductionPage() {
 
       autoTable(doc, {
         startY: startY + 5,
-        head: [['Name', 'Department', 'Qty', 'Rate', 'Total']],
+        head: [["Name", "Department", "Qty", "Rate", "Total"]],
         body: budgetBody,
-        theme: 'striped',
+        theme: "striped",
         headStyles: { fillColor: [37, 99, 235] },
         columnStyles: {
-          2: { halign: 'right' },
-          3: { halign: 'right' },
-          4: { halign: 'right' },
+          2: { halign: "right" },
+          3: { halign: "right" },
+          4: { halign: "right" },
         },
       });
     }
@@ -239,12 +279,12 @@ export default function PostProductionPage() {
         `Page ${i} of ${pageCount}`,
         doc.internal.pageSize.width / 2,
         doc.internal.pageSize.height - 10,
-        { align: 'center' }
+        { align: "center" }
       );
     }
 
-    const filename = `PostProduction_${selectedProject.title.replace(/\s+/g, '_')}_${
-      new Date().toISOString().split('T')[0]
+    const filename = `PostProduction_${selectedProject.title.replace(/\s+/g, "_")}_${
+      new Date().toISOString().split("T")[0]
     }.pdf`;
     doc.save(filename);
   };
@@ -257,14 +297,14 @@ export default function PostProductionPage() {
       setSubmitting(true);
       const response = await updateROIWithPostProduction(selectedProject.id);
       if (response.success) {
-        alert('ROI updated successfully!');
-        console.log('Updated metrics:', response.data);
+        alert("ROI updated successfully!");
+        console.log("Updated metrics:", response.data);
       } else {
-        throw new Error(response.message || 'Failed to update ROI');
+        throw new Error(response.message || "Failed to update ROI");
       }
     } catch (err: any) {
-      console.error('Error updating ROI:', err);
-      alert(err.message || 'Failed to update ROI');
+      console.error("Error updating ROI:", err);
+      alert(err.message || "Failed to update ROI");
     } finally {
       setSubmitting(false);
     }
@@ -282,30 +322,40 @@ export default function PostProductionPage() {
         name: taskFormData.name,
         type: taskFormData.type,
         costEstimate: parseFloat(taskFormData.costEstimate) || 0,
-        actualCost: taskFormData.actualCost ? parseFloat(taskFormData.actualCost) : null,
+        actualCost: taskFormData.actualCost
+          ? parseFloat(taskFormData.actualCost)
+          : null,
         dueDate: taskFormData.dueDate || null,
         status: taskFormData.status,
         notes: taskFormData.notes || null,
-        vendorId: taskFormData.vendorId || null
+        vendorId: taskFormData.vendorId || null,
       };
 
       let response;
       if (editingTask) {
-        response = await updatePostTask(selectedProject.id, editingTask.id, data);
+        response = await updatePostTask(
+          selectedProject.id,
+          editingTask.id,
+          data
+        );
       } else {
         response = await createPostTask(selectedProject.id, data);
       }
 
       if (response.success) {
-        alert(editingTask ? 'Task updated successfully!' : 'Task created successfully!');
+        alert(
+          editingTask
+            ? "Task updated successfully!"
+            : "Task created successfully!"
+        );
         closeTaskModal();
         fetchAllData();
       } else {
-        throw new Error(response.message || 'Failed to save task');
+        throw new Error(response.message || "Failed to save task");
       }
     } catch (err: any) {
-      console.error('Error saving task:', err);
-      alert(err.message || 'Failed to save task');
+      console.error("Error saving task:", err);
+      alert(err.message || "Failed to save task");
     } finally {
       setSubmitting(false);
     }
@@ -313,18 +363,18 @@ export default function PostProductionPage() {
 
   // Handle Delete Task
   const handleDeleteTask = async (taskId: string) => {
-    if (!confirm('Are you sure you want to delete this task?')) return;
+    if (!confirm("Are you sure you want to delete this task?")) return;
     if (!selectedProject) return;
 
     try {
       const response = await deletePostTask(selectedProject.id, taskId);
       if (response.success) {
-        alert('Task deleted successfully!');
+        alert("Task deleted successfully!");
         fetchAllData();
       }
     } catch (err: any) {
-      console.error('Error deleting task:', err);
-      alert(err.message || 'Failed to delete task');
+      console.error("Error deleting task:", err);
+      alert(err.message || "Failed to delete task");
     }
   };
 
@@ -338,21 +388,21 @@ export default function PostProductionPage() {
     try {
       const data = {
         ...budgetFormData,
-        rate: parseFloat(budgetFormData.rate) || 0
+        rate: parseFloat(budgetFormData.rate) || 0,
       };
 
       const response = await addPostBudgetLine(selectedProject.id, data);
 
       if (response.success) {
-        alert('Budget line added successfully!');
+        alert("Budget line added successfully!");
         closeBudgetModal();
         fetchAllData();
       } else {
-        throw new Error(response.message || 'Failed to add budget line');
+        throw new Error(response.message || "Failed to add budget line");
       }
     } catch (err: any) {
-      console.error('Error adding budget line:', err);
-      alert(err.message || 'Failed to add budget line');
+      console.error("Error adding budget line:", err);
+      alert(err.message || "Failed to add budget line");
     } finally {
       setSubmitting(false);
     }
@@ -363,25 +413,25 @@ export default function PostProductionPage() {
       setEditingTask(task);
       setTaskFormData({
         name: task.name,
-        type: task.type || 'EDITING',
+        type: task.type || "EDITING",
         costEstimate: task.costEstimate.toString(),
-        actualCost: task.actualCost?.toString() || '',
-        dueDate: task.dueDate?.split('T')[0] ?? "",
+        actualCost: task.actualCost?.toString() || "",
+        dueDate: task.dueDate?.split("T")[0] ?? "",
         status: task.status,
-        notes: task.notes || '',
-        vendorId: task.vendorId || ''
+        notes: task.notes || "",
+        vendorId: task.vendorId || "",
       });
     } else {
       setEditingTask(null);
       setTaskFormData({
-        name: '',
-        type: 'EDITING',
-        costEstimate: '',
-        actualCost: '',
-        dueDate: '',
-        status: 'PENDING',
-        notes: '',
-        vendorId: ''
+        name: "",
+        type: "EDITING",
+        costEstimate: "",
+        actualCost: "",
+        dueDate: "",
+        status: "PENDING",
+        notes: "",
+        vendorId: "",
       });
     }
     setShowTaskModal(true);
@@ -395,13 +445,13 @@ export default function PostProductionPage() {
   const closeBudgetModal = () => {
     setShowBudgetModal(false);
     setBudgetFormData({
-      name: '',
-      department: 'Post Production',
-      vendor: '',
+      name: "",
+      department: "Post Production",
+      vendor: "",
       qty: 1,
-      rate: '',
+      rate: "",
       taxPercent: 0,
-      notes: ''
+      notes: "",
     });
   };
 
@@ -414,19 +464,25 @@ export default function PostProductionPage() {
             <Video className="w-8 h-8 text-purple-600" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Post Production</h1>
-            <p className="text-gray-600">Manage post-production tasks, budgets, and forecasts</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Post Production
+            </h1>
+            <p className="text-gray-600">
+              Manage post-production tasks, budgets, and forecasts
+            </p>
           </div>
         </div>
       </div>
 
       {/* Project Selector */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
-        <label className="block text-sm font-semibold text-gray-700 mb-2">Select Project</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Select Project
+        </label>
         <select
-          value={selectedProject?.id || ''}
+          value={selectedProject?.id || ""}
           onChange={(e) => {
-            const project = projects.find(p => p.id === e.target.value);
+            const project = projects.find((p) => p.id === e.target.value);
             setSelectedProject(project || null);
           }}
           className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -444,8 +500,12 @@ export default function PostProductionPage() {
       {!selectedProject ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <Film className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Project Selected</h3>
-          <p className="text-gray-600">Please select a project to manage post-production</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            No Project Selected
+          </h3>
+          <p className="text-gray-600">
+            Please select a project to manage post-production
+          </p>
         </div>
       ) : loading ? (
         <div className="flex items-center justify-center py-12">
@@ -478,7 +538,7 @@ export default function PostProductionPage() {
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               <TrendingUp className="w-5 h-5" />
-              {submitting ? 'Updating...' : 'Update ROI'}
+              {submitting ? "Updating..." : "Update ROI"}
             </button>
           </div>
 
@@ -540,17 +600,20 @@ export default function PostProductionPage() {
             <div className="border-b border-gray-200">
               <nav className="flex -mb-px">
                 {[
-                  { key: 'tasks', label: `Tasks (${tasks.length})` },
-                  { key: 'budget', label: `Budget Lines (${budgetLines.length})` },
-                  { key: 'forecast', label: 'Forecast' }
+                  { key: "tasks", label: `Tasks (${tasks.length})` },
+                  {
+                    key: "budget",
+                    label: `Budget Lines (${budgetLines.length})`,
+                  },
+                  { key: "forecast", label: "Forecast" },
                 ].map((tab) => (
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key as any)}
                     className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                       activeTab === tab.key
-                        ? 'border-blue-600 text-blue-600'
-                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                        ? "border-blue-600 text-blue-600"
+                        : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
                     }`}
                   >
                     {tab.label}
@@ -561,10 +624,12 @@ export default function PostProductionPage() {
 
             <div className="p-6">
               {/* TASKS TAB */}
-              {activeTab === 'tasks' && (
+              {activeTab === "tasks" && (
                 <div>
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Post Tasks</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Post Tasks
+                    </h3>
                     <button
                       onClick={() => openTaskModal()}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -576,7 +641,9 @@ export default function PostProductionPage() {
 
                   {tasks.length === 0 ? (
                     <div className="text-center py-12">
-                      <p className="text-gray-500">No post-production tasks yet</p>
+                      <p className="text-gray-500">
+                        No post-production tasks yet
+                      </p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
@@ -610,19 +677,19 @@ export default function PostProductionPage() {
                                 {task.name}
                               </td>
                               <td className="px-6 py-4 text-sm text-gray-600">
-                                {task.type || 'N/A'}
+                                {task.type || "N/A"}
                               </td>
                               <td className="px-6 py-4">
                                 <span
                                   className={`px-2 py-1 text-xs font-medium rounded ${
-                                    task.status === 'COMPLETED'
-                                      ? 'bg-green-100 text-green-800'
-                                      : task.status === 'IN_PROGRESS'
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : 'bg-gray-100 text-gray-800'
+                                    task.status === "COMPLETED"
+                                      ? "bg-green-100 text-green-800"
+                                      : task.status === "IN_PROGRESS"
+                                        ? "bg-blue-100 text-blue-800"
+                                        : "bg-gray-100 text-gray-800"
                                   }`}
                                 >
-                                  {task.status.replace('_', ' ')}
+                                  {task.status.replace("_", " ")}
                                 </span>
                               </td>
                               <td className="px-6 py-4 text-sm text-right text-gray-900">
@@ -661,10 +728,12 @@ export default function PostProductionPage() {
               )}
 
               {/* BUDGET TAB */}
-              {activeTab === 'budget' && (
+              {activeTab === "budget" && (
                 <div>
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Budget Lines</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Budget Lines
+                    </h3>
                     <button
                       onClick={() => setShowBudgetModal(true)}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -702,14 +771,17 @@ export default function PostProductionPage() {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {budgetLines.map((line) => {
-                            const total = line.qty * line.rate * (1 + line.taxPercent / 100);
+                            const total =
+                              line.qty *
+                              line.rate *
+                              (1 + line.taxPercent / 100);
                             return (
                               <tr key={line.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 text-sm font-medium text-gray-900">
                                   {line.name}
                                 </td>
                                 <td className="px-6 py-4 text-sm text-gray-600">
-                                  {line.department || '-'}
+                                  {line.department || "-"}
                                 </td>
                                 <td className="px-6 py-4 text-sm text-right text-gray-900">
                                   {line.qty}
@@ -731,56 +803,79 @@ export default function PostProductionPage() {
               )}
 
               {/* FORECAST TAB */}
-              {activeTab === 'forecast' && forecast && (
+              {activeTab === "forecast" && forecast && (
                 <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-gray-900">Financial Summary</h3>
-                  
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Financial Summary
+                  </h3>
+
                   {/* Progress Bar */}
                   <div>
                     <div className="flex justify-between text-sm text-gray-600 mb-2">
                       <span>Completion Progress</span>
-                      <span>{forecast.summary.completionPercentage.toFixed(1)}%</span>
+                      <span>
+                        {forecast.summary.completionPercentage.toFixed(1)}%
+                      </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-4">
                       <div
                         className="bg-blue-600 h-4 rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(forecast.summary.completionPercentage, 100)}%` }}
+                        style={{
+                          width: `${Math.min(forecast.summary.completionPercentage, 100)}%`,
+                        }}
                       />
                     </div>
                   </div>
 
                   {/* Tasks by Type */}
-                  {forecast.tasks.byType && Object.keys(forecast.tasks.byType).length > 0 && (
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-3">Tasks by Type</h4>
-                      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                        <table className="min-w-full">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Count</th>
-                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Estimated</th>
-                              <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Actual</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-200">
-                            {Object.entries(forecast.tasks.byType).map(([type, data]) => (
-                              <tr key={type}>
-                                <td className="px-4 py-3 text-sm font-medium text-gray-900">{type}</td>
-                                <td className="px-4 py-3 text-sm text-right text-gray-600">{data.count}</td>
-                                <td className="px-4 py-3 text-sm text-right text-gray-900">
-                                  {formatCurrency(data.estimated)}
-                                </td>
-                                <td className="px-4 py-3 text-sm text-right text-blue-600 font-medium">
-                                  {formatCurrency(data.actual)}
-                                </td>
+                  {forecast.tasks.byType &&
+                    Object.keys(forecast.tasks.byType).length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-3">
+                          Tasks by Type
+                        </h4>
+                        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                          <table className="min-w-full">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                  Type
+                                </th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                                  Count
+                                </th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                                  Estimated
+                                </th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                                  Actual
+                                </th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                              {Object.entries(forecast.tasks.byType).map(
+                                ([type, data]) => (
+                                  <tr key={type}>
+                                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                      {type}
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-right text-gray-600">
+                                      {data.count}
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-right text-gray-900">
+                                      {formatCurrency(data.estimated)}
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-right text-blue-600 font-medium">
+                                      {formatCurrency(data.actual)}
+                                    </td>
+                                  </tr>
+                                )
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
               )}
             </div>
@@ -795,7 +890,7 @@ export default function PostProductionPage() {
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-gray-900">
-                  {editingTask ? 'Edit Post Task' : 'Add Post Task'}
+                  {editingTask ? "Edit Post Task" : "Add Post Task"}
                 </h2>
                 <button
                   onClick={closeTaskModal}
@@ -816,7 +911,9 @@ export default function PostProductionPage() {
                   <input
                     type="text"
                     value={taskFormData.name}
-                    onChange={(e) => setTaskFormData({ ...taskFormData, name: e.target.value })}
+                    onChange={(e) =>
+                      setTaskFormData({ ...taskFormData, name: e.target.value })
+                    }
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., Final Color Grading"
@@ -830,7 +927,12 @@ export default function PostProductionPage() {
                   </label>
                   <select
                     value={taskFormData.type}
-                    onChange={(e) => setTaskFormData({ ...taskFormData, type: e.target.value as any })}
+                    onChange={(e) =>
+                      setTaskFormData({
+                        ...taskFormData,
+                        type: e.target.value as any,
+                      })
+                    }
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
@@ -850,7 +952,12 @@ export default function PostProductionPage() {
                   </label>
                   <select
                     value={taskFormData.status}
-                    onChange={(e) => setTaskFormData({ ...taskFormData, status: e.target.value as any })}
+                    onChange={(e) =>
+                      setTaskFormData({
+                        ...taskFormData,
+                        status: e.target.value as any,
+                      })
+                    }
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
@@ -868,7 +975,12 @@ export default function PostProductionPage() {
                   <input
                     type="number"
                     value={taskFormData.costEstimate}
-                    onChange={(e) => setTaskFormData({ ...taskFormData, costEstimate: e.target.value })}
+                    onChange={(e) =>
+                      setTaskFormData({
+                        ...taskFormData,
+                        costEstimate: e.target.value,
+                      })
+                    }
                     required
                     min="0"
                     step="0.01"
@@ -885,7 +997,12 @@ export default function PostProductionPage() {
                   <input
                     type="number"
                     value={taskFormData.actualCost}
-                    onChange={(e) => setTaskFormData({ ...taskFormData, actualCost: e.target.value })}
+                    onChange={(e) =>
+                      setTaskFormData({
+                        ...taskFormData,
+                        actualCost: e.target.value,
+                      })
+                    }
                     min="0"
                     step="0.01"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -901,7 +1018,12 @@ export default function PostProductionPage() {
                   <input
                     type="date"
                     value={taskFormData.dueDate}
-                    onChange={(e) => setTaskFormData({ ...taskFormData, dueDate: e.target.value })}
+                    onChange={(e) =>
+                      setTaskFormData({
+                        ...taskFormData,
+                        dueDate: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -913,7 +1035,12 @@ export default function PostProductionPage() {
                   </label>
                   <textarea
                     value={taskFormData.notes}
-                    onChange={(e) => setTaskFormData({ ...taskFormData, notes: e.target.value })}
+                    onChange={(e) =>
+                      setTaskFormData({
+                        ...taskFormData,
+                        notes: e.target.value,
+                      })
+                    }
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Additional notes about this task..."
@@ -935,7 +1062,11 @@ export default function PostProductionPage() {
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                   disabled={submitting}
                 >
-                  {submitting ? 'Saving...' : editingTask ? 'Update Task' : 'Create Task'}
+                  {submitting
+                    ? "Saving..."
+                    : editingTask
+                      ? "Update Task"
+                      : "Create Task"}
                 </button>
               </div>
             </form>
@@ -971,7 +1102,12 @@ export default function PostProductionPage() {
                   <input
                     type="text"
                     value={budgetFormData.name}
-                    onChange={(e) => setBudgetFormData({ ...budgetFormData, name: e.target.value })}
+                    onChange={(e) =>
+                      setBudgetFormData({
+                        ...budgetFormData,
+                        name: e.target.value,
+                      })
+                    }
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., VFX Rendering Services"
@@ -986,7 +1122,12 @@ export default function PostProductionPage() {
                   <input
                     type="text"
                     value={budgetFormData.department}
-                    onChange={(e) => setBudgetFormData({ ...budgetFormData, department: e.target.value })}
+                    onChange={(e) =>
+                      setBudgetFormData({
+                        ...budgetFormData,
+                        department: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -999,7 +1140,12 @@ export default function PostProductionPage() {
                   <input
                     type="text"
                     value={budgetFormData.vendor}
-                    onChange={(e) => setBudgetFormData({ ...budgetFormData, vendor: e.target.value })}
+                    onChange={(e) =>
+                      setBudgetFormData({
+                        ...budgetFormData,
+                        vendor: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Vendor name"
                   />
@@ -1013,7 +1159,12 @@ export default function PostProductionPage() {
                   <input
                     type="number"
                     value={budgetFormData.qty}
-                    onChange={(e) => setBudgetFormData({ ...budgetFormData, qty: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setBudgetFormData({
+                        ...budgetFormData,
+                        qty: Number(e.target.value),
+                      })
+                    }
                     required
                     min="1"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1028,7 +1179,12 @@ export default function PostProductionPage() {
                   <input
                     type="number"
                     value={budgetFormData.rate}
-                    onChange={(e) => setBudgetFormData({ ...budgetFormData, rate: e.target.value })}
+                    onChange={(e) =>
+                      setBudgetFormData({
+                        ...budgetFormData,
+                        rate: e.target.value,
+                      })
+                    }
                     required
                     min="0"
                     step="0.01"
@@ -1045,7 +1201,12 @@ export default function PostProductionPage() {
                   <input
                     type="number"
                     value={budgetFormData.taxPercent}
-                    onChange={(e) => setBudgetFormData({ ...budgetFormData, taxPercent: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setBudgetFormData({
+                        ...budgetFormData,
+                        taxPercent: Number(e.target.value),
+                      })
+                    }
                     min="0"
                     max="100"
                     step="0.01"
@@ -1057,9 +1218,16 @@ export default function PostProductionPage() {
                 {/* Calculated Total */}
                 <div className="md:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-700">Line Total:</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      Line Total:
+                    </span>
                     <span className="text-xl font-bold text-blue-600">
-                      ${((budgetFormData.qty || 0) * (parseFloat(budgetFormData.rate) || 0) * (1 + (budgetFormData.taxPercent || 0) / 100)).toFixed(2)}
+                      $
+                      {(
+                        (budgetFormData.qty || 0) *
+                        (parseFloat(budgetFormData.rate) || 0) *
+                        (1 + (budgetFormData.taxPercent || 0) / 100)
+                      ).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -1071,7 +1239,12 @@ export default function PostProductionPage() {
                   </label>
                   <textarea
                     value={budgetFormData.notes}
-                    onChange={(e) => setBudgetFormData({ ...budgetFormData, notes: e.target.value })}
+                    onChange={(e) =>
+                      setBudgetFormData({
+                        ...budgetFormData,
+                        notes: e.target.value,
+                      })
+                    }
                     rows={2}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Additional notes..."
@@ -1093,7 +1266,7 @@ export default function PostProductionPage() {
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                   disabled={submitting}
                 >
-                  {submitting ? 'Adding...' : 'Add Budget Line'}
+                  {submitting ? "Adding..." : "Add Budget Line"}
                 </button>
               </div>
             </form>

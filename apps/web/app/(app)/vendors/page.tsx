@@ -1,10 +1,12 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Plus, Pencil, Trash2, Building2, X, Save } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Pencil, Trash2, Building2, X, Save } from "lucide-react";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://film-finance-app.onrender.com/api";
 
 interface Project {
   id: string;
@@ -59,25 +61,25 @@ export default function VendorsPage() {
   const router = useRouter();
 
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [formData, setFormData] = useState<VendorFormData>({
-    name: '',
-    currency: 'NPR',
+    name: "",
+    currency: "NPR",
     bankInfo: {
-      accountName: '',
-      accountNumber: '',
-      bankName: '',
-      swiftCode: '',
+      accountName: "",
+      accountNumber: "",
+      bankName: "",
+      swiftCode: "",
     },
     contactInfo: {
-      email: '',
-      phone: '',
-      address: '',
+      email: "",
+      phone: "",
+      address: "",
     },
   });
 
@@ -85,13 +87,13 @@ export default function VendorsPage() {
   const fetchProjects = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/projects?fetchAll=true`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch projects');
+        throw new Error("Failed to fetch projects");
       }
 
       const result = await response.json();
@@ -113,14 +115,17 @@ export default function VendorsPage() {
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/vendors/project/${projectId}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/vendors/project/${projectId}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch vendors');
+        throw new Error("Failed to fetch vendors");
       }
 
       const result = await response.json();
@@ -152,22 +157,25 @@ export default function VendorsPage() {
   const handleCreateVendor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProjectId) {
-      setError('Please select a project first');
+      setError("Please select a project first");
       return;
     }
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/vendors/project/${selectedProjectId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(formData),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/vendors/project/${selectedProjectId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(formData),
+        }
+      );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to create vendor');
+        throw new Error(error.message || "Failed to create vendor");
       }
 
       await fetchVendors(selectedProjectId);
@@ -189,16 +197,16 @@ export default function VendorsPage() {
       const response = await fetch(
         `${API_BASE_URL}/vendors/project/${selectedProjectId}/${editingVendor.id}`,
         {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify(formData),
         }
       );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to update vendor');
+        throw new Error(error.message || "Failed to update vendor");
       }
 
       await fetchVendors(selectedProjectId);
@@ -212,7 +220,7 @@ export default function VendorsPage() {
 
   // Delete vendor
   const handleDeleteVendor = async (vendorId: string) => {
-    if (!confirm('Are you sure you want to delete this vendor?')) return;
+    if (!confirm("Are you sure you want to delete this vendor?")) return;
     if (!selectedProjectId) return;
 
     try {
@@ -220,15 +228,15 @@ export default function VendorsPage() {
       const response = await fetch(
         `${API_BASE_URL}/vendors/project/${selectedProjectId}/${vendorId}`,
         {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
         }
       );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to delete vendor');
+        throw new Error(error.message || "Failed to delete vendor");
       }
 
       await fetchVendors(selectedProjectId);
@@ -242,24 +250,24 @@ export default function VendorsPage() {
   // Open modal for creating
   const handleOpenCreateModal = () => {
     if (!selectedProjectId) {
-      setError('Please select a project first');
+      setError("Please select a project first");
       return;
     }
 
     setEditingVendor(null);
     setFormData({
-      name: '',
-      currency: 'USD',
+      name: "",
+      currency: "USD",
       bankInfo: {
-        accountName: '',
-        accountNumber: '',
-        bankName: '',
-        swiftCode: '',
+        accountName: "",
+        accountNumber: "",
+        bankName: "",
+        swiftCode: "",
       },
       contactInfo: {
-        email: '',
-        phone: '',
-        address: '',
+        email: "",
+        phone: "",
+        address: "",
       },
     });
     setShowModal(true);
@@ -272,15 +280,15 @@ export default function VendorsPage() {
       name: vendor.name,
       currency: vendor.currency,
       bankInfo: {
-        accountName: vendor.bankInfo?.accountName || '',
-        accountNumber: vendor.bankInfo?.accountNumber || '',
-        bankName: vendor.bankInfo?.bankName || '',
-        swiftCode: vendor.bankInfo?.swiftCode || '',
+        accountName: vendor.bankInfo?.accountName || "",
+        accountNumber: vendor.bankInfo?.accountNumber || "",
+        bankName: vendor.bankInfo?.bankName || "",
+        swiftCode: vendor.bankInfo?.swiftCode || "",
       },
       contactInfo: {
-        email: vendor.contactInfo?.email || '',
-        phone: vendor.contactInfo?.phone || '',
-        address: vendor.contactInfo?.address || '',
+        email: vendor.contactInfo?.email || "",
+        phone: vendor.contactInfo?.phone || "",
+        address: vendor.contactInfo?.address || "",
       },
     });
     setShowModal(true);
@@ -290,11 +298,13 @@ export default function VendorsPage() {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingVendor(null);
-    setError('');
+    setError("");
   };
 
   // Handle basic input changes
-  const handleBasicChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleBasicChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -315,7 +325,9 @@ export default function VendorsPage() {
   };
 
   // Handle contact info changes
-  const handleContactInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleContactInfoChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -335,7 +347,9 @@ export default function VendorsPage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Vendors</h1>
-            <p className="text-gray-600 mt-1">Manage vendors for your projects</p>
+            <p className="text-gray-600 mt-1">
+              Manage vendors for your projects
+            </p>
           </div>
           <button
             onClick={handleOpenCreateModal}
@@ -366,8 +380,8 @@ export default function VendorsPage() {
           </select>
           {selectedProject && (
             <p className="mt-2 text-sm text-gray-600">
-              <strong>Status:</strong> {selectedProject.status} | <strong>Currency:</strong>{' '}
-              {selectedProject.baseCurrency}
+              <strong>Status:</strong> {selectedProject.status} |{" "}
+              <strong>Currency:</strong> {selectedProject.baseCurrency}
             </p>
           )}
         </div>
@@ -377,7 +391,10 @@ export default function VendorsPage() {
       {error && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 flex justify-between items-center">
           <span>{error}</span>
-          <button onClick={() => setError('')} className="text-red-800 hover:text-red-900">
+          <button
+            onClick={() => setError("")}
+            className="text-red-800 hover:text-red-900"
+          >
             <X size={18} />
           </button>
         </div>
@@ -394,8 +411,12 @@ export default function VendorsPage() {
       {!selectedProjectId && (
         <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
           <Building2 size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Project Selected</h3>
-          <p className="text-gray-600">Please select a project to view and manage vendors</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No Project Selected
+          </h3>
+          <p className="text-gray-600">
+            Please select a project to view and manage vendors
+          </p>
         </div>
       )}
 
@@ -403,8 +424,12 @@ export default function VendorsPage() {
       {selectedProjectId && !loading && vendors.length === 0 && (
         <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
           <Building2 size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No vendors yet</h3>
-          <p className="text-gray-600 mb-4">Get started by adding your first vendor</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No vendors yet
+          </h3>
+          <p className="text-gray-600 mb-4">
+            Get started by adding your first vendor
+          </p>
           <button
             onClick={handleOpenCreateModal}
             className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
@@ -429,8 +454,12 @@ export default function VendorsPage() {
                     <Building2 size={24} className="text-blue-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg text-gray-900">{vendor.name}</h3>
-                    <span className="text-sm text-gray-500">{vendor.currency}</span>
+                    <h3 className="font-semibold text-lg text-gray-900">
+                      {vendor.name}
+                    </h3>
+                    <span className="text-sm text-gray-500">
+                      {vendor.currency}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -441,19 +470,27 @@ export default function VendorsPage() {
                   {vendor.contactInfo.email && (
                     <div className="text-sm">
                       <span className="font-medium text-gray-700">Email: </span>
-                      <span className="text-gray-600">{vendor.contactInfo.email}</span>
+                      <span className="text-gray-600">
+                        {vendor.contactInfo.email}
+                      </span>
                     </div>
                   )}
                   {vendor.contactInfo.phone && (
                     <div className="text-sm">
                       <span className="font-medium text-gray-700">Phone: </span>
-                      <span className="text-gray-600">{vendor.contactInfo.phone}</span>
+                      <span className="text-gray-600">
+                        {vendor.contactInfo.phone}
+                      </span>
                     </div>
                   )}
                   {vendor.contactInfo.address && (
                     <div className="text-sm">
-                      <span className="font-medium text-gray-700">Address: </span>
-                      <span className="text-gray-600">{vendor.contactInfo.address}</span>
+                      <span className="font-medium text-gray-700">
+                        Address:{" "}
+                      </span>
+                      <span className="text-gray-600">
+                        {vendor.contactInfo.address}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -517,7 +554,7 @@ export default function VendorsPage() {
             {/* Modal Header */}
             <div className="flex justify-between items-center p-6 border-b border-gray-200">
               <h2 className="text-2xl font-bold text-gray-900">
-                {editingVendor ? 'Edit Vendor' : 'Add New Vendor'}
+                {editingVendor ? "Edit Vendor" : "Add New Vendor"}
               </h2>
               <button
                 onClick={handleCloseModal}
@@ -528,11 +565,15 @@ export default function VendorsPage() {
             </div>
 
             {/* Modal Body */}
-            <form onSubmit={editingVendor ? handleUpdateVendor : handleCreateVendor}>
+            <form
+              onSubmit={editingVendor ? handleUpdateVendor : handleCreateVendor}
+            >
               <div className="p-6 space-y-6">
                 {/* Basic Info */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Basic Information
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -571,7 +612,9 @@ export default function VendorsPage() {
 
                 {/* Contact Info */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Contact Information
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -617,7 +660,9 @@ export default function VendorsPage() {
 
                 {/* Bank Info */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Bank Information</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Bank Information
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -690,7 +735,11 @@ export default function VendorsPage() {
                   className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save size={20} />
-                  {loading ? 'Saving...' : editingVendor ? 'Update Vendor' : 'Create Vendor'}
+                  {loading
+                    ? "Saving..."
+                    : editingVendor
+                      ? "Update Vendor"
+                      : "Create Vendor"}
                 </button>
               </div>
             </form>

@@ -26,14 +26,17 @@ export default function LoginPage() {
 
     try {
       // Call your backend login endpoint
-      const response = await fetch("http://localhost:4000/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-        credentials: "include", // Important: to receive and send cookies
-      });
+      const response = await fetch(
+        "https://film-finance-app.onrender.com/api/auth/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+          credentials: "include", // Important: to receive and send cookies
+        }
+      );
 
       // Handle non-OK responses
       if (!response.ok) {

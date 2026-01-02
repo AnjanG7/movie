@@ -1,9 +1,10 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, ChangeEvent } from 'react';
+import React, { useState, useEffect, ChangeEvent } from "react";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://film-finance-app.onrender.com/api";
 
 interface Project {
   id: string;
@@ -45,7 +46,7 @@ interface VarianceReport {
 
 export default function BudgetVariancePage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState("");
   const [report, setReport] = useState<VarianceReport | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -64,14 +65,14 @@ export default function BudgetVariancePage() {
   const fetchProjects = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/projects?limit=9999`, {
-        credentials: 'include',
+        credentials: "include",
       });
       const result = await response.json();
       if (result.success) {
         setProjects(result.data.projects || []);
       }
     } catch (error) {
-      console.error('Error fetching projects:', error);
+      console.error("Error fetching projects:", error);
     }
   };
 
@@ -81,14 +82,14 @@ export default function BudgetVariancePage() {
     try {
       const response = await fetch(
         `${API_BASE_URL}/projects/${selectedProjectId}/budget-lines/variance-report`,
-        { credentials: 'include' }
+        { credentials: "include" }
       );
       const result = await response.json();
       if (result.success) {
         setReport(result.data as VarianceReport);
       }
     } catch (error) {
-      console.error('Error fetching variance report:', error);
+      console.error("Error fetching variance report:", error);
     } finally {
       setLoading(false);
     }
@@ -100,7 +101,7 @@ export default function BudgetVariancePage() {
 
   const formatCurrency = (amount: number) => {
     const project = projects.find((p) => p.id === selectedProjectId);
-    const currency = project?.baseCurrency || 'USD';
+    const currency = project?.baseCurrency || "USD";
     return `${currency} ${amount.toLocaleString(undefined, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -108,15 +109,15 @@ export default function BudgetVariancePage() {
   };
 
   const getVarianceColorClass = (variance: number) => {
-    if (variance < 0) return 'text-red-600';
-    if (variance > 0) return 'text-emerald-600';
-    return 'text-slate-500';
+    if (variance < 0) return "text-red-600";
+    if (variance > 0) return "text-emerald-600";
+    return "text-slate-500";
   };
 
   const getVarianceBgClass = (variance: number) => {
-    if (variance < 0) return 'bg-red-50';
-    if (variance > 0) return 'bg-emerald-50';
-    return '';
+    if (variance < 0) return "bg-red-50";
+    if (variance > 0) return "bg-emerald-50";
+    return "";
   };
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
@@ -158,7 +159,10 @@ export default function BudgetVariancePage() {
             </div>
             {selectedProject && (
               <div className="px-3 py-1 rounded-lg bg-white/70 border border-slate-200 text-xs text-slate-600 shadow-sm">
-                Base currency: <span className="font-semibold">{selectedProject.baseCurrency}</span>
+                Base currency:{" "}
+                <span className="font-semibold">
+                  {selectedProject.baseCurrency}
+                </span>
               </div>
             )}
           </div>
@@ -173,8 +177,8 @@ export default function BudgetVariancePage() {
               Select a project to view its variance report.
             </p>
             <p className="text-sm text-slate-500">
-              You&apos;ll see totals, phase breakdowns, and lines with the biggest
-              overages or savings.
+              You&apos;ll see totals, phase breakdowns, and lines with the
+              biggest overages or savings.
             </p>
           </div>
         ) : (
@@ -227,7 +231,7 @@ export default function BudgetVariancePage() {
               <div className="mb-6 p-4 rounded-2xl border border-red-200 bg-red-50">
                 <p className="text-sm font-semibold text-red-700">
                   ⚠ {report.summary.overBudgetLines} budget line
-                  {report.summary.overBudgetLines > 1 ? 's are' : ' is'} over
+                  {report.summary.overBudgetLines > 1 ? "s are" : " is"} over
                   budget. Review the significant variance table below.
                 </p>
               </div>
@@ -262,9 +266,7 @@ export default function BudgetVariancePage() {
                           key={phase}
                           className="border-t border-slate-100 hover:bg-slate-50"
                         >
-                          <td className="px-4 py-2 font-semibold">
-                            {phase}
-                          </td>
+                          <td className="px-4 py-2 font-semibold">{phase}</td>
                           <td className="px-4 py-2 text-right">
                             {formatCurrency(data.budgeted)}
                           </td>
@@ -330,7 +332,7 @@ export default function BudgetVariancePage() {
                         >
                           <td className="px-4 py-2">{line.phase}</td>
                           <td className="px-4 py-2">
-                            {line.department || '-'}
+                            {line.department || "-"}
                           </td>
                           <td className="px-4 py-2">{line.name}</td>
                           <td className="px-4 py-2 text-right">

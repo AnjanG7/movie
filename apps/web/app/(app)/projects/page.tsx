@@ -1,30 +1,28 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import ProjectCard from '../components/ProjectCard';
-import { Film, Plus, Search, Filter, X } from 'lucide-react';
-import { Project } from '../lib/types';
-import { useStore } from '../lib/store';
+import { useEffect, useState } from "react";
+import ProjectCard from "../components/ProjectCard";
+import { Film, Plus, Search, Filter, X } from "lucide-react";
+import { Project } from "../lib/types";
+import { useStore } from "../lib/store";
 
-const API_BASE_URL = 'http://localhost:4000/api';
+const API_BASE_URL = "https://film-finance-app.onrender.com/api";
 
 export default function ProjectsPage() {
-  
-  
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
-  const [createError, setCreateError] = useState('');
-  
+  const [createError, setCreateError] = useState("");
+
   // Form state for new project
   const [formData, setFormData] = useState({
-    title: '',
-    baseCurrency: 'NPR',
-    timezone: 'Asia/Kathmandu',
-    status: 'planning'
+    title: "",
+    baseCurrency: "NPR",
+    timezone: "Asia/Kathmandu",
+    status: "planning",
   });
 
   // Fetch projects from API
@@ -32,12 +30,11 @@ export default function ProjectsPage() {
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/projects/`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
-          
+          "Content-Type": "application/json",
         },
-        credentials: 'include',
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -45,21 +42,23 @@ export default function ProjectsPage() {
       }
 
       const result = await response.json();
-      
+
       if (result.success && result.data && result.data.projects) {
         // Map API response to match Project type
-        const mappedProjects: Project[] = result.data.projects.map((p: any) => ({
-          ...p,
-          phases: p.phases || [],
-          budgetVersions: p.budgetVersions || [],
-          financingSources: p.financingSources || [], // Use actual data if present
-        }));
+        const mappedProjects: Project[] = result.data.projects.map(
+          (p: any) => ({
+            ...p,
+            phases: p.phases || [],
+            budgetVersions: p.budgetVersions || [],
+            financingSources: p.financingSources || [], // Use actual data if present
+          })
+        );
         setProjects(mappedProjects);
       } else {
-        throw new Error(result.message || 'Failed to fetch projects');
+        throw new Error(result.message || "Failed to fetch projects");
       }
     } catch (error) {
-      console.error('Error fetching projects:', error);
+      console.error("Error fetching projects:", error);
       setProjects([]);
     } finally {
       setLoading(false);
@@ -69,26 +68,27 @@ export default function ProjectsPage() {
   // Create new project
   const createProject = async (data: typeof formData) => {
     setCreateLoading(true);
-    setCreateError('');
+    setCreateError("");
 
     try {
       const response = await fetch(`${API_BASE_URL}/projects/create`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          
+          "Content-Type": "application/json",
         },
-        credentials: 'include',
+        credentials: "include",
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
         const errorResult = await response.json();
-        throw new Error(errorResult.message || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          errorResult.message || `HTTP error! status: ${response.status}`
+        );
       }
 
       const result = await response.json();
-      
+
       if (result.success && result.data) {
         // Map API response to match Project type
         const newProject: Project = {
@@ -97,25 +97,26 @@ export default function ProjectsPage() {
           budgetVersions: result.data.budgetVersions || [],
           financingSources: [], // Initialize empty if not present
         };
-        
+
         // Add new project to the list
-        setProjects(prev => [...prev, newProject]);
-        
+        setProjects((prev) => [...prev, newProject]);
+
         // Reset form and close modal
         setFormData({
-          title: '',
-          baseCurrency: 'NPE',
-          timezone: 'Asia/Kathmandu',
-          status: 'planning'
+          title: "",
+          baseCurrency: "NPE",
+          timezone: "Asia/Kathmandu",
+          status: "planning",
         });
         setShowCreateModal(false);
-        
+
         return result.data;
       } else {
-        throw new Error(result.message || 'Failed to create project');
+        throw new Error(result.message || "Failed to create project");
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create project';
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to create project";
       setCreateError(errorMessage);
       throw error;
     } finally {
@@ -128,16 +129,21 @@ export default function ProjectsPage() {
   }, []);
 
   // Filter projects
-  const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || project.status === filterStatus;
+  const filteredProjects = projects.filter((project) => {
+    const matchesSearch = project.title
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesFilter =
+      filterStatus === "all" || project.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
 
   // Handle form input changes
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   // Handle project creation
@@ -147,19 +153,19 @@ export default function ProjectsPage() {
       await createProject(formData);
     } catch (error) {
       // Error already handled in createProject function
-      console.error('Create project error:', error);
+      console.error("Create project error:", error);
     }
   };
 
   // Close modal and reset form
   const closeModal = () => {
     setShowCreateModal(false);
-    setCreateError('');
+    setCreateError("");
     setFormData({
-      title: '',
-      baseCurrency: 'NPR',
-      timezone: 'Asia/Kathmandu',
-      status: 'planning'
+      title: "",
+      baseCurrency: "NPR",
+      timezone: "Asia/Kathmandu",
+      status: "planning",
     });
   };
 
@@ -179,7 +185,7 @@ export default function ProjectsPage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Projects</h1>
           <p className="text-gray-600">Manage all your film projects</p>
         </div>
-        <button 
+        <button
           onClick={() => setShowCreateModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
@@ -225,14 +231,16 @@ export default function ProjectsPage() {
       {filteredProjects.length === 0 ? (
         <div className="bg-white rounded-xl p-12 border border-gray-200 text-center">
           <Film className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No projects found</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            No projects found
+          </h3>
           <p className="text-gray-600 mb-6">
-            {searchTerm || filterStatus !== 'all' 
-              ? 'Try adjusting your filters'
-              : 'Get started by creating your first project'}
+            {searchTerm || filterStatus !== "all"
+              ? "Try adjusting your filters"
+              : "Get started by creating your first project"}
           </p>
-          {!searchTerm && filterStatus === 'all' && (
-            <button 
+          {!searchTerm && filterStatus === "all" && (
+            <button
               onClick={() => setShowCreateModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
@@ -248,7 +256,7 @@ export default function ProjectsPage() {
               <ProjectCard key={project.id} project={project} />
             ))}
           </div>
-          
+
           {/* Results count */}
           <div className="mt-6 text-center text-sm text-gray-600">
             Showing {filteredProjects.length} of {projects.length} projects
@@ -261,7 +269,9 @@ export default function ProjectsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Create New Project</h2>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Create New Project
+              </h2>
               <button
                 onClick={closeModal}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -319,9 +329,15 @@ export default function ProjectsPage() {
                   required
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="Asia/Kathmandu">Asia/Kathmandu (UTC+5:45)</option>
-                  <option value="America/New_York">America/New_York (EST)</option>
-                  <option value="America/Los_Angeles">America/Los_Angeles (PST)</option>
+                  <option value="Asia/Kathmandu">
+                    Asia/Kathmandu (UTC+5:45)
+                  </option>
+                  <option value="America/New_York">
+                    America/New_York (EST)
+                  </option>
+                  <option value="America/Los_Angeles">
+                    America/Los_Angeles (PST)
+                  </option>
                   <option value="Europe/London">Europe/London (GMT)</option>
                   <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
                 </select>
@@ -367,7 +383,7 @@ export default function ProjectsPage() {
                   disabled={createLoading}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {createLoading ? 'Creating...' : 'Create Project'}
+                  {createLoading ? "Creating..." : "Create Project"}
                 </button>
               </div>
             </form>

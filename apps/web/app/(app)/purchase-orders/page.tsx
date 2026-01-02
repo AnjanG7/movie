@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, {
   useState,
@@ -6,14 +6,15 @@ import React, {
   FormEvent,
   ChangeEvent,
   Suspense,
-} from 'react';
-import { useSearchParams } from 'next/navigation';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { Download } from 'lucide-react'; // Optional: for icon
+} from "react";
+import { useSearchParams } from "next/navigation";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { Download } from "lucide-react"; // Optional: for icon
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://film-finance-app.onrender.com/api";
 
 /* ===================== TYPES ===================== */
 
@@ -59,24 +60,24 @@ interface POFormData {
 
 function PurchaseOrdersContent() {
   const searchParams = useSearchParams();
-  const projectIdParam = searchParams.get('projectId');
+  const projectIdParam = searchParams.get("projectId");
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [budgetLines, setBudgetLines] = useState<BudgetLine[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState(
-    projectIdParam || ''
+    projectIdParam || ""
   );
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const [formData, setFormData] = useState<POFormData>({
-    vendorId: '',
+    vendorId: "",
     amount: 0,
-    description: '',
-    paymentTerms: 'Net 30 days',
-    budgetLineId: '',
+    description: "",
+    paymentTerms: "Net 30 days",
+    budgetLineId: "",
   });
 
   /* ===================== FETCHERS ===================== */
@@ -94,37 +95,36 @@ function PurchaseOrdersContent() {
 
   const fetchProjects = async () => {
     const res = await fetch(`${API_BASE_URL}/projects?fetchAll=true`, {
-      credentials: 'include',
+      credentials: "include",
     });
     const json = await res.json();
     if (json.success) setProjects(json.data.projects || []);
   };
 
   const fetchVendors = async (projectId: string) => {
-    const res = await fetch(
-      `${API_BASE_URL}/vendors/project/${projectId}`,
-      { credentials: 'include' }
-    );
+    const res = await fetch(`${API_BASE_URL}/vendors/project/${projectId}`, {
+      credentials: "include",
+    });
     const json = await res.json();
     setVendors(json.data?.vendors || []);
   };
 
   const fetchBudgetLines = async (projectId: string) => {
     if (!projectId) return;
-    
+
     try {
       const response = await fetch(
         `${API_BASE_URL}/projects/${projectId}/budget-lines`,
-        { credentials: 'include' }
+        { credentials: "include" }
       );
-      
+
       if (!response.ok) {
         setBudgetLines([]);
         return;
       }
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         const lines = result.data?.lines || result.data?.budgetLines || [];
         setBudgetLines(lines);
@@ -132,7 +132,7 @@ function PurchaseOrdersContent() {
         setBudgetLines([]);
       }
     } catch (error) {
-      console.error('Error fetching budget lines:', error);
+      console.error("Error fetching budget lines:", error);
       setBudgetLines([]);
     }
   };
@@ -141,7 +141,7 @@ function PurchaseOrdersContent() {
     setLoading(true);
     const res = await fetch(
       `${API_BASE_URL}/projects/${projectId}/purchase-orders`,
-      { credentials: 'include' }
+      { credentials: "include" }
     );
     const json = await res.json();
     setPurchaseOrders(json.data?.purchaseOrders || []);
@@ -151,28 +151,34 @@ function PurchaseOrdersContent() {
   /* ===================== PDF EXPORT ===================== */
 
   const handleDownloadPDF = () => {
-    const doc = new jsPDF('l', 'mm', 'a4'); // Landscape orientation
-    
+    const doc = new jsPDF("l", "mm", "a4"); // Landscape orientation
+
     // Get selected project name
-    const selectedProject = projects.find(p => p.id === selectedProjectId);
-    const projectTitle = selectedProject?.title || 'All Projects';
-    
+    const selectedProject = projects.find((p) => p.id === selectedProjectId);
+    const projectTitle = selectedProject?.title || "All Projects";
+
     // Add header
     doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Purchase Orders Report', 14, 20);
-    
+    doc.setFont("helvetica", "bold");
+    doc.text("Purchase Orders Report", 14, 20);
+
     doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont("helvetica", "normal");
     doc.text(`Project: ${projectTitle}`, 14, 28);
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 34);
-    
+
     // Calculate totals
     const totalAmount = purchaseOrders.reduce((sum, po) => sum + po.amount, 0);
-    const approvedCount = purchaseOrders.filter(po => po.status === 'Approved').length;
-    const pendingCount = purchaseOrders.filter(po => po.status === 'Pending').length;
-    const rejectedCount = purchaseOrders.filter(po => po.status === 'Rejected').length;
-    
+    const approvedCount = purchaseOrders.filter(
+      (po) => po.status === "Approved"
+    ).length;
+    const pendingCount = purchaseOrders.filter(
+      (po) => po.status === "Pending"
+    ).length;
+    const rejectedCount = purchaseOrders.filter(
+      (po) => po.status === "Rejected"
+    ).length;
+
     // Add summary section
     doc.setFontSize(10);
     doc.text(`Total POs: ${purchaseOrders.length}`, 14, 42);
@@ -180,28 +186,37 @@ function PurchaseOrdersContent() {
     doc.text(`Pending: ${pendingCount}`, 90, 42);
     doc.text(`Rejected: ${rejectedCount}`, 120, 42);
     doc.text(`Total Amount: ${totalAmount.toLocaleString()}`, 150, 42);
-    
+
     // Prepare table data
     const tableData = purchaseOrders.map((po) => [
-      po.docNo || 'N/A',
-      po.vendor?.name || 'N/A',
-      `${po.vendor?.currency || ''} ${po.amount.toLocaleString()}`,
-      po.budgetLine ? `${po.budgetLine.phase} - ${po.budgetLine.name}` : 'N/A',
+      po.docNo || "N/A",
+      po.vendor?.name || "N/A",
+      `${po.vendor?.currency || ""} ${po.amount.toLocaleString()}`,
+      po.budgetLine ? `${po.budgetLine.phase} - ${po.budgetLine.name}` : "N/A",
       po.status,
       new Date(po.createdAt).toLocaleDateString(),
     ]);
-    
+
     // Add table
     autoTable(doc, {
-      head: [['PO Number', 'Vendor', 'Amount', 'Budget Line', 'Status', 'Created Date']],
+      head: [
+        [
+          "PO Number",
+          "Vendor",
+          "Amount",
+          "Budget Line",
+          "Status",
+          "Created Date",
+        ],
+      ],
       body: tableData,
       startY: 50,
-      theme: 'striped',
+      theme: "striped",
       headStyles: {
         fillColor: [59, 130, 246], // Blue color
         fontSize: 10,
-        fontStyle: 'bold',
-        halign: 'left',
+        fontStyle: "bold",
+        halign: "left",
       },
       bodyStyles: {
         fontSize: 9,
@@ -216,13 +231,13 @@ function PurchaseOrdersContent() {
       },
       didDrawCell: (data) => {
         // Color code status column
-        if (data.column.index === 4 && data.section === 'body') {
+        if (data.column.index === 4 && data.section === "body") {
           const status = data.cell.raw as string;
-          if (status === 'Approved') {
+          if (status === "Approved") {
             doc.setFillColor(220, 252, 231); // Light green
-          } else if (status === 'Pending') {
+          } else if (status === "Pending") {
             doc.setFillColor(254, 249, 195); // Light yellow
-          } else if (status === 'Rejected') {
+          } else if (status === "Rejected") {
             doc.setFillColor(254, 226, 226); // Light red
           }
         }
@@ -233,19 +248,19 @@ function PurchaseOrdersContent() {
         const pageSize = doc.internal.pageSize;
         const pageHeight = pageSize.height || pageSize.getHeight();
         const pageWidth = pageSize.width || pageSize.getWidth();
-        
+
         doc.setFontSize(8);
         doc.text(
           `Page ${data.pageNumber} of ${pageCount}`,
           pageWidth / 2,
           pageHeight - 10,
-          { align: 'center' }
+          { align: "center" }
         );
       },
     });
-    
+
     // Save the PDF
-    const fileName = `Purchase_Orders_${projectTitle.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`;
+    const fileName = `Purchase_Orders_${projectTitle.replace(/\s+/g, "_")}_${new Date().getTime()}.pdf`;
     doc.save(fileName);
   };
 
@@ -258,9 +273,9 @@ function PurchaseOrdersContent() {
     const res = await fetch(
       `${API_BASE_URL}/projects/${selectedProjectId}/purchase-orders`,
       {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       }
     );
@@ -272,11 +287,11 @@ function PurchaseOrdersContent() {
     }
 
     setFormData({
-      vendorId: '',
+      vendorId: "",
       amount: 0,
-      description: '',
-      paymentTerms: 'Net 30 days',
-      budgetLineId: '',
+      description: "",
+      paymentTerms: "Net 30 days",
+      budgetLineId: "",
     });
 
     fetchPurchaseOrders(selectedProjectId);
@@ -290,9 +305,9 @@ function PurchaseOrdersContent() {
     const res = await fetch(
       `${API_BASE_URL}/projects/${selectedProjectId}/purchase-orders/${poId}/status`,
       {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       }
     );
@@ -309,13 +324,13 @@ function PurchaseOrdersContent() {
 
   const handleDelete = async (poId: string) => {
     if (!selectedProjectId) return;
-    if (!confirm('Delete this PO?')) return;
+    if (!confirm("Delete this PO?")) return;
 
     await fetch(
       `${API_BASE_URL}/projects/${selectedProjectId}/purchase-orders/${poId}`,
       {
-        method: 'DELETE',
-        credentials: 'include',
+        method: "DELETE",
+        credentials: "include",
       }
     );
 
@@ -329,7 +344,7 @@ function PurchaseOrdersContent() {
     const { name, value } = e.target;
     setFormData((p) => ({
       ...p,
-      [name]: name === 'amount' ? Number(value) : value,
+      [name]: name === "amount" ? Number(value) : value,
     }));
   };
 
@@ -341,10 +356,14 @@ function PurchaseOrdersContent() {
         {/* Header */}
         <div className="mb-8 flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Purchase Orders</h1>
-            <p className="text-gray-600">Manage and track your project purchase orders</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Purchase Orders
+            </h1>
+            <p className="text-gray-600">
+              Manage and track your project purchase orders
+            </p>
           </div>
-          
+
           {/* Download Button */}
           {selectedProjectId && purchaseOrders.length > 0 && (
             <button
@@ -385,7 +404,9 @@ function PurchaseOrdersContent() {
 
         {/* Create PO Form */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Create Purchase Order</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Create Purchase Order
+          </h2>
           <form onSubmit={handleCreatePO} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Vendor Selection */}
@@ -475,9 +496,11 @@ function PurchaseOrdersContent() {
         {/* Purchase Orders Table */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Purchase Orders List</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Purchase Orders List
+            </h2>
           </div>
-          
+
           {loading ? (
             <div className="px-6 py-12 text-center">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -507,7 +530,10 @@ function PurchaseOrdersContent() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {purchaseOrders.map((po) => (
-                    <tr key={po.id} className="hover:bg-gray-50 transition-colors">
+                    <tr
+                      key={po.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {po.docNo}
                       </td>
@@ -520,11 +546,11 @@ function PurchaseOrdersContent() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
                           className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-                            po.status === 'Approved'
-                              ? 'bg-green-100 text-green-800'
-                              : po.status === 'Rejected'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-yellow-100 text-yellow-800'
+                            po.status === "Approved"
+                              ? "bg-green-100 text-green-800"
+                              : po.status === "Rejected"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-yellow-100 text-yellow-800"
                           }`}
                         >
                           {po.status}
@@ -532,16 +558,20 @@ function PurchaseOrdersContent() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <div className="flex items-center gap-2">
-                          {po.status === 'Pending' && (
+                          {po.status === "Pending" && (
                             <>
                               <button
-                                onClick={() => handleUpdateStatus(po.id, 'Approved')}
+                                onClick={() =>
+                                  handleUpdateStatus(po.id, "Approved")
+                                }
                                 className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
                               >
                                 Approve
                               </button>
                               <button
-                                onClick={() => handleUpdateStatus(po.id, 'Rejected')}
+                                onClick={() =>
+                                  handleUpdateStatus(po.id, "Rejected")
+                                }
                                 className="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
                               >
                                 Reject
