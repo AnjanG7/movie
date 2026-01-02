@@ -237,10 +237,10 @@ export default function PostProductionPage() {
 
     // Budget Lines Table
     if (budgetLines?.length) {
-      // @ts-expect-error - autoTable adds finalY property
-      const startY = doc.lastAutoTable?.finalY
-        ? doc.lastAutoTable.finalY + 15
-        : 140;
+      const lastTableY = (doc as any).lastAutoTable?.finalY;
+
+      const startY = lastTableY ? lastTableY + 15 : 140;
+
       doc.setFontSize(14);
       doc.text("Budget Lines", 14, startY);
 
