@@ -153,7 +153,7 @@ export default function DashboardPage() {
           iconBg="bg-blue-100"
         />
         {user?.role?.toLowerCase() === "admin" && (
-          <Link href="/all-users" className="block">
+          <Link href="/all-users" className="block h-full">
             <StatsCard
               title="Total Users"
               value={userCount}
