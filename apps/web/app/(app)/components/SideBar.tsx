@@ -44,7 +44,7 @@ const menuItems = [
   { icon: TrendingUp, label: "Budget Variance", href: "/budget-variance" },
   { section: "Production" },
   { icon: Video, label: "Post Production", href: "/post-production" }, // ✅ Added
-  { icon: Megaphone, label: "Publicity & P&A", href: "/publicity" }, 
+  { icon: Megaphone, label: "Publicity & P&A", href: "/publicity" },
 ];
 
 export default function Sidebar() {
@@ -129,17 +129,6 @@ export default function Sidebar() {
             );
           })}
         </nav>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-800">
-          <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg p-4">
-            <p className="text-sm font-semibold text-white mb-1">Need Help?</p>
-            <p className="text-xs text-blue-100 mb-3">Check our documentation</p>
-            <button className="w-full bg-white text-blue-600 text-sm font-medium py-2 rounded-md hover:bg-blue-50 transition-colors">
-              View Docs
-            </button>
-          </div>
-        </div>
       </div>
     </>
   );
