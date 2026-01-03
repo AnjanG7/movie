@@ -127,15 +127,11 @@ function PurchaseOrdersContent() {
   }, [selectedProjectId, selectedStatus]);
 
   const fetchProjects = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/projects?limit=100`, {
-        credentials: "include",
-      });
-      const json = await res.json();
-      if (json.success) setProjects(json.data.projects || []);
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-    }
+    const res = await fetch(`${API_BASE_URL}/projects/`, {
+      credentials: "include",
+    });
+    const json = await res.json();
+    if (json.success) setProjects(json.data.projects || []);
   };
 
   const fetchVendors = async (projectId: string) => {
