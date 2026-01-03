@@ -128,7 +128,7 @@ function PurchaseOrdersContent() {
 
   const fetchProjects = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/projects?limit=99999`, {
+      const res = await fetch(`${API_BASE_URL}/projects?limit=100`, {
         credentials: "include",
       });
       const json = await res.json();
