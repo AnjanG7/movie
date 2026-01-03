@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import helmet from "helmet"
+import helmet from "helmet";
 
 import { errorHandler } from "./middlewares/errormiddleware.js";
 import dotenv from "dotenv";
@@ -13,7 +13,7 @@ const app = express();
 app.use(express.json({ limit: "1mb" }));
 app.use(
   cors({
-    origin: "https://film-finance-app.vercel.app"
+    origin: "https://film-finance-app.vercel.app",
     credentials: true,
   })
 );
