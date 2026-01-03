@@ -13,9 +13,7 @@ const app = express();
 app.use(express.json({ limit: "1mb" }));
 app.use(
   cors({
-    origin: (_, cb) => {
-      cb(null, true);
-    },
+    origin: "https://film-finance-app.vercel.app"
     credentials: true,
   })
 );
