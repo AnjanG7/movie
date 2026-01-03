@@ -28,17 +28,22 @@ export default function DashboardPage() {
   const { user } = useStore();
 
   const [userCount, setUserCount] = useState(0);
-  const [projectSummary, setProjectSummary] = useState<ProjectSummaryItem[]>([]);
+  const [projectSummary, setProjectSummary] = useState<ProjectSummaryItem[]>(
+    []
+  );
 
   // Fetch users count
   useEffect(() => {
     const fetchUserCount = async () => {
       try {
-        const res = await fetch(`https://film-finance-app.onrender.com/api/auth/allUsers`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        });
+        const res = await fetch(
+          `https://film-finance-app.onrender.com/api/auth/allUsers`,
+          {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+          }
+        );
         if (!res.ok) throw new Error("Failed to fetch users");
         const result = await res.json();
         setUserCount(result?.data?.users?.length || 0);
@@ -61,11 +66,14 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchSummary = async () => {
       try {
-        const res = await fetch("https://film-finance-app.onrender.com/api/projects/summary", {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        });
+        const res = await fetch(
+          "https://film-finance-app.onrender.com/api/projects/summary",
+          {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+          }
+        );
         if (!res.ok) throw new Error("Failed to fetch project summary");
         const result = await res.json();
         setProjectSummary(result.data || []);
@@ -171,14 +179,6 @@ export default function DashboardPage() {
           icon={DollarSign}
           iconColor="text-purple-600"
           iconBg="bg-purple-100"
-        />
-        <StatsCard
-          title="Investors"
-          value={stats?.totalInvestors || 0}
-          change={5}
-          icon={Users}
-          iconColor="text-orange-600"
-          iconBg="bg-orange-100"
         />
       </div>
 
