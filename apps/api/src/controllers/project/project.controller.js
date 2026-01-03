@@ -20,6 +20,25 @@ export const createProject = asyncHandler(async (req, res) => {
       )
     );
 });
+export const changeProjectPhase = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const { phase } = req.body;
+
+  const result = await projectService.changeProjectPhase(
+    projectId,
+    phase,
+    req.user
+  );
+
+  res.status(StatusCodes.OK).json(
+    new ApiResponse(
+      StatusCodes.OK,
+      result,
+      "Project phase updated successfully"
+    )
+  );
+});
+
 export const updateProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
   const updated = await projectService.updateProject(projectId, req.body, req.user);
@@ -30,7 +49,21 @@ export const updateProject = asyncHandler(async (req, res) => {
       new ApiResponse(StatusCodes.OK, updated, "Project updated successfully")
     );
 });
+export const getProjectsByPhaseSummary = asyncHandler(async (req, res) => {
+  const user = req.user;
 
+  const summary = await projectService.getProjectsByPhase(user);
+
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(
+        StatusCodes.OK,
+        summary,
+        "Project summary by phase fetched successfully"
+      )
+    );
+});
 // -------------------------------
 // Delete Project
 // -------------------------------

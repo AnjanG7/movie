@@ -1,6 +1,5 @@
-
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
@@ -140,15 +139,15 @@ model AuditLog {
 // ---------------------- Projects -----------------------
 
 model Project {
-  id           String    @id @default(uuid())
-  title        String
-  baseCurrency String
-  timezone     String?   @default("Asia/Kathmandu")
-  status       String?   @default("planning")
-  ownerId      String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime? @updatedAt
-
+  id                   String                @id @default(uuid())
+  title                String
+  baseCurrency         String
+  timezone             String?               @default("Asia/Kathmandu")
+  status               String?               @default("planning")
+  ownerId              String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime?             @updatedAt
+  currentPhase         Phase                 @default(DEVELOPMENT)
   budgetVersions       BudgetVersion[]
   phases               PhaseEntity[]
   financingSources     FinancingSource[]
@@ -178,11 +177,13 @@ model ProjectUser {
 
 // Phase entity per project
 model PhaseEntity {
-  id        String  @id @default(uuid())
+  id        String    @id @default(uuid())
   name      Phase
   orderNo   Int?
   projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  startedAt DateTime?
+  endedAt   DateTime?
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 // ---------------------- Budgeting / Quotation -----------------------
@@ -255,7 +256,7 @@ model Vendor {
   bankInfo    Json?
   contactInfo Json? // optional phone/email/address
   projectId   String
-  project     Project @relation(fields: [projectId], references: [id],    onDelete: Cascade)
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   purchaseOrders    PurchaseOrder[]
   invoices          Invoice[]

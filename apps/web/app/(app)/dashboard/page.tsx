@@ -1,5 +1,3 @@
-// app/dashboard/page.tsx - Main dashboard page
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -10,6 +8,12 @@ import BudgetChart from "../components/charts/BudgetChart";
 import DonutChart from "../components/charts/DonutChart";
 import { Film, Users, DollarSign, TrendingUp, ArrowRight } from "lucide-react";
 import Link from "next/link";
+
+// Type for project summary item
+type ProjectSummaryItem = {
+  _count: { id: number };
+  currentPhase: "DEVELOPMENT" | "PRODUCTION" | "POST" | "PUBLICITY";
+};
 
 export default function DashboardPage() {
   const {
@@ -22,21 +26,56 @@ export default function DashboardPage() {
     fetchPhases,
   } = useStore();
   const { user } = useStore();
-  const [userCount, setUserCount] = useState(0);
-  useEffect(() => {
-    const loadUsers = async () => {
-      const count = await fetchUser();
-      setUserCount(count);
-    };
 
-    loadUsers();
+  const [userCount, setUserCount] = useState(0);
+  const [projectSummary, setProjectSummary] = useState<ProjectSummaryItem[]>([]);
+
+  // Fetch users count
+  useEffect(() => {
+    const fetchUserCount = async () => {
+      try {
+        const res = await fetch(`https://film-finance-app.onrender.com/api/auth/allUsers`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("Failed to fetch users");
+        const result = await res.json();
+        setUserCount(result?.data?.users?.length || 0);
+      } catch (err) {
+        console.error(err);
+        setUserCount(0);
+      }
+    };
+    fetchUserCount();
   }, []);
 
+  // Fetch projects, investors, phases
   useEffect(() => {
     fetchProjects();
     fetchInvestors();
     fetchPhases();
   }, [fetchProjects, fetchInvestors, fetchPhases]);
+
+  // Fetch project summary by phase
+  useEffect(() => {
+    const fetchSummary = async () => {
+      try {
+        const res = await fetch("https://film-finance-app.onrender.com/api/projects/summary", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("Failed to fetch project summary");
+        const result = await res.json();
+        setProjectSummary(result.data || []);
+      } catch (err) {
+        console.error(err);
+        setProjectSummary([]);
+      }
+    };
+    fetchSummary();
+  }, []);
 
   // Prepare chart data
   const budgetData = projects.slice(0, 5).map((p) => ({
@@ -46,19 +85,17 @@ export default function DashboardPage() {
       (p.financingSources?.reduce((sum, f) => sum + f.amount, 0) || 0) * 0.6, // Mock spent
   }));
 
-  const phaseData = stats?.projectsByPhase
-    ? Object.entries(stats.projectsByPhase).map(([name, value]) => ({
-        name,
-        value: value as number,
-        color:
-          {
-            DEVELOPMENT: "#3b82f6",
-            PRODUCTION: "#10b981",
-            POST: "#f59e0b",
-            PUBLICITY: "#8b5cf6",
-          }[name] || "#6b7280",
-      }))
-    : [];
+  const phaseSummaryData = projectSummary.map((item) => ({
+    name: item.currentPhase,
+    value: item._count.id,
+    color:
+      {
+        DEVELOPMENT: "#3b82f6",
+        PRODUCTION: "#10b981",
+        POST: "#f59e0b",
+        PUBLICITY: "#8b5cf6",
+      }[item.currentPhase] || "#6b7280",
+  }));
 
   if (loading && projects.length === 0) {
     return (
@@ -113,13 +150,12 @@ export default function DashboardPage() {
               title="Total Users"
               value={userCount}
               change={2}
-              icon={Film}
+              icon={Users}
               iconColor="text-blue-600"
               iconBg="bg-blue-100"
             />
           </Link>
         )}
-
         <StatsCard
           title="Active Projects"
           value={stats?.activeProjects || 0}
@@ -152,7 +188,7 @@ export default function DashboardPage() {
           <BudgetChart data={budgetData} />
         </div>
         <div>
-          <DonutChart data={phaseData} title="Projects by Phase" />
+          <DonutChart data={phaseSummaryData} title="Projects by Phase" />
         </div>
       </div>
 

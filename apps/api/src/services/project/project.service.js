@@ -8,7 +8,6 @@ export class ProjectService {
   async createProject(data, user) {
     const { title, baseCurrency, timezone, status } = data;
 
-    // Default phases
     const phases = [
       Phase.DEVELOPMENT,
       Phase.PRODUCTION,
@@ -19,9 +18,10 @@ export class ProjectService {
     const phaseEntities = phases.map((phase, index) => ({
       name: phase,
       orderNo: index + 1,
+      startedAt: phase === Phase.DEVELOPMENT ? new Date() : null,
+      endedAt: null,
     }));
 
-    // Create project WITHOUT any budget versions
     const project = await prisma.project.create({
       data: {
         title,
@@ -29,10 +29,10 @@ export class ProjectService {
         timezone: timezone || "Asia/Kathmandu",
         status: status || "planning",
         ownerId: user?.id,
+        currentPhase: Phase.DEVELOPMENT,
         phases: {
           create: phaseEntities,
         },
-        // No budgetVersions here!
       },
       include: {
         phases: true,
@@ -42,6 +42,87 @@ export class ProjectService {
 
     return project;
   }
+ async changeProjectPhase (projectId, newPhase, user)  {
+  // Normalize input phase
+  const normalizedPhase = newPhase?.toUpperCase();
+
+  // Validate phase name
+  const phaseOrder = ["DEVELOPMENT", "PRODUCTION", "POST", "PUBLICITY"];
+  if (!phaseOrder.includes(normalizedPhase)) {
+    throw new ApiError(400, "Invalid phase name");
+  }
+
+  // Fetch project and its phases
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: { phases: true }, // get phase entities
+  });
+
+  if (!project) {
+    throw new ApiError(404, "Project not found");
+  }
+
+  // Permission check: Admin or project owner
+  const userRecord = await prisma.user.findUnique({
+    where: { id: user?.id },
+    include: { role: true },
+  });
+
+  const isAdmin = userRecord.role?.name === "Admin";
+  if (!isAdmin && project.ownerId !== user?.id) {
+    throw new ApiError(403, "Not allowed");
+  }
+
+  // Phase transition validation
+  const currentIndex = phaseOrder.indexOf(project.currentPhase);
+  const nextIndex = phaseOrder.indexOf(normalizedPhase);
+  if (nextIndex !== currentIndex + 1) {
+    throw new ApiError(400, "Invalid phase transition");
+  }
+
+  // Transaction: End current phase, start new phase, update project
+  await prisma.$transaction(async (tx) => {
+    // End current phase
+    await tx.phaseEntity.updateMany({
+      where: {
+        projectId,
+        name: project.currentPhase,
+        endedAt: null,
+      },
+      data: {
+        endedAt: new Date(),
+      },
+    });
+
+    // Start next phase
+    const nextPhaseEntity = project.phases.find(
+      (p) => p.name.toUpperCase() === normalizedPhase
+    );
+
+    if (!nextPhaseEntity) {
+      throw new ApiError(400, "Phase entity not found in project");
+    }
+
+    await tx.phaseEntity.updateMany({
+      where: {
+        projectId,
+        name: normalizedPhase,
+      },
+      data: {
+        startedAt: new Date(),
+        endedAt: null,
+      },
+    });
+
+    // Update project's current phase
+    await tx.project.update({
+      where: { id: projectId },
+      data: { currentPhase: normalizedPhase },
+    });
+  });
+
+  return { message: "Phase updated successfully" };
+};
 
   // Update Project hai
 
@@ -138,103 +219,119 @@ export class ProjectService {
 
     return updated;
   }
+  async getProjectsByPhase(user) {
+    const isAdmin = user.roles?.includes("Admin");
+
+    const where = {};
+
+    if (!isAdmin) {
+      where.OR = [
+        { ownerId: user.id },
+        { users: { some: { userId: user.id } } },
+      ];
+    }
+
+    const data = await prisma.project.groupBy({
+      by: ["currentPhase"],
+      where,
+      _count: { id: true },
+    });
+
+    return data;
+  }
 
   async getAllProjects(query, user) {
-  let { page = 1, limit = 10, status, baseCurrency, search } = query;
-  const isAdmin = user.roles?.includes("Admin");
+    let { page = 1, limit = 10, status, baseCurrency, search } = query;
+    const isAdmin = user.roles?.includes("Admin");
 
+    const where = {};
 
+    if (!isAdmin) {
+      // Non-admin users: show projects they own OR are assigned to
+      where.OR = [
+        { ownerId: user.id },
 
-  const where = {};
+        { users: { some: { userId: user.id } } },
+      ];
+    }
 
-  if (!isAdmin) {
-    // Non-admin users: show projects they own OR are assigned to
-    where.OR = [
-      { ownerId: user.id },
-    
-  { users: { some: { userId: user.id } } }
-    
- 
-    ];
+    if (status) where.status = status;
+    if (baseCurrency) where.baseCurrency = baseCurrency;
+
+    if (search) {
+      where.AND = [
+        where.AND || {},
+        {
+          OR: [
+            { title: { contains: search, mode: "insensitive" } },
+            { baseCurrency: { contains: search, mode: "insensitive" } },
+          ],
+        },
+      ];
+    }
+
+    const fetchAll = limit === -1 || !limit;
+    const skip = fetchAll ? undefined : (Number(page) - 1) * Number(limit);
+    const take = fetchAll ? undefined : Number(limit);
+
+    const [projects, total] = await Promise.all([
+      prisma.project.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: "desc" },
+        include: {
+          phases: true,
+          budgetVersions: true,
+          users: { include: { user: true } }, // include assigned users
+        },
+      }),
+      prisma.project.count({ where }),
+    ]);
+
+    return {
+      total,
+      page: Number(page),
+      totalPages: fetchAll ? 1 : Math.ceil(total / limit),
+      projects,
+    };
   }
 
-  if (status) where.status = status;
-  if (baseCurrency) where.baseCurrency = baseCurrency;
-
-  if (search) {
-    where.AND = [
-      where.AND || {},
-      {
-        OR: [
-          { title: { contains: search, mode: "insensitive" } },
-          { baseCurrency: { contains: search, mode: "insensitive" } },
-        ],
-      },
-    ];
-  }
-
-  const fetchAll = limit === -1 || !limit;
-  const skip = fetchAll ? undefined : (Number(page) - 1) * Number(limit);
-  const take = fetchAll ? undefined : Number(limit);
-
-  const [projects, total] = await Promise.all([
-    prisma.project.findMany({
-      where,
-      skip,
-      take,
-      orderBy: { createdAt: "desc" },
+  async fetchProject(projectId, user) {
+    // Fetch project including phases, budgetVersions, and assigned users
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
       include: {
         phases: true,
-        budgetVersions: true,
-        users: { include: { user: true } }, // include assigned users
+        budgetVersions: {
+          include: { lines: true }, // optional: budget lines
+        },
+        users: { include: { user: true } }, // assigned users
       },
-    }),
-    prisma.project.count({ where }),
-  ]);
+    });
 
-  return {
-    total,
-    page: Number(page),
-    totalPages: fetchAll ? 1 : Math.ceil(total / limit),
-    projects,
-  };
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    }
+
+    const isAdmin = user.roles?.includes("Admin");
+    const isOwner = project.ownerId === user.id;
+    const isAssigned = project.users.some((pu) => pu.userId === user.id);
+
+    // Authorization: only Admin, owner, or assigned users
+    if (!isAdmin && !isOwner && !isAssigned) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "Forbidden: Access denied");
+    }
+
+    // Attach current user's role
+    const currentUserAssignment = project.users.find(
+      (pu) => pu.userId === user.id
+    );
+    const currentUserRole = currentUserAssignment?.role || null;
+
+    return {
+      ...project,
+      currentUserRole,
+    };
+  }
 }
-
-async fetchProject(projectId, user) {
-  // Fetch project including phases, budgetVersions, and assigned users
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    include: {
-      phases: true,
-      budgetVersions: {
-        include: { lines: true }, // optional: budget lines
-      },
-      users: { include: { user: true } }, // assigned users
-    },
-  });
-
-  if (!project) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
-  }
-
-  const isAdmin = user.roles?.includes("Admin");
-  const isOwner = project.ownerId === user.id;
-  const isAssigned = project.users.some((pu) => pu.userId === user.id);
-
-  // Authorization: only Admin, owner, or assigned users
-  if (!isAdmin && !isOwner && !isAssigned) {
-    throw new ApiError(StatusCodes.FORBIDDEN, "Forbidden: Access denied");
-  }
-
-  // Attach current user's role
-  const currentUserAssignment = project.users.find((pu) => pu.userId === user.id);
-  const currentUserRole = currentUserAssignment?.role || null;
-
-  return {
-    ...project,
-    currentUserRole,
-  };
-}
-
-
-  }
