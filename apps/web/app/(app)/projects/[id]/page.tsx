@@ -92,6 +92,7 @@ interface Project {
   ownerId?: string;
   createdAt: string;
   updatedAt?: string;
+  currentPhase: string;
   phases?: PhaseEntity[];
   budgetVersions?: BudgetVersion[];
   financingSources?: FinancingSource[];
@@ -116,6 +117,7 @@ export default function ProjectProfilePage() {
     baseCurrency: "USD",
     timezone: "Asia/Kathmandu",
     status: "planning",
+    phase: "",
   });
 
   // Fetch project details
@@ -149,6 +151,7 @@ export default function ProjectProfilePage() {
           ownerId: result.data.ownerId,
           createdAt: result.data.createdAt,
           updatedAt: result.data.updatedAt,
+          currentPhase: result.data.currentPhase,
           phases: result.data.phases || [],
           financingSources: result.data.financingSources || [],
           budgetVersions: result.data.budgetVersions || [],
@@ -161,6 +164,7 @@ export default function ProjectProfilePage() {
           baseCurrency: projectData.baseCurrency,
           timezone: projectData.timezone,
           status: projectData.status,
+          phase: projectData.currentPhase,
         });
       } else {
         throw new Error(result.message || "Failed to fetch project");
@@ -191,33 +195,50 @@ export default function ProjectProfilePage() {
   const handleUpdateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(editFormData),
-      });
 
-      if (!response.ok) {
-        if (response.status === 401) {
+    try {
+      const { phase, ...projectPayload } = editFormData;
+
+      // API 1 — Update project core fields (NO phase)
+      const projectResponse = await fetch(
+        `${API_BASE_URL}/projects/${projectId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(projectPayload),
+        }
+      );
+
+      if (!projectResponse.ok) {
+        if (projectResponse.status === 401) {
           alert("Authentication required. Please log in.");
           router.push("/login");
           return;
         }
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Project update failed: ${projectResponse.status}`);
       }
 
-      const result = await response.json();
-      if (result.success) {
-        alert("Project updated successfully!");
-        setShowEditModal(false);
-        fetchProject(); // Refresh project data
-      } else {
-        alert(result.message || "Failed to update project");
+      // API 2 — Update phase separately
+      const phaseResponse = await fetch(
+        `${API_BASE_URL}/projects/${projectId}/phase`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ phase }),
+        }
+      );
+
+      if (!phaseResponse.ok) {
+        throw new Error(`Phase update failed: ${phaseResponse.status}`);
       }
+
+      alert("Project updated successfully!");
+      setShowEditModal(false);
+      fetchProject();
     } catch (error) {
-      console.error("Error updating project:", error);
+      console.error("Update failed:", error);
       alert("Failed to update project. Please try again.");
     } finally {
       setSubmitting(false);
@@ -1163,7 +1184,7 @@ export default function ProjectProfilePage() {
       {/* Edit Modal */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Edit Project</h2>
               <button
@@ -1223,21 +1244,39 @@ export default function ProjectProfilePage() {
                   <option value="Asia/Tokyo">Asia/Tokyo</option>
                 </select>
               </div>
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Status
-                </label>
-                <select
-                  name="status"
-                  value={editFormData.status}
-                  onChange={handleEditInputChange}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="planning">Planning</option>
-                  <option value="active">Active</option>
-                  <option value="paused">Paused</option>
-                  <option value="completed">Completed</option>
-                </select>
+              <div className="grid grid-cols-2 gap-6 ">
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Status
+                  </label>
+                  <select
+                    name="status"
+                    value={editFormData.status}
+                    onChange={handleEditInputChange}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="planning">Planning</option>
+                    <option value="active">Active</option>
+                    <option value="paused">Paused</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Current Phase
+                  </label>
+                  <select
+                    name="phase"
+                    value={editFormData.phase}
+                    onChange={handleEditInputChange}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="Development">Development</option>
+                    <option value="Production">Production</option>
+                    <option value="Post">Post</option>
+                    <option value="Publicity">Publicity</option>
+                  </select>
+                </div>
               </div>
               <div className="flex gap-3">
                 <button

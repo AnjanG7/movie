@@ -42,87 +42,87 @@ export class ProjectService {
 
     return project;
   }
- async changeProjectPhase (projectId, newPhase, user)  {
-  // Normalize input phase
-  const normalizedPhase = newPhase?.toUpperCase();
+  async changeProjectPhase(projectId, newPhase, user) {
+    // Normalize input phase
+    const normalizedPhase = newPhase?.toUpperCase();
 
-  // Validate phase name
-  const phaseOrder = ["DEVELOPMENT", "PRODUCTION", "POST", "PUBLICITY"];
-  if (!phaseOrder.includes(normalizedPhase)) {
-    throw new ApiError(400, "Invalid phase name");
-  }
-
-  // Fetch project and its phases
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    include: { phases: true }, // get phase entities
-  });
-
-  if (!project) {
-    throw new ApiError(404, "Project not found");
-  }
-
-  // Permission check: Admin or project owner
-  const userRecord = await prisma.user.findUnique({
-    where: { id: user?.id },
-    include: { role: true },
-  });
-
-  const isAdmin = userRecord.role?.name === "Admin";
-  if (!isAdmin && project.ownerId !== user?.id) {
-    throw new ApiError(403, "Not allowed");
-  }
-
-  // Phase transition validation
-  const currentIndex = phaseOrder.indexOf(project.currentPhase);
-  const nextIndex = phaseOrder.indexOf(normalizedPhase);
-  if (nextIndex !== currentIndex + 1) {
-    throw new ApiError(400, "Invalid phase transition");
-  }
-
-  // Transaction: End current phase, start new phase, update project
-  await prisma.$transaction(async (tx) => {
-    // End current phase
-    await tx.phaseEntity.updateMany({
-      where: {
-        projectId,
-        name: project.currentPhase,
-        endedAt: null,
-      },
-      data: {
-        endedAt: new Date(),
-      },
-    });
-
-    // Start next phase
-    const nextPhaseEntity = project.phases.find(
-      (p) => p.name.toUpperCase() === normalizedPhase
-    );
-
-    if (!nextPhaseEntity) {
-      throw new ApiError(400, "Phase entity not found in project");
+    // Validate phase name
+    const phaseOrder = ["DEVELOPMENT", "PRODUCTION", "POST", "PUBLICITY"];
+    if (!phaseOrder.includes(normalizedPhase)) {
+      throw new ApiError(400, "Invalid phase name");
     }
 
-    await tx.phaseEntity.updateMany({
-      where: {
-        projectId,
-        name: normalizedPhase,
-      },
-      data: {
-        startedAt: new Date(),
-        endedAt: null,
-      },
-    });
-
-    // Update project's current phase
-    await tx.project.update({
+    // Fetch project and its phases
+    const project = await prisma.project.findUnique({
       where: { id: projectId },
-      data: { currentPhase: normalizedPhase },
+      include: { phases: true }, // get phase entities
     });
-  });
 
-  return { message: "Phase updated successfully" };
-};
+    if (!project) {
+      throw new ApiError(404, "Project not found");
+    }
+
+    // Permission check: Admin or project owner
+    const userRecord = await prisma.user.findUnique({
+      where: { id: user?.id },
+      include: { role: true },
+    });
+
+    const isAdmin = userRecord.role?.name === "Admin";
+    if (!isAdmin && project.ownerId !== user?.id) {
+      throw new ApiError(403, "Not allowed");
+    }
+
+    // Phase transition validation
+    const currentIndex = phaseOrder.indexOf(project.currentPhase);
+    const nextIndex = phaseOrder.indexOf(normalizedPhase);
+    if (nextIndex !== currentIndex + 1) {
+      throw new ApiError(400, "Invalid phase transition");
+    }
+
+    // Transaction: End current phase, start new phase, update project
+    await prisma.$transaction(async (tx) => {
+      // End current phase
+      await tx.phaseEntity.updateMany({
+        where: {
+          projectId,
+          name: project.currentPhase,
+          endedAt: null,
+        },
+        data: {
+          endedAt: new Date(),
+        },
+      });
+
+      // Start next phase
+      const nextPhaseEntity = project.phases.find(
+        (p) => p.name.toUpperCase() === normalizedPhase
+      );
+
+      if (!nextPhaseEntity) {
+        throw new ApiError(400, "Phase entity not found in project");
+      }
+
+      await tx.phaseEntity.updateMany({
+        where: {
+          projectId,
+          name: normalizedPhase,
+        },
+        data: {
+          startedAt: new Date(),
+          endedAt: null,
+        },
+      });
+
+      // Update project's current phase
+      await tx.project.update({
+        where: { id: projectId },
+        data: { currentPhase: normalizedPhase },
+      });
+    });
+
+    return { message: "Phase updated successfully", newPhase: normalizedPhase };
+  }
 
   // Update Project hai
 
