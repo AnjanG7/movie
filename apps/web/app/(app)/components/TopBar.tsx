@@ -83,20 +83,6 @@ export default function TopBar() {
 
       {/* Right side - Actions */}
       <div className="flex items-center gap-2">
-        {/* Notifications */}
-        {/* <div className="relative" ref={notifRef}>
-          <button
-            onClick={() => {
-              setShowNotifications(!showNotifications);
-              setShowSettings(false);
-              setShowUserMenu(false);
-            }}
-            className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <Bell className="w-5 h-5 text-gray-600" />
-          </button>
-        </div> */}
-
         {/* Settings */}
         <div className="relative" ref={settingsRef}>
           <button
