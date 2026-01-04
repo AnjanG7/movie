@@ -26,7 +26,9 @@ export default function DashboardPage() {
     fetchPhases,
   } = useStore();
   const { user } = useStore();
-
+  const isAdmin = user?.role?.toLowerCase() === "admin";
+  const [projectChange, setProjectChange] = useState(0);
+  const [userChange, setUserChange] = useState(0);
   const [userCount, setUserCount] = useState(0);
   const [projectSummary, setProjectSummary] = useState<ProjectSummaryItem[]>(
     []
@@ -105,18 +107,10 @@ export default function DashboardPage() {
       }[item.currentPhase] || "#6b7280",
   }));
 
-  if (loading && projects.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  const fetchUser = async () => {
+  const fetchProjectStats = async () => {
     try {
       const response = await fetch(
-        `https://film-finance-app.onrender.com/api/auth/allUsers`,
+        `https://film-finance-app.onrender.com/api/dashboard/projectStats`,
         {
           method: "GET",
           headers: { "Content-Type": "application/json" },
@@ -128,12 +122,61 @@ export default function DashboardPage() {
 
       const result = await response.json();
 
-      return result?.data?.users?.length || 0;
+      return result;
     } catch (error) {
-      console.error("Error fetching users:", error);
+      console.error("Error fetching project stats:", error);
       return 0;
     }
   };
+  const fetchUserStats = async () => {
+    try {
+      const response = await fetch(
+        `https://film-finance-app.onrender.com/api/dashboard/userStats`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+
+      const result = await response.json();
+
+      return result;
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+      return 0;
+    }
+  };
+
+  useEffect(() => {
+    const loadProjectStats = async () => {
+      const data = await fetchProjectStats();
+
+      setProjectChange(data?.totalProjects?.change ?? 0);
+    };
+
+    loadProjectStats();
+  }, []);
+
+  useEffect(() => {
+    const loadUserStats = async () => {
+      const data = await fetchUserStats();
+
+      setUserChange(data?.totalUsers?.change ?? 0);
+    };
+
+    loadUserStats();
+  }, []);
+
+  if (loading && projects.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8">
@@ -147,7 +190,8 @@ export default function DashboardPage() {
         <StatsCard
           title="Total Projects"
           value={stats?.totalProjects || 0}
-          change={12}
+          change={projectChange}
+          showChange={isAdmin}
           icon={Film}
           iconColor="text-blue-600"
           iconBg="bg-blue-100"
@@ -157,7 +201,8 @@ export default function DashboardPage() {
             <StatsCard
               title="Total Users"
               value={userCount}
-              change={2}
+              change={userChange}
+              showChange={isAdmin}
               icon={Users}
               iconColor="text-blue-600"
               iconBg="bg-blue-100"
@@ -168,6 +213,7 @@ export default function DashboardPage() {
           title="Active Projects"
           value={stats?.activeProjects || 0}
           change={8}
+          showChange={isAdmin}
           icon={TrendingUp}
           iconColor="text-green-600"
           iconBg="bg-green-100"
@@ -176,6 +222,7 @@ export default function DashboardPage() {
           title="Total Budget"
           value={`${((stats?.totalBudget || 0) / 1000000).toFixed(1)}M`}
           change={15}
+          showChange={isAdmin}
           icon={DollarSign}
           iconColor="text-purple-600"
           iconBg="bg-purple-100"

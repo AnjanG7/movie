@@ -8,6 +8,7 @@ interface StatsCardProps {
   title: string;
   value: string | number;
   change?: number;
+  showChange?: boolean; // 👈 NEW
   icon: LucideIcon;
   iconColor?: string;
   iconBg?: string;
@@ -17,6 +18,7 @@ export default function StatsCard({
   title,
   value,
   change,
+  showChange = true,
   icon: Icon,
   iconColor = "text-blue-600",
   iconBg = "bg-blue-100",
@@ -37,9 +39,8 @@ export default function StatsCard({
           <Icon className={`w-6 h-6 ${iconColor}`} />
         </div>
       </div>
-
-      {/* Bottom content (forces equal height) */}
-      {change !== undefined && (
+      {/* Bottom (ONLY if admin) */}
+      {showChange && change !== undefined && (
         <div className="mt-auto pt-4">
           <div className="flex items-center gap-1">
             {isPositive && <TrendingUp className="w-4 h-4 text-green-600" />}

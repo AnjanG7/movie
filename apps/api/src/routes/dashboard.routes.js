@@ -1,13 +1,23 @@
 import express from "express";
-import { getDashboardStats } from "../controllers/dashboard/dashboard.stats.js";
+import {
+  getDashboardProjectStats,
+  getDashboardUserStats,
+} from "../controllers/dashboard/dashboard.stats.js";
 import { authMiddleware } from "../middlewares/authmiddleware.js";
 import { authorizeRoles } from "../middlewares/rolemiddleware.js";
 
 const router = express.Router();
 router.get(
-  "/stats",
+  "/projectStats",
   authMiddleware,
   authorizeRoles("Admin"),
-  getDashboardStats
+  getDashboardProjectStats
+);
+
+router.get(
+  "/userStats",
+  authMiddleware,
+  authorizeRoles("Admin"),
+  getDashboardUserStats
 );
 export default router;

@@ -7,8 +7,8 @@ function percentChange(current, previous) {
   return Math.round(((current - previous) / previous) * 100);
 }
 
-// ---------- controller ----------
-export async function getDashboardStats(req, res) {
+// ---------- controller project stats ----------
+export async function getDashboardProjectStats(req, res) {
   try {
     // date ranges
     const startOfThisMonth = dayjs().startOf("month").toDate();
@@ -40,6 +40,43 @@ export async function getDashboardStats(req, res) {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Failed to load dashboard stats" });
+    res.status(500).json({ message: "Failed to load project stats" });
+  }
+}
+
+// ---------- controller user stats ----------
+export async function getDashboardUserStats(req, res) {
+  try {
+    // date ranges
+    const startOfThisMonth = dayjs().startOf("month").toDate();
+    const startOfLastMonth = dayjs()
+      .subtract(1, "month")
+      .startOf("month")
+      .toDate();
+    const endOfLastMonth = dayjs().subtract(1, "month").endOf("month").toDate();
+
+    // TOTAL USERS
+    const totalThisMonth = await prisma.user.count({
+      where: { createdAt: { gte: startOfThisMonth } },
+    });
+
+    const totalLastMonth = await prisma.user.count({
+      where: {
+        createdAt: {
+          gte: startOfLastMonth,
+          lte: endOfLastMonth,
+        },
+      },
+    });
+
+    res.json({
+      totalUsers: {
+        value: totalThisMonth,
+        change: percentChange(totalThisMonth, totalLastMonth),
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to load user stats" });
   }
 }
