@@ -24,6 +24,7 @@ app.use(helmet());
 
 // Import all routes
 import authRouter from "./routes/auth.routes.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
 import projectRouter from "./routes/project.routes.js";
 import budgetRouter from "./routes/budgetversion.routes.js";
 import quotationRouter from "./routes/quotation.routes.js";
@@ -43,6 +44,7 @@ import publicityRouter from "./routes/publicity.routes.js";
 import assignRouter from "./routes/assign.routes.js";
 // Register all routes
 app.use("/api/auth", authRouter);
+app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/projects", projectRouter);
 app.use("/api/projects/:projectId/budget", budgetRouter);
 app.use("/api/projects/:projectId/quotations", quotationRouter);
