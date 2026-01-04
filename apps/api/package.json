@@ -17,6 +17,7 @@
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
+    "dayjs": "^1.11.19",
     "dotenv": "^16.4.7",
     "express": "^4.21.1",
     "express-async-handler": "^1.2.0",
