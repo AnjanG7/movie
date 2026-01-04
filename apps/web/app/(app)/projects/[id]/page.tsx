@@ -239,7 +239,9 @@ export default function ProjectProfilePage() {
       fetchProject();
     } catch (error) {
       console.error("Update failed:", error);
-      alert("Failed to update project. Please try again.");
+      alert(
+        "Failed to update project. Phase cannot go backward or skip a step."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -978,6 +980,17 @@ export default function ProjectProfilePage() {
               <DollarSign className="w-5 h-5 text-green-600" />
             </div>
             <div>
+              <p className="text-sm text-gray-600 mb-1">Current Phase</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {project.currentPhase}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <DollarSign className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
               <p className="text-sm text-gray-600 mb-1">Base Currency</p>
               <p className="text-lg font-semibold text-gray-900">
                 {project.baseCurrency}
@@ -1261,6 +1274,7 @@ export default function ProjectProfilePage() {
                     <option value="completed">Completed</option>
                   </select>
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Current Phase
