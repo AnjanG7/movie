@@ -5,8 +5,6 @@ import { useState } from "react";
 import {
   LayoutDashboard,
   Film,
-  Users,
-  Layers,
   DollarSign,
   FileText,
   TrendingUp,
@@ -24,7 +22,6 @@ import {
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Film, label: "Projects", href: "/projects" },
-  { icon: Layers, label: "Phases", href: "/phases" },
   {
     icon: UserCog,
     label: "Team Management",

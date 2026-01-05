@@ -79,6 +79,9 @@ export class ProjectService {
     if (nextIndex !== currentIndex + 1) {
       throw new ApiError(400, "Invalid phase transition");
     }
+    if (nextIndex !== currentIndex) {
+      throw new ApiError(400, "Invalid phase transition");
+    }
 
     // Transaction: End current phase, start new phase, update project
     await prisma.$transaction(async (tx) => {
