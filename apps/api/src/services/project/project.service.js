@@ -76,7 +76,7 @@ export class ProjectService {
     // Phase transition validation
     const currentIndex = phaseOrder.indexOf(project.currentPhase);
     const nextIndex = phaseOrder.indexOf(normalizedPhase);
-    if (nextIndex !== currentIndex + 1) {
+    if (nextIndex !== currentIndex + 1 && nextIndex !== currentIndex) {
       throw new ApiError(400, "Invalid phase transition");
     }
 
