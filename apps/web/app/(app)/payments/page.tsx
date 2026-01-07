@@ -5,6 +5,7 @@ import React, { useState, useEffect, FormEvent, ChangeEvent } from "react";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://film-finance-app.onrender.com/api";
+  // "http://localhost:4000/api";
 
 interface Payment {
   id: string;
@@ -18,6 +19,12 @@ interface Payment {
     docNo: string;
     vendor?: {
       name: string;
+      currency?: string;
+    };
+    po?: {
+      project?: {
+        baseCurrency?: string;
+      };
     };
   };
 }
@@ -29,12 +36,19 @@ interface Invoice {
   status: string;
   vendor?: {
     name: string;
+    currency?: string;
+  };
+  po?: {
+    project?: {
+      baseCurrency?: string;
+    };
   };
 }
 
 interface Project {
   id: string;
   title: string;
+  baseCurrency?: string;
 }
 
 interface PaymentFormData {
@@ -59,13 +73,28 @@ export default function PaymentsPage() {
     method: "Bank Transfer",
   });
 
+  // Get selected project
+  const selectedProject = projects.find((p) => p.id === selectedProjectId);
+  const projectCurrency = selectedProject?.baseCurrency || "$";
+
+  // Helper function to format currency
+  const formatCurrency = (amount: number, currency?: string) => {
+    const curr = currency || projectCurrency;
+    return `${curr} ${amount.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+
   // Fetch projects on mount
   useEffect(() => {
     fetchProjects();
   }, []);
 
-  // Fetch invoices and payments when project changes
+  // ✅ FIX: Fetch invoices and payments when project changes
   useEffect(() => {
+    console.log("🎯 Selected Project Changed:", selectedProjectId);
+    
     if (selectedProjectId) {
       fetchInvoices(selectedProjectId);
       fetchPayments(selectedProjectId);
@@ -73,7 +102,7 @@ export default function PaymentsPage() {
       setInvoices([]);
       setPayments([]);
     }
-  }, [selectedProjectId]);
+  }, [selectedProjectId]); // ✅ Only depends on selectedProjectId
 
   const fetchProjects = async () => {
     try {
@@ -83,6 +112,7 @@ export default function PaymentsPage() {
       const result = await response.json();
       if (result.success) {
         setProjects(result.data.projects || []);
+        console.log("📋 Loaded projects:", result.data.projects?.length || 0);
       }
     } catch (error) {
       console.error("Error fetching projects:", error);
@@ -92,23 +122,27 @@ export default function PaymentsPage() {
   const fetchInvoices = async (projectId: string) => {
     if (!projectId) return;
 
+    const url = `${API_BASE_URL}/invoices/project/${projectId}?status=Approved`;
+    console.log("🔍 Fetching invoices from:", url);
+
     setLoading(true);
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/invoices/project/${projectId}?status=Approved`,
-        {
-          credentials: "include",
-        }
-      );
+      const response = await fetch(url, {
+        credentials: "include",
+      });
       const result = await response.json();
+      
+      console.log("📄 Invoices response:", result);
+      
       if (result.success) {
         setInvoices(result.data.invoices || []);
+        console.log("✅ Loaded invoices:", result.data.invoices?.length || 0);
       } else {
-        console.error("Error:", result.message);
+        console.error("❌ Error:", result.message);
         setInvoices([]);
       }
     } catch (error) {
-      console.error("Error fetching invoices:", error);
+      console.error("❌ Error fetching invoices:", error);
       setInvoices([]);
     } finally {
       setLoading(false);
@@ -118,23 +152,28 @@ export default function PaymentsPage() {
   const fetchPayments = async (projectId: string) => {
     if (!projectId) return;
 
+    const url = `${API_BASE_URL}/payments/project/${projectId}`;
+    console.log("🔍 Fetching payments from:", url);
+
     setLoading(true);
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/payments/project/${projectId}`,
-        {
-          credentials: "include",
-        }
-      );
+      const response = await fetch(url, {
+        credentials: "include",
+      });
       const result = await response.json();
+      
+      console.log("💰 Payments response:", result);
+      console.log("💰 Number of payments:", result.data?.payments?.length || 0);
+      
       if (result.success) {
         setPayments(result.data.payments || []);
+        console.log("✅ Loaded payments:", result.data.payments?.length || 0);
       } else {
-        console.error("Error:", result.message);
+        console.error("❌ Error:", result.message);
         setPayments([]);
       }
     } catch (error) {
-      console.error("Error fetching payments:", error);
+      console.error("❌ Error fetching payments:", error);
       setPayments([]);
     } finally {
       setLoading(false);
@@ -199,6 +238,12 @@ export default function PaymentsPage() {
     }
   };
 
+  const handleProjectChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const newProjectId = e.target.value;
+    console.log("🔄 Project dropdown changed - Old:", selectedProjectId, "New:", newProjectId);
+    setSelectedProjectId(newProjectId);
+  };
+
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
   const paidToday = payments
     .filter((p) => {
@@ -237,8 +282,8 @@ export default function PaymentsPage() {
               </span>
               <select
                 value={selectedProjectId}
-                onChange={(e) => setSelectedProjectId(e.target.value)}
-                className="h-10 rounded-lg border border-slate-300 px-3 text-sm bg-white min-w-[220px]"
+                onChange={handleProjectChange}
+                className="h-10 rounded-lg border border-slate-300 px-3 text-sm bg-white min-w-[220px] focus:outline-none focus:ring-2 focus:ring-sky-500"
               >
                 <option value="">-- Select Project --</option>
                 {projects.map((project) => (
@@ -260,6 +305,25 @@ export default function PaymentsPage() {
           </div>
         </div>
 
+        {/* Debug Info - Remove after fixing */}
+        {selectedProjectId && (
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-xs font-mono">
+              <strong>🐛 Debug Info:</strong>
+              <br />
+              Selected Project ID: <span className="font-bold">{selectedProjectId}</span>
+              <br />
+              Project Title: <span className="font-bold">{selectedProject?.title || "N/A"}</span>
+              <br />
+              Payments Count: <span className="font-bold">{payments.length}</span>
+              <br />
+              Invoices Count: <span className="font-bold">{invoices.length}</span>
+              <br />
+              Currency: <span className="font-bold">{projectCurrency}</span>
+            </p>
+          </div>
+        )}
+
         {!selectedProjectId ? (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
             <h3 className="text-lg font-semibold text-slate-900 mb-2">
@@ -279,7 +343,7 @@ export default function PaymentsPage() {
                   Total Paid
                 </div>
                 <div className="text-2xl font-bold text-slate-900">
-                  ${totalPaid.toLocaleString()}
+                  {formatCurrency(totalPaid)}
                 </div>
                 <div className="text-xs text-slate-400 mt-1">
                   Across all recorded payments
@@ -290,7 +354,7 @@ export default function PaymentsPage() {
                   Paid Today
                 </div>
                 <div className="text-2xl font-bold text-emerald-600">
-                  ${paidToday.toLocaleString()}
+                  {formatCurrency(paidToday)}
                 </div>
                 <div className="text-xs text-slate-400 mt-1">
                   Payments with today&apos;s date
@@ -332,8 +396,8 @@ export default function PaymentsPage() {
                         <option value="">-- Select Invoice --</option>
                         {invoices.map((invoice) => (
                           <option key={invoice.id} value={invoice.id}>
-                            {invoice.docNo} - {invoice.vendor?.name} ($
-                            {invoice.amount.toLocaleString()})
+                            {invoice.docNo} - {invoice.vendor?.name} (
+                            {formatCurrency(invoice.amount, invoice.po?.project?.baseCurrency)})
                           </option>
                         ))}
                       </select>
@@ -354,7 +418,7 @@ export default function PaymentsPage() {
                         className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm"
                       />
                       <p className="text-[11px] text-slate-400 mt-1">
-                        Defaults to the full invoice amount, but can be adjusted
+                        Currency: {projectCurrency} - Defaults to the full invoice amount, but can be adjusted
                         for partial payments.
                       </p>
                     </div>
@@ -455,7 +519,7 @@ export default function PaymentsPage() {
                             colSpan={6}
                             className="px-4 py-8 text-center text-slate-600"
                           >
-                            No payments found. Record your first vendor payment
+                            No payments found for this project. Record your first vendor payment
                             to start tracking cash outflows.
                           </td>
                         </tr>
@@ -472,7 +536,10 @@ export default function PaymentsPage() {
                               {payment.invoice?.vendor?.name || "N/A"}
                             </td>
                             <td className="px-4 py-2 text-right font-semibold">
-                              ${payment.amount.toLocaleString()}
+                              {formatCurrency(
+                                payment.amount,
+                                payment.invoice?.po?.project?.baseCurrency
+                              )}
                             </td>
                             <td className="px-4 py-2">
                               {payment.paidOn &&

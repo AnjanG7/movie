@@ -104,7 +104,7 @@ export default function ProjectsPage() {
         // Reset form and close modal
         setFormData({
           title: "",
-          baseCurrency: "NPE",
+          baseCurrency: "NPR",
           timezone: "Asia/Kathmandu",
           status: "planning",
         });

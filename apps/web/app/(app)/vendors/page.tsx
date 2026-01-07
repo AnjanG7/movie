@@ -253,11 +253,13 @@ export default function VendorsPage() {
       setError("Please select a project first");
       return;
     }
-
+       const selectedProject = projects.find(p => p.id === selectedProjectId);
+       const projectCurrency = selectedProject?.baseCurrency || 'USD';
+  
     setEditingVendor(null);
     setFormData({
       name: "",
-      currency: "USD",
+      currency: projectCurrency,
       bankInfo: {
         accountName: "",
         accountNumber: "",
@@ -589,24 +591,7 @@ export default function VendorsPage() {
                         placeholder="Enter vendor name"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Currency *
-                      </label>
-                      <select
-                        name="currency"
-                        value={formData.currency}
-                        onChange={handleBasicChange}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="GBP">GBP</option>
-                        <option value="NPR">NPR</option>
-                        <option value="INR">INR</option>
-                      </select>
-                    </div>
+                   
                   </div>
                 </div>
 

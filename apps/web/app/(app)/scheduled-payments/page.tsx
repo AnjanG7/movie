@@ -46,6 +46,7 @@ interface Vendor {
 interface Project {
   id: string;
   title: string;
+  baseCurrency?: string;
 }
 
 interface InstallmentForm {
@@ -68,6 +69,7 @@ interface FormData {
 interface UpcomingInstallment extends Installment {
   paymentId: string;
   vendor?: string;
+  currency?: string;
 }
 
 export default function ScheduledPaymentsPage() {
@@ -90,6 +92,19 @@ export default function ScheduledPaymentsPage() {
     ],
     allocations: [{ phase: "PRODUCTION", amount: 0 }],
   });
+
+  // Get selected project
+  const selectedProject = projects.find((p) => p.id === selectedProjectId);
+  const projectCurrency = selectedProject?.baseCurrency || "$";
+
+  // Helper function to format currency
+  const formatCurrency = (amount: number, currency?: string) => {
+    const curr = currency || projectCurrency;
+    return `${curr} ${amount.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
 
   // Fetch projects on mount
   useEffect(() => {
@@ -372,12 +387,6 @@ export default function ScheduledPaymentsPage() {
     setFormData((prev) => ({ ...prev, total: Number(e.target.value) }));
   };
 
-  const formatCurrency = (amount: number) =>
-    amount.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-
   const getUpcomingInstallments = (): UpcomingInstallment[] => {
     const upcoming: UpcomingInstallment[] = [];
     const thirtyDaysFromNow = new Date();
@@ -393,6 +402,7 @@ export default function ScheduledPaymentsPage() {
             ...installment,
             paymentId: payment.id,
             vendor: payment.payee?.name,
+            currency: payment.payee?.currency,
           });
         }
       });
@@ -402,8 +412,6 @@ export default function ScheduledPaymentsPage() {
       (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
     );
   };
-
-  const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
   const totalScheduled = scheduledPayments.reduce((sum, p) => sum + p.total, 0);
   const totalRemaining = scheduledPayments.reduce(
@@ -471,7 +479,7 @@ export default function ScheduledPaymentsPage() {
                 Total Scheduled
               </div>
               <div className="text-2xl font-bold text-slate-900">
-                ${formatCurrency(totalScheduled)}
+                {formatCurrency(totalScheduled)}
               </div>
               <div className="text-[11px] text-slate-400 mt-1">
                 All vendor commitments
@@ -482,7 +490,7 @@ export default function ScheduledPaymentsPage() {
                 Total Paid
               </div>
               <div className="text-2xl font-bold text-emerald-600">
-                ${formatCurrency(totalPaid)}
+                {formatCurrency(totalPaid)}
               </div>
               <div className="text-[11px] text-slate-400 mt-1">
                 Across all installments
@@ -493,7 +501,7 @@ export default function ScheduledPaymentsPage() {
                 Remaining
               </div>
               <div className="text-2xl font-bold text-amber-600">
-                ${formatCurrency(totalRemaining)}
+                {formatCurrency(totalRemaining)}
               </div>
               <div className="text-[11px] text-slate-400 mt-1">
                 Yet to be paid
@@ -552,7 +560,7 @@ export default function ScheduledPaymentsPage() {
                       className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm"
                     />
                     <p className="text-[11px] text-slate-400 mt-1">
-                      Installments and allocations must reconcile to this total.
+                      Currency: {projectCurrency} - Installments and allocations must reconcile to this total.
                     </p>
                   </div>
                 </div>
@@ -630,7 +638,7 @@ export default function ScheduledPaymentsPage() {
                     ))}
                   </div>
                   <div className="text-[11px] text-slate-500 mt-1">
-                    Installments Total: $
+                    Installments Total:{" "}
                     {formatCurrency(
                       formData.installments.reduce(
                         (sum, i) => sum + Number(i.amount),
@@ -773,7 +781,7 @@ export default function ScheduledPaymentsPage() {
                           </td>
                           <td className="px-2 py-1">{inst.vendor}</td>
                           <td className="px-2 py-1 text-right">
-                            ${formatCurrency(inst.amount)}
+                            {formatCurrency(inst.amount, inst.currency)}
                           </td>
                           <td className="px-2 py-1">
                             <button
@@ -839,12 +847,10 @@ export default function ScheduledPaymentsPage() {
                           {new Date(payment.createdAt).toLocaleDateString()}
                         </div>
                         <div className="text-xs text-slate-500">
-                          Total: {payment.payee?.currency} $
-                          {formatCurrency(payment.total)}
+                          Total: {formatCurrency(payment.total, payment.payee?.currency)}
                         </div>
                         <div className="text-xs text-slate-500">
-                          Remaining: {payment.payee?.currency} $
-                          {formatCurrency(payment.remainingAmount || 0)}
+                          Remaining: {formatCurrency(payment.remainingAmount || 0, payment.payee?.currency)}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -895,7 +901,7 @@ export default function ScheduledPaymentsPage() {
                                     ).toLocaleDateString()}
                                   </td>
                                   <td className="px-2 py-1 text-right">
-                                    ${formatCurrency(inst.amount)}
+                                    {formatCurrency(inst.amount, payment.payee?.currency)}
                                   </td>
                                   <td className="px-2 py-1">
                                     <span
@@ -960,7 +966,7 @@ export default function ScheduledPaymentsPage() {
                                           {alloc.phase}
                                         </td>
                                         <td className="px-2 py-1 text-right">
-                                          ${formatCurrency(alloc.amount)}
+                                          {formatCurrency(alloc.amount, payment.payee?.currency)}
                                         </td>
                                       </tr>
                                     ))}

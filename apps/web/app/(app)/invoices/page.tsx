@@ -3,7 +3,6 @@
 import React, { useState, useEffect, FormEvent, ChangeEvent } from "react";
 import {
   FileText,
-  DollarSign,
   Calendar,
   AlertCircle,
   Plus,
@@ -35,6 +34,7 @@ interface Invoice {
   vendor?: {
     id: string;
     name: string;
+    currency?: string;
   };
   po?: {
     id: string;
@@ -43,6 +43,7 @@ interface Invoice {
     project?: {
       id: string;
       title: string;
+      baseCurrency?: string; // Added
     };
   };
 }
@@ -54,6 +55,12 @@ interface PurchaseOrder {
   vendor: {
     id: string;
     name: string;
+    currency?: string;
+  };
+  project?: {
+    id: string;
+    title: string;
+    baseCurrency?: string; // Added
   };
   budgetLine?: {
     name: string;
@@ -63,6 +70,7 @@ interface PurchaseOrder {
 interface Project {
   id: string;
   title: string;
+  baseCurrency?: string; // Added
 }
 
 interface POBalance {
@@ -98,6 +106,16 @@ export default function InvoicesPage() {
     dueDate: "",
     notes: "",
   });
+
+  // Get selected project
+  const selectedProject = projects.find((p) => p.id === selectedProjectId);
+  const projectCurrency = selectedProject?.baseCurrency || "$";
+
+  // Helper function to format currency
+  const formatCurrency = (amount: number, currency?: string) => {
+    const curr = currency || projectCurrency;
+    return `${curr} ${amount.toLocaleString()}`;
+  };
 
   // Fetch projects on mount
   useEffect(() => {
@@ -343,7 +361,6 @@ export default function InvoicesPage() {
     }
 
     const doc = new jsPDF("l", "mm", "a4"); // Landscape
-    const selectedProject = projects.find((p) => p.id === selectedProjectId);
     const projectName = selectedProject?.title || "Project";
 
     // Add header
@@ -376,14 +393,14 @@ export default function InvoicesPage() {
       14,
       42
     );
-    doc.text(`Total Amount: $${totalInvoiced.toLocaleString()}`, 14, 48);
+    doc.text(`Total Amount: ${formatCurrency(totalInvoiced)}`, 14, 48);
 
     // Prepare table data
     const tableData = invoices.map((invoice) => [
       invoice.docNo || "N/A",
       invoice.vendor?.name || "N/A",
       invoice.po?.poNo || "N/A",
-      `$${invoice.amount.toLocaleString()}`,
+      formatCurrency(invoice.amount, invoice.po?.project?.baseCurrency),
       invoice.date ? new Date(invoice.date).toLocaleDateString() : "N/A",
       invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : "N/A",
       invoice.status,
@@ -565,7 +582,7 @@ export default function InvoicesPage() {
                   </div>
                 </div>
                 <div className="text-2xl font-bold text-slate-900">
-                  ${totalInvoiced.toLocaleString()}
+                  {formatCurrency(totalInvoiced)}
                 </div>
                 <div className="text-xs text-slate-400 mt-1">
                   All invoice amounts
@@ -580,7 +597,7 @@ export default function InvoicesPage() {
                   </div>
                 </div>
                 <div className="text-2xl font-bold text-amber-600">
-                  ${totalApproved.toLocaleString()}
+                  {formatCurrency(totalApproved)}
                 </div>
                 <div className="text-xs text-slate-400 mt-1">
                   {approvedInvoices.length} invoices approved
@@ -589,13 +606,12 @@ export default function InvoicesPage() {
 
               <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <DollarSign className="text-emerald-600" size={18} />
                   <div className="text-xs font-semibold text-slate-500 uppercase">
                     Paid
                   </div>
                 </div>
                 <div className="text-2xl font-bold text-emerald-600">
-                  ${totalPaid.toLocaleString()}
+                  {formatCurrency(totalPaid)}
                 </div>
                 <div className="text-xs text-slate-400 mt-1">
                   {paidInvoices.length} invoices paid
@@ -694,7 +710,7 @@ export default function InvoicesPage() {
                                 Amount
                               </div>
                               <div className="font-semibold text-slate-900">
-                                ${invoice.amount.toLocaleString()}
+                                {formatCurrency(invoice.amount, invoice.po?.project?.baseCurrency)}
                               </div>
                             </div>
 
@@ -811,7 +827,7 @@ export default function InvoicesPage() {
                                     Invoice Amount:
                                   </span>
                                   <span className="font-semibold text-lg">
-                                    ${invoice.amount.toLocaleString()}
+                                    {formatCurrency(invoice.amount, invoice.po?.project?.baseCurrency)}
                                   </span>
                                 </div>
                                 <div className="flex justify-between">
@@ -913,8 +929,8 @@ export default function InvoicesPage() {
                     <option value="">-- Select Purchase Order --</option>
                     {purchaseOrders.map((po) => (
                       <option key={po.id} value={po.id}>
-                        {po.poNo} - {po.vendor.name} ($
-                        {po.amount.toLocaleString()})
+                        {po.poNo} - {po.vendor.name} (
+                        {formatCurrency(po.amount, po.project?.baseCurrency)})
                       </option>
                     ))}
                   </select>
@@ -925,19 +941,19 @@ export default function InvoicesPage() {
                     <div className="flex justify-between mb-1">
                       <span className="text-slate-600">PO Amount:</span>
                       <span className="font-semibold">
-                        ${poBalance.poAmount.toLocaleString()}
+                        {formatCurrency(poBalance.poAmount)}
                       </span>
                     </div>
                     <div className="flex justify-between mb-1">
                       <span className="text-slate-600">Already Invoiced:</span>
                       <span className="font-semibold">
-                        ${poBalance.totalInvoiced.toLocaleString()}
+                        {formatCurrency(poBalance.totalInvoiced)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-600">Remaining:</span>
                       <span className="font-semibold text-emerald-600">
-                        ${poBalance.remainingBalance.toLocaleString()}
+                        {formatCurrency(poBalance.remainingBalance)}
                       </span>
                     </div>
                   </div>
@@ -957,6 +973,9 @@ export default function InvoicesPage() {
                     required
                     className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm"
                   />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Currency: {projectCurrency}
+                  </p>
                 </div>
 
                 <div>

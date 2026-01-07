@@ -550,7 +550,7 @@ function PurchaseOrdersContent() {
                   </div>
                 </div>
                 <div className="text-2xl font-bold text-slate-900">
-                  ${totalOrdered.toLocaleString()}
+                  {totalOrdered.toLocaleString()}
                 </div>
                 <div className="text-xs text-slate-400 mt-1">
                   All purchase orders
@@ -565,7 +565,7 @@ function PurchaseOrdersContent() {
                   </div>
                 </div>
                 <div className="text-2xl font-bold text-emerald-600">
-                  ${totalApproved.toLocaleString()}
+                  {totalApproved.toLocaleString()}
                 </div>
                 <div className="text-xs text-slate-400 mt-1">
                   {approvedPOs.length} orders approved
@@ -580,7 +580,7 @@ function PurchaseOrdersContent() {
                   </div>
                 </div>
                 <div className="text-2xl font-bold text-amber-600">
-                  ${totalPending.toLocaleString()}
+                  {totalPending.toLocaleString()}
                 </div>
                 <div className="text-xs text-slate-400 mt-1">
                   {pendingPOs.length} orders pending
@@ -589,7 +589,6 @@ function PurchaseOrdersContent() {
 
               <div className="rounded-2xl border border-purple-100 bg-white shadow-sm p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <DollarSign className="text-purple-600" size={18} />
                   <div className="text-xs font-semibold text-slate-500 uppercase">
                     Vendors
                   </div>
@@ -704,7 +703,7 @@ function PurchaseOrdersContent() {
                                 Amount
                               </div>
                               <div className="font-bold text-slate-900 text-base">
-                                {po.vendor?.currency} $
+                                {po.vendor?.currency} {' '}
                                 {po.amount.toLocaleString()}
                               </div>
                             </div>
@@ -835,7 +834,7 @@ function PurchaseOrdersContent() {
                                       Order Amount:
                                     </span>
                                     <span className="font-bold text-lg text-slate-900">
-                                      {po.vendor?.currency} $
+                                       {po.vendor?.currency} {' '}
                                       {po.amount.toLocaleString()}
                                     </span>
                                   </div>
