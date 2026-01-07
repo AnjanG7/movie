@@ -49,16 +49,20 @@ export default function BudgetVariancePage() {
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [report, setReport] = useState<VarianceReport | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProjects();
   }, []);
 
   useEffect(() => {
+    console.log("🎯 Selected Project Changed:", selectedProjectId);
+    
     if (selectedProjectId) {
       fetchVarianceReport();
     } else {
       setReport(null);
+      setError(null);
     }
   }, [selectedProjectId]);
 
@@ -70,6 +74,7 @@ export default function BudgetVariancePage() {
       const result = await response.json();
       if (result.success) {
         setProjects(result.data.projects || []);
+        console.log("📋 Loaded projects:", result.data.projects?.length || 0);
       }
     } catch (error) {
       console.error("Error fetching projects:", error);
@@ -78,25 +83,49 @@ export default function BudgetVariancePage() {
 
   const fetchVarianceReport = async () => {
     if (!selectedProjectId) return;
+    
     setLoading(true);
+    setError(null);
+    
     try {
+      console.log("🔍 Fetching variance report for project:", selectedProjectId);
+      
       const response = await fetch(
         `${API_BASE_URL}/projects/${selectedProjectId}/budget-lines/variance-report`,
         { credentials: "include" }
       );
+      
+      console.log("📡 Variance report response status:", response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch variance report: ${response.statusText}`);
+      }
+      
       const result = await response.json();
+      console.log("📦 Variance report response:", result);
+      
       if (result.success) {
         setReport(result.data as VarianceReport);
+        console.log("✅ Loaded variance report");
+        console.log("   Total Budgeted:", result.data.summary.totalBudgeted);
+        console.log("   Total Spent:", result.data.summary.totalSpent);
+        console.log("   Lines with variance:", result.data.lines.length);
+      } else {
+        throw new Error(result.message || "Failed to fetch variance report");
       }
-    } catch (error) {
-      console.error("Error fetching variance report:", error);
+    } catch (error: any) {
+      console.error("❌ Error fetching variance report:", error);
+      setError(error.message || "Failed to load variance report");
+      setReport(null);
     } finally {
       setLoading(false);
     }
   };
 
   const handleProjectChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    setSelectedProjectId(e.target.value);
+    const newProjectId = e.target.value;
+    console.log("🔄 Project dropdown changed - Old:", selectedProjectId, "New:", newProjectId);
+    setSelectedProjectId(newProjectId);
   };
 
   const formatCurrency = (amount: number) => {
@@ -168,10 +197,30 @@ export default function BudgetVariancePage() {
           </div>
         </div>
 
+ 
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 rounded-2xl border border-red-200 bg-red-50">
+            <p className="text-sm font-semibold text-red-700">
+              ⚠ Error: {error}
+            </p>
+            <button
+              onClick={fetchVarianceReport}
+              className="mt-2 text-xs text-red-600 hover:text-red-800 underline"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
         {/* Main content */}
         {loading ? (
-          <p className="text-center text-slate-600 mt-10">Loading report...</p>
-        ) : !report ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="text-slate-600 mt-4">Loading variance report...</p>
+          </div>
+        ) : !selectedProjectId ? (
           <div className="mt-10 text-center p-10 bg-white/80 rounded-2xl border border-slate-200">
             <p className="text-base text-slate-700 mb-2">
               Select a project to view its variance report.
@@ -179,6 +228,15 @@ export default function BudgetVariancePage() {
             <p className="text-sm text-slate-500">
               You&apos;ll see totals, phase breakdowns, and lines with the
               biggest overages or savings.
+            </p>
+          </div>
+        ) : !report ? (
+          <div className="mt-10 text-center p-10 bg-white/80 rounded-2xl border border-slate-200">
+            <p className="text-base text-slate-700 mb-2">
+              No variance data available for this project.
+            </p>
+            <p className="text-sm text-slate-500">
+              Make sure the project has a working budget with budget lines.
             </p>
           </div>
         ) : (

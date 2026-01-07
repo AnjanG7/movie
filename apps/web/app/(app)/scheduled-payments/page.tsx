@@ -30,8 +30,10 @@ interface ScheduledPayment {
   status: string;
   createdAt: string;
   payee?: {
+    id: string;          // ← ADD THIS
     name: string;
     currency: string;
+    projectId?: string;  // ← ADD THIS - Vendors belong to projects
   };
   installments: Installment[];
   allocations: Allocation[];
@@ -41,6 +43,7 @@ interface Vendor {
   id: string;
   name: string;
   currency: string;
+  projectId?: string;    // ← ADD THIS
 }
 
 interface Project {
@@ -75,9 +78,7 @@ interface UpcomingInstallment extends Installment {
 export default function ScheduledPaymentsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState("");
-  const [scheduledPayments, setScheduledPayments] = useState<
-    ScheduledPayment[]
-  >([]);
+  const [allScheduledPayments, setAllScheduledPayments] = useState<ScheduledPayment[]>([]); // ← Store ALL
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -91,6 +92,24 @@ export default function ScheduledPaymentsPage() {
       { dueDate: "", amount: 0 },
     ],
     allocations: [{ phase: "PRODUCTION", amount: 0 }],
+  });
+
+  // ✅ FILTER scheduled payments by selected project on the frontend
+  const scheduledPayments = allScheduledPayments.filter((payment) => {
+    if (!selectedProjectId) return false;
+    
+    // Check if the payment's vendor belongs to the selected project
+    const paymentProjectId = payment.payee?.projectId;
+    
+    console.log("🔍 Filtering scheduled payment:", {
+      paymentId: payment.id,
+      vendorName: payment.payee?.name,
+      paymentProjectId,
+      selectedProjectId,
+      matches: paymentProjectId === selectedProjectId
+    });
+    
+    return paymentProjectId === selectedProjectId;
   });
 
   // Get selected project
@@ -113,11 +132,15 @@ export default function ScheduledPaymentsPage() {
 
   // Fetch vendors and scheduled payments when project changes
   useEffect(() => {
+    console.log("🎯 Selected Project Changed:", selectedProjectId);
+    
     if (selectedProjectId) {
       fetchVendors(selectedProjectId);
-      fetchScheduledPayments(selectedProjectId);
+      // Fetch scheduled payments once on mount (we'll filter client-side)
+      if (allScheduledPayments.length === 0) {
+        fetchScheduledPayments(selectedProjectId);
+      }
     } else {
-      setScheduledPayments([]);
       setVendors([]);
     }
   }, [selectedProjectId]);
@@ -130,6 +153,7 @@ export default function ScheduledPaymentsPage() {
       const result = await response.json();
       if (result.success) {
         setProjects(result.data.projects || []);
+        console.log("📋 Loaded projects:", result.data.projects?.length || 0);
       }
     } catch (error) {
       console.error("Error fetching projects:", error);
@@ -175,7 +199,7 @@ export default function ScheduledPaymentsPage() {
 
   const fetchScheduledPayments = async (projectId: string) => {
     if (!projectId) {
-      setScheduledPayments([]);
+      setAllScheduledPayments([]);
       return;
     }
 
@@ -184,7 +208,7 @@ export default function ScheduledPaymentsPage() {
       console.log("🔍 Fetching scheduled payments for project:", projectId);
 
       const response = await fetch(
-        `${API_BASE_URL}/payments/project/${projectId}/scheduled`,
+        `${API_BASE_URL}/payments/project/${projectId}/scheduled?limit=9999`,
         { credentials: "include" }
       );
 
@@ -192,22 +216,30 @@ export default function ScheduledPaymentsPage() {
 
       if (!response.ok) {
         console.error("❌ Failed to fetch scheduled payments");
-        setScheduledPayments([]);
+        setAllScheduledPayments([]);
         return;
       }
 
       const result = await response.json();
       console.log("📦 Scheduled payments response:", result);
+      console.log("💰 Raw scheduled payments data:", result.data?.scheduledPayments);
 
       if (result.success) {
-        setScheduledPayments(result.data.scheduledPayments || []);
+        setAllScheduledPayments(result.data.scheduledPayments || []); // ← Store all
+        console.log("✅ Loaded all scheduled payments:", result.data.scheduledPayments?.length || 0);
+        
+      
+        result.data.scheduledPayments?.forEach((p: ScheduledPayment) => {
+          console.log(`Scheduled Payment ${p.id} - Vendor: ${p.payee?.name}, Project:`, 
+            p.payee?.projectId);
+        });
       } else {
         console.error("❌ API returned error:", result.message);
-        setScheduledPayments([]);
+        setAllScheduledPayments([]);
       }
     } catch (error) {
       console.error("💥 Error fetching scheduled payments:", error);
-      setScheduledPayments([]);
+      setAllScheduledPayments([]);
     } finally {
       setLoading(false);
     }
@@ -376,7 +408,9 @@ export default function ScheduledPaymentsPage() {
   };
 
   const handleProjectChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    setSelectedProjectId(e.target.value);
+    const newProjectId = e.target.value;
+    console.log("🔄 Project dropdown changed - Old:", selectedProjectId, "New:", newProjectId);
+    setSelectedProjectId(newProjectId);
   };
 
   const handlePayeeChange = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -470,6 +504,8 @@ export default function ScheduledPaymentsPage() {
             )}
           </div>
         </div>
+
+
 
         {/* KPIs */}
         {selectedProjectId && (

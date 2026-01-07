@@ -22,7 +22,9 @@ interface Payment {
       currency?: string;
     };
     po?: {
+      projectId?: string;  // ← ADD THIS - Direct projectId from PO
       project?: {
+        id: string;        // ← ADD THIS - Nested project id
         baseCurrency?: string;
       };
     };
@@ -61,7 +63,7 @@ interface PaymentFormData {
 export default function PaymentsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
-  const [payments, setPayments] = useState<Payment[]>([]);
+  const [allPayments, setAllPayments] = useState<Payment[]>([]); // ← Store ALL payments
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -71,6 +73,23 @@ export default function PaymentsPage() {
     amount: 0,
     paidOn: new Date().toISOString().split("T")[0]!,
     method: "Bank Transfer",
+  });
+
+  // ✅ FILTER payments by selected project on the frontend
+  const payments = allPayments.filter((payment) => {
+    if (!selectedProjectId) return false;
+    
+    // Check both possible locations for project ID
+    const paymentProjectId = payment.invoice?.po?.projectId || payment.invoice?.po?.project?.id;
+    
+    console.log("🔍 Filtering payment:", {
+      paymentId: payment.id,
+      paymentProjectId,
+      selectedProjectId,
+      matches: paymentProjectId === selectedProjectId
+    });
+    
+    return paymentProjectId === selectedProjectId;
   });
 
   // Get selected project
@@ -91,18 +110,20 @@ export default function PaymentsPage() {
     fetchProjects();
   }, []);
 
-  // ✅ FIX: Fetch invoices and payments when project changes
+  // ✅ Fetch invoices when project changes
   useEffect(() => {
     console.log("🎯 Selected Project Changed:", selectedProjectId);
     
     if (selectedProjectId) {
       fetchInvoices(selectedProjectId);
-      fetchPayments(selectedProjectId);
+      // Fetch payments once on mount (we'll filter client-side)
+      if (allPayments.length === 0) {
+        fetchPayments(selectedProjectId);
+      }
     } else {
       setInvoices([]);
-      setPayments([]);
     }
-  }, [selectedProjectId]); // ✅ Only depends on selectedProjectId
+  }, [selectedProjectId]);
 
   const fetchProjects = async () => {
     try {
@@ -163,18 +184,24 @@ export default function PaymentsPage() {
       const result = await response.json();
       
       console.log("💰 Payments response:", result);
-      console.log("💰 Number of payments:", result.data?.payments?.length || 0);
+      console.log("💰 Raw payments data:", result.data?.payments);
       
       if (result.success) {
-        setPayments(result.data.payments || []);
-        console.log("✅ Loaded payments:", result.data.payments?.length || 0);
+        setAllPayments(result.data.payments || []); // ← Store all payments
+        console.log("✅ Loaded all payments:", result.data.payments?.length || 0);
+        
+        // Log each payment's project ID for debugging
+        result.data.payments?.forEach((p: Payment) => {
+          console.log(`Payment ${p.id} belongs to project:`, 
+            p.invoice?.po?.projectId || p.invoice?.po?.project?.id);
+        });
       } else {
         console.error("❌ Error:", result.message);
-        setPayments([]);
+        setAllPayments([]);
       }
     } catch (error) {
       console.error("❌ Error fetching payments:", error);
-      setPayments([]);
+      setAllPayments([]);
     } finally {
       setLoading(false);
     }
@@ -305,24 +332,7 @@ export default function PaymentsPage() {
           </div>
         </div>
 
-        {/* Debug Info - Remove after fixing */}
-        {selectedProjectId && (
-          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-xs font-mono">
-              <strong>🐛 Debug Info:</strong>
-              <br />
-              Selected Project ID: <span className="font-bold">{selectedProjectId}</span>
-              <br />
-              Project Title: <span className="font-bold">{selectedProject?.title || "N/A"}</span>
-              <br />
-              Payments Count: <span className="font-bold">{payments.length}</span>
-              <br />
-              Invoices Count: <span className="font-bold">{invoices.length}</span>
-              <br />
-              Currency: <span className="font-bold">{projectCurrency}</span>
-            </p>
-          </div>
-        )}
+ 
 
         {!selectedProjectId ? (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
