@@ -90,6 +90,107 @@ export class BudgetLineService {
       lines: linesWithSpent,
     };
   }
+async getProducerBudgetOverview(user) {
+  const isAdmin = user.roles?.includes("Admin");
+
+  const projects = await prisma.project.findMany({
+    where: isAdmin ? undefined : { ownerId: user.id },
+    select: {
+      id: true,
+      title: true,
+      budgetVersions: {
+        where: { type: 'WORKING' },
+        select: {
+          id: true,
+          lines: {
+            select: {
+              id: true,
+              qty: true,
+              rate: true,
+              taxPercent: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+
+  const budgetLineIds = [];
+  projects.forEach(p =>
+    p.budgetVersions[0]?.lines.forEach(l => budgetLineIds.push(l.id))
+  );
+
+  if (!budgetLineIds.length) {
+    return {
+      summary: { totalAllocated: 0, totalSpent: 0 },
+      projects: [],
+    };
+  }
+
+
+  const invoices = await prisma.invoice.findMany({
+    where: {
+      status: 'Paid',
+      po: {
+        budgetLineId: { in: budgetLineIds },
+      },
+    },
+    select: {
+      amount: true,
+      po: { select: { budgetLineId: true } },
+    },
+  });
+
+  // Group spent by budgetLineId
+  const spentByLine = invoices.reduce((acc, inv) => {
+    const lineId = inv.po.budgetLineId;
+    acc[lineId] = (acc[lineId] || 0) + inv.amount;
+    return acc;
+  }, {});
+
+ 
+  let totalAllocated = 0;
+  let totalSpent = 0;
+
+  const projectResults = projects.map(project => {
+    let allocated = 0;
+    let spent = 0;
+
+    const workingBudget = project.budgetVersions[0];
+    if (!workingBudget) return null;
+
+    for (const line of workingBudget.lines) {
+      const lineBudget =
+        line.qty * line.rate * (1 + (line.taxPercent || 0) / 100);
+
+      const lineSpent = spentByLine[line.id] || 0;
+
+      allocated += lineBudget;
+      spent += lineSpent;
+
+      totalAllocated += lineBudget;
+      totalSpent += lineSpent;
+    }
+
+    return {
+      projectId: project.id,
+      projectTitle: project.title,
+      allocated,
+      spent,
+    };
+  }).filter(Boolean);
+
+  return {
+    summary: {
+      totalAllocated,
+      totalSpent,
+    },
+    projects: projectResults,
+  };
+}
+
+
 
   // Get variance report
   async getVarianceReport(projectId,user) {

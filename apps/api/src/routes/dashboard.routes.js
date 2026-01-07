@@ -3,6 +3,7 @@ import {
   getDashboardProjectStats,
   getDashboardUserStats,
 } from "../controllers/dashboard/dashboard.stats.js";
+import { getBudgetOverview } from '../controllers/budget/budgetLine.controller.js';
 import { authMiddleware } from "../middlewares/authmiddleware.js";
 import { authorizeRoles } from "../middlewares/rolemiddleware.js";
 
@@ -20,4 +21,11 @@ router.get(
   authorizeRoles("Admin"),
   getDashboardUserStats
 );
+router.get(
+  '/overview',
+  authMiddleware,
+  authorizeRoles('Producer', 'Admin'),
+  getBudgetOverview
+);
+
 export default router;

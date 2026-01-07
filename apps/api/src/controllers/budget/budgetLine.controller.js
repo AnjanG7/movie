@@ -24,3 +24,17 @@ export const getVarianceReport = asyncHandler(async (req, res) => {
       new ApiResponse(StatusCodes.OK, report, 'Variance report fetched successfully')
     );
 });
+export const getBudgetOverview = asyncHandler(async (req, res) => {
+  const overview = await budgetLineService.getProducerBudgetOverview(req.user);
+
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(
+        StatusCodes.OK,
+        overview,
+        'Budget overview fetched successfully'
+      )
+    );
+});
+
