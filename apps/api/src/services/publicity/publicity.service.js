@@ -1,19 +1,18 @@
-import prisma from '../../utils/prismaClient.js';
+import prisma from "../../utils/prismaClient.js";
 import { ApiError } from "../../utils/ApiError.js";
-import StatusCodes from 'http-status-codes';
+import { StatusCodes } from "http-status-codes";
 
 export class PublicityService {
   // ==================== PUBLICITY BUDGET ====================
-  
+
   /**
    * Create a new publicity/P&A budget item
    */
-  async createPublicityBudget(projectId, data,user) {
-    
+  async createPublicityBudget(projectId, data, user) {
     const { name, category, description, budgetAmount, vendor, startDate, endDate, notes } = data;
 
     // Validate project exists
-      const project = await prisma.project.findUnique({
+    const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project) {
@@ -42,14 +41,14 @@ export class PublicityService {
         vendor: vendor || null,
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
-        status: 'PLANNED',
-        notes: notes || null
+        status: "PLANNED",
+        notes: notes || null,
       },
       include: {
         project: {
-          select: { id: true, title: true, baseCurrency: true }
-        }
-      }
+          select: { id: true, title: true, baseCurrency: true },
+        },
+      },
     });
 
     return publicityBudget;
@@ -58,9 +57,7 @@ export class PublicityService {
   /**
    * Get all publicity budgets for a project with summary
    */
-  async getPublicityBudgets(projectId, query = {},user) {
-
-
+  async getPublicityBudgets(projectId, query = {}, user) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -80,8 +77,6 @@ export class PublicityService {
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
 
-
-
     const { category, status } = query;
 
     const where = { projectId };
@@ -92,19 +87,19 @@ export class PublicityService {
       where,
       include: {
         expenses: {
-          orderBy: { expenseDate: 'desc' }
+          orderBy: { expenseDate: "desc" },
         },
         campaignEvents: {
-          orderBy: { startDate: 'asc' }
+          orderBy: { startDate: "asc" },
         },
         _count: {
           select: {
             expenses: true,
-            campaignEvents: true
-          }
-        }
+            campaignEvents: true,
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
     // Calculate totals
@@ -120,16 +115,15 @@ export class PublicityService {
         totalActual,
         variance,
         percentSpent: parseFloat(percentSpent.toFixed(2)),
-        itemCount: budgets.length
-      }
+        itemCount: budgets.length,
+      },
     };
   }
 
   /**
    * Get single publicity budget with details
    */
-  async getPublicityBudget(projectId,publicityId,user) {
-
+  async getPublicityBudget(projectId, publicityId, user) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -149,18 +143,17 @@ export class PublicityService {
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
 
-
-const budget = await prisma.publicityBudget.findFirst({
-  where: { id: publicityId, projectId },
-  include: {
-    project: { select: { id: true, title: true, baseCurrency: true } },
-    expenses: { orderBy: { expenseDate: 'desc' } },
-    campaignEvents: { orderBy: { startDate: 'asc' } },
-  },
-});
+    const budget = await prisma.publicityBudget.findFirst({
+      where: { id: publicityId, projectId },
+      include: {
+        project: { select: { id: true, title: true, baseCurrency: true } },
+        expenses: { orderBy: { expenseDate: "desc" } },
+        campaignEvents: { orderBy: { startDate: "asc" } },
+      },
+    });
 
     if (!budget) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Publicity budget not found');
+      throw new ApiError(StatusCodes.NOT_FOUND, "Publicity budget not found");
     }
 
     return budget;
@@ -169,9 +162,9 @@ const budget = await prisma.publicityBudget.findFirst({
   /**
    * Update publicity budget
    */
-  async updatePublicityBudget(id, data,user) {
+  async updatePublicityBudget(id, data, user) {
     const budget = await prisma.publicityBudget.findUnique({ where: { id } });
-    const projectId= budget.projectId
+    const projectId = budget.projectId;
 
     const project = await prisma.project.findUnique({
       where: { id: projectId },
@@ -191,8 +184,6 @@ const budget = await prisma.publicityBudget.findFirst({
     ) {
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
-
-
 
     const updateData = {};
     if (data.name !== undefined) updateData.name = data.name;
@@ -210,8 +201,8 @@ const budget = await prisma.publicityBudget.findFirst({
       data: updateData,
       include: {
         expenses: true,
-        campaignEvents: true
-      }
+        campaignEvents: true,
+      },
     });
 
     return updated;
@@ -220,9 +211,9 @@ const budget = await prisma.publicityBudget.findFirst({
   /**
    * Delete publicity budget
    */
-  async deletePublicityBudget(id,user) {
+  async deletePublicityBudget(id, user) {
     const budget = await prisma.publicityBudget.findUnique({ where: { id } });
-    const projectId= budget.projectId
+    const projectId = budget.projectId;
 
     const project = await prisma.project.findUnique({
       where: { id: projectId },
@@ -243,14 +234,248 @@ const budget = await prisma.publicityBudget.findFirst({
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
 
-
     if (!budget) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Publicity budget not found');
+      throw new ApiError(StatusCodes.NOT_FOUND, "Publicity budget not found");
     }
 
     await prisma.publicityBudget.delete({ where: { id } });
 
-    return { message: 'Publicity budget deleted successfully' };
+    return { message: "Publicity budget deleted successfully" };
+  }
+
+  // ==================== PUBLICITY BUDGET LINES (FROM MAIN BUDGET) ====================
+
+  /**
+   * Get publicity budget lines from main budget (phase = PUBLICITY)
+   */
+  async getPublicityBudgetLines(projectId, user) {
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+
+    // Authorization check
+    const isAdmin = user.roles?.includes("Admin");
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({ where: { projectId, userId: user?.id } }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
+    // Get working budget version
+    const workingBudget = await prisma.budgetVersion.findFirst({
+      where: { projectId, type: "WORKING" },
+      include: {
+        lines: {
+          where: { phase: "PUBLICITY" },
+          orderBy: [{ department: "asc" }, { name: "asc" }],
+        },
+      },
+    });
+
+    if (!workingBudget) {
+      return { lines: [], summary: { totalBudget: 0, totalCommitted: 0, totalSpent: 0 }, budgetVersionId: null };
+    }
+
+    // Calculate actuals for each line (committed + spent)
+    const linesWithActuals = await Promise.all(
+      workingBudget.lines.map(async (line) => {
+        // Get committed amount (approved POs)
+        const pos = await prisma.purchaseOrder.findMany({
+          where: { budgetLineId: line.id, status: { in: ["Approved", "Completed"] } },
+        });
+        const committed = pos.reduce((sum, po) => sum + po.amount, 0);
+
+        // Get spent amount (paid invoices)
+        const invoices = await prisma.invoice.findMany({
+          where: { po: { budgetLineId: line.id }, status: "Paid" },
+        });
+        const spent = invoices.reduce((sum, inv) => sum + inv.amount, 0);
+
+        const budgeted = line.qty * line.rate * (1 + (line.taxPercent || 0) / 100);
+
+        return {
+          ...line,
+          budgeted,
+          committed,
+          spent,
+          actualAmount: spent, // For consistency with PublicityBudget
+          remaining: budgeted - committed,
+          variance: budgeted - spent,
+          variancePercent: budgeted > 0 ? ((budgeted - spent) / budgeted) * 100 : 0,
+        };
+      })
+    );
+
+    // Calculate summary
+    const summary = {
+      totalBudget: linesWithActuals.reduce((sum, l) => sum + l.budgeted, 0),
+      totalCommitted: linesWithActuals.reduce((sum, l) => sum + l.committed, 0),
+      totalSpent: linesWithActuals.reduce((sum, l) => sum + l.spent, 0),
+      totalVariance: 0,
+    };
+    summary.totalVariance = summary.totalBudget - summary.totalSpent;
+    summary.percentSpent = summary.totalBudget > 0 ? parseFloat(((summary.totalSpent / summary.totalBudget) * 100).toFixed(2)) : 0;
+
+    return { lines: linesWithActuals, summary, budgetVersionId: workingBudget.id };
+  }
+
+  /**
+   * Add publicity budget line to main budget
+   */
+  async addPublicityBudgetLine(projectId, data, user) {
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+
+    const isAdmin = user.roles?.includes("Admin");
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({ where: { projectId, userId: user?.id } }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
+    // Get or create working budget
+    let workingBudget = await prisma.budgetVersion.findFirst({
+      where: { projectId, type: "WORKING" },
+    });
+
+    if (!workingBudget) {
+      workingBudget = await prisma.budgetVersion.create({
+        data: {
+          projectId,
+          version: "WORKING-v1",
+          type: "WORKING",
+          createdBy: user?.id,
+        },
+      });
+    }
+
+    const { name, department, qty, rate, taxPercent, vendor, notes } = data;
+
+    const line = await prisma.budgetLineItem.create({
+      data: {
+        budgetVersionId: workingBudget.id,
+        phase: "PUBLICITY",
+        department: department || null,
+        name,
+        qty: parseInt(qty) || 1,
+        rate: parseFloat(rate),
+        taxPercent: parseFloat(taxPercent) || 0,
+        vendor: vendor || null,
+        notes: notes || null,
+      },
+    });
+
+    // Recalculate grandTotal
+    const allLines = await prisma.budgetLineItem.findMany({
+      where: { budgetVersionId: workingBudget.id },
+    });
+    const grandTotal = allLines.reduce((sum, l) => sum + l.qty * l.rate * (1 + (l.taxPercent || 0) / 100), 0);
+
+    await prisma.budgetVersion.update({
+      where: { id: workingBudget.id },
+      data: { grandTotal },
+    });
+
+    return line;
+  }
+
+  /**
+   * Update publicity budget line
+   */
+  async updatePublicityBudgetLine(lineId, data, user) {
+    const line = await prisma.budgetLineItem.findUnique({
+      where: { id: lineId },
+      include: { budgetVersion: { include: { project: true } } },
+    });
+
+    if (!line) throw new ApiError(StatusCodes.NOT_FOUND, "Budget line not found");
+    if (line.phase !== "PUBLICITY") {
+      throw new ApiError(StatusCodes.BAD_REQUEST, "Not a publicity budget line");
+    }
+
+    const project = line.budgetVersion.project;
+    const isAdmin = user.roles?.includes("Admin");
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId: project.id, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
+    const updateData = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.department !== undefined) updateData.department = data.department;
+    if (data.qty !== undefined) updateData.qty = parseInt(data.qty);
+    if (data.rate !== undefined) updateData.rate = parseFloat(data.rate);
+    if (data.taxPercent !== undefined) updateData.taxPercent = parseFloat(data.taxPercent);
+    if (data.vendor !== undefined) updateData.vendor = data.vendor;
+    if (data.notes !== undefined) updateData.notes = data.notes;
+
+    const updated = await prisma.budgetLineItem.update({
+      where: { id: lineId },
+      data: updateData,
+    });
+
+    // Recalculate grandTotal
+    const allLines = await prisma.budgetLineItem.findMany({
+      where: { budgetVersionId: line.budgetVersionId },
+    });
+    const grandTotal = allLines.reduce((sum, l) => sum + l.qty * l.rate * (1 + (l.taxPercent || 0) / 100), 0);
+
+    await prisma.budgetVersion.update({
+      where: { id: line.budgetVersionId },
+      data: { grandTotal },
+    });
+
+    return updated;
+  }
+
+  /**
+   * Delete publicity budget line
+   */
+  async deletePublicityBudgetLine(lineId, user) {
+    const line = await prisma.budgetLineItem.findUnique({
+      where: { id: lineId },
+      include: { budgetVersion: { include: { project: true } } },
+    });
+
+    if (!line) throw new ApiError(StatusCodes.NOT_FOUND, "Budget line not found");
+    if (line.phase !== "PUBLICITY") {
+      throw new ApiError(StatusCodes.BAD_REQUEST, "Not a publicity budget line");
+    }
+
+    const project = line.budgetVersion.project;
+    const isAdmin = user.roles?.includes("Admin");
+    if (
+      !isAdmin &&
+      project.ownerId !== user?.id &&
+      !(await prisma.projectUser.findFirst({
+        where: { projectId: project.id, userId: user?.id },
+      }))
+    ) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
+    }
+
+    await prisma.budgetLineItem.delete({ where: { id: lineId } });
+
+    // Recalculate grandTotal
+    const allLines = await prisma.budgetLineItem.findMany({
+      where: { budgetVersionId: line.budgetVersionId },
+    });
+    const grandTotal = allLines.reduce((sum, l) => sum + l.qty * l.rate * (1 + (l.taxPercent || 0) / 100), 0);
+
+    await prisma.budgetVersion.update({
+      where: { id: line.budgetVersionId },
+      data: { grandTotal },
+    });
+
+    return { message: "Publicity budget line deleted successfully" };
   }
 
   // ==================== PUBLICITY EXPENSES ====================
@@ -258,8 +483,7 @@ const budget = await prisma.publicityBudget.findFirst({
   /**
    * Add an expense to a publicity budget item
    */
-  async addPublicityExpense(projectId,publicityBudgetId,user, data) {
-
+  async addPublicityExpense(projectId, publicityBudgetId, user, data) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -279,15 +503,14 @@ const budget = await prisma.publicityBudget.findFirst({
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
 
-
     const { description, amount, expenseDate, vendor, invoiceNumber, attachmentUrl, notes } = data;
 
     const budget = await prisma.publicityBudget.findUnique({
-      where: { id: publicityBudgetId }
+      where: { id: publicityBudgetId },
     });
 
     if (!budget) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Publicity budget not found');
+      throw new ApiError(StatusCodes.NOT_FOUND, "Publicity budget not found");
     }
 
     const expense = await prisma.publicityExpense.create({
@@ -299,19 +522,19 @@ const budget = await prisma.publicityBudget.findFirst({
         vendor: vendor || null,
         invoiceNumber: invoiceNumber || null,
         attachmentUrl: attachmentUrl || null,
-        notes: notes || null
-      }
+        notes: notes || null,
+      },
     });
 
     // Recalculate actual amount
     const totalExpenses = await prisma.publicityExpense.aggregate({
       where: { publicityBudgetId },
-      _sum: { amount: true }
+      _sum: { amount: true },
     });
 
     await prisma.publicityBudget.update({
       where: { id: publicityBudgetId },
-      data: { actualAmount: totalExpenses._sum.amount || 0 }
+      data: { actualAmount: totalExpenses._sum.amount || 0 },
     });
 
     return expense;
@@ -320,8 +543,7 @@ const budget = await prisma.publicityBudget.findFirst({
   /**
    * Get all expenses for a publicity budget
    */
-  async getPublicityExpenses(projectId,publicityBudgetId,user) {
-
+  async getPublicityExpenses(projectId, publicityBudgetId, user) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -341,25 +563,23 @@ const budget = await prisma.publicityBudget.findFirst({
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
 
-
     const expenses = await prisma.publicityExpense.findMany({
       where: { publicityBudgetId },
-      orderBy: { expenseDate: 'desc' }
+      orderBy: { expenseDate: "desc" },
     });
 
     const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
     return {
       expenses,
-      total
+      total,
     };
   }
 
   /**
    * Update an expense
    */
-  async updatePublicityExpense(projectId,id, data,user) {
-
+  async updatePublicityExpense(projectId, id, data, user) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -379,11 +599,10 @@ const budget = await prisma.publicityBudget.findFirst({
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
 
-
     const expense = await prisma.publicityExpense.findUnique({ where: { id } });
 
     if (!expense) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Expense not found');
+      throw new ApiError(StatusCodes.NOT_FOUND, "Expense not found");
     }
 
     const updateData = {};
@@ -397,18 +616,18 @@ const budget = await prisma.publicityBudget.findFirst({
 
     const updated = await prisma.publicityExpense.update({
       where: { id },
-      data: updateData
+      data: updateData,
     });
 
     // Recalculate actual amount
     const totalExpenses = await prisma.publicityExpense.aggregate({
       where: { publicityBudgetId: expense.publicityBudgetId },
-      _sum: { amount: true }
+      _sum: { amount: true },
     });
 
     await prisma.publicityBudget.update({
       where: { id: expense.publicityBudgetId },
-      data: { actualAmount: totalExpenses._sum.amount || 0 }
+      data: { actualAmount: totalExpenses._sum.amount || 0 },
     });
 
     return updated;
@@ -417,8 +636,7 @@ const budget = await prisma.publicityBudget.findFirst({
   /**
    * Delete an expense
    */
-  async deletePublicityExpense(projectId,id,user) {
-
+  async deletePublicityExpense(projectId, id, user) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -438,13 +656,12 @@ const budget = await prisma.publicityBudget.findFirst({
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
 
-
     const expense = await prisma.publicityExpense.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!expense) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Expense not found');
+      throw new ApiError(StatusCodes.NOT_FOUND, "Expense not found");
     }
 
     await prisma.publicityExpense.delete({ where: { id } });
@@ -452,15 +669,15 @@ const budget = await prisma.publicityBudget.findFirst({
     // Recalculate actual amount
     const totalExpenses = await prisma.publicityExpense.aggregate({
       where: { publicityBudgetId: expense.publicityBudgetId },
-      _sum: { amount: true }
+      _sum: { amount: true },
     });
 
     await prisma.publicityBudget.update({
       where: { id: expense.publicityBudgetId },
-      data: { actualAmount: totalExpenses._sum.amount || 0 }
+      data: { actualAmount: totalExpenses._sum.amount || 0 },
     });
 
-    return { message: 'Expense deleted successfully' };
+    return { message: "Expense deleted successfully" };
   }
 
   // ==================== CAMPAIGN CALENDAR ====================
@@ -468,8 +685,7 @@ const budget = await prisma.publicityBudget.findFirst({
   /**
    * Create a campaign event
    */
-  async createCampaignEvent(projectId, data,user) {
-    
+  async createCampaignEvent(projectId, data, user) {
     const { title, description, eventType, startDate, endDate, deliverable, publicityBudgetId, notes } = data;
 
     const project = await prisma.project.findUnique({
@@ -491,14 +707,13 @@ const budget = await prisma.publicityBudget.findFirst({
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
 
-
     // Validate publicity budget if provided
     if (publicityBudgetId) {
       const budget = await prisma.publicityBudget.findUnique({
-        where: { id: publicityBudgetId }
+        where: { id: publicityBudgetId },
       });
       if (!budget || budget.projectId !== projectId) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid publicity budget');
+        throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid publicity budget");
       }
     }
 
@@ -512,17 +727,17 @@ const budget = await prisma.publicityBudget.findFirst({
         endDate: endDate ? new Date(endDate) : null,
         deliverable: deliverable || null,
         publicityBudgetId: publicityBudgetId || null,
-        status: 'UPCOMING',
-        notes: notes || null
+        status: "UPCOMING",
+        notes: notes || null,
       },
       include: {
         project: {
-          select: { id: true, title: true }
+          select: { id: true, title: true },
         },
         publicityBudget: {
-          select: { id: true, name: true, category: true }
-        }
-      }
+          select: { id: true, name: true, category: true },
+        },
+      },
     });
 
     return event;
@@ -531,10 +746,8 @@ const budget = await prisma.publicityBudget.findFirst({
   /**
    * Get campaign calendar for a project
    */
-  async getCampaignCalendar(projectId, query = {},user) {
-
-
-        const project = await prisma.project.findUnique({
+  async getCampaignCalendar(projectId, query = {}, user) {
+    const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project) {
@@ -557,10 +770,10 @@ const budget = await prisma.publicityBudget.findFirst({
     const where = { projectId };
     if (eventType) where.eventType = eventType;
     if (status) where.status = status;
-    
-    if (upcoming === 'true') {
+
+    if (upcoming === "true") {
       where.startDate = {
-        gte: new Date()
+        gte: new Date(),
       };
     }
 
@@ -574,10 +787,10 @@ const budget = await prisma.publicityBudget.findFirst({
       where,
       include: {
         publicityBudget: {
-          select: { id: true, name: true, category: true, budgetAmount: true }
-        }
+          select: { id: true, name: true, category: true, budgetAmount: true },
+        },
       },
-      orderBy: { startDate: 'asc' }
+      orderBy: { startDate: "asc" },
     });
 
     return events;
@@ -586,8 +799,8 @@ const budget = await prisma.publicityBudget.findFirst({
   /**
    * Get single campaign event
    */
-  async getCampaignEvent(projectId,id,user) {
-        const project = await prisma.project.findUnique({
+  async getCampaignEvent(projectId, id, user) {
+    const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project) {
@@ -606,15 +819,15 @@ const budget = await prisma.publicityBudget.findFirst({
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
     const event = await prisma.campaignEvent.findUnique({
-      where: { id,projectId},
+      where: { id, projectId },
       include: {
         project: true,
-        publicityBudget: true
-      }
+        publicityBudget: true,
+      },
     });
 
     if (!event) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Campaign event not found');
+      throw new ApiError(StatusCodes.NOT_FOUND, "Campaign event not found");
     }
 
     return event;
@@ -623,15 +836,14 @@ const budget = await prisma.publicityBudget.findFirst({
   /**
    * Update campaign event
    */
-  async updateCampaignEvent(id, data,user) {
-
+  async updateCampaignEvent(id, data, user) {
     const event = await prisma.campaignEvent.findUnique({ where: { id } });
 
     if (!event) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Campaign event not found');
+      throw new ApiError(StatusCodes.NOT_FOUND, "Campaign event not found");
     }
-    const projectId= event.projectId
- 
+    const projectId = event.projectId;
+
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -650,7 +862,6 @@ const budget = await prisma.publicityBudget.findFirst({
     ) {
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
-
 
     const updateData = {};
     if (data.title !== undefined) updateData.title = data.title;
@@ -667,8 +878,8 @@ const budget = await prisma.publicityBudget.findFirst({
       where: { id },
       data: updateData,
       include: {
-        publicityBudget: true
-      }
+        publicityBudget: true,
+      },
     });
 
     return updated;
@@ -677,17 +888,15 @@ const budget = await prisma.publicityBudget.findFirst({
   /**
    * Delete campaign event
    */
-  async deleteCampaignEvent(id,user) {
-
-
+  async deleteCampaignEvent(id, user) {
     const event = await prisma.campaignEvent.findUnique({ where: { id } });
 
     if (!event) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Campaign event not found');
+      throw new ApiError(StatusCodes.NOT_FOUND, "Campaign event not found");
     }
 
-    const projectId= event.projectId
-        const project = await prisma.project.findUnique({
+    const projectId = event.projectId;
+    const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
     const users = await prisma.user.findUnique({
@@ -695,8 +904,7 @@ const budget = await prisma.publicityBudget.findFirst({
       include: { role: true },
     });
 
-    if (!project)
-      throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
+    if (!project) throw new ApiError(StatusCodes.NOT_FOUND, "Project not found");
     const isAdmin = users.role?.name === "Admin";
     // Only Admin or Project Owner
     if (
@@ -710,7 +918,7 @@ const budget = await prisma.publicityBudget.findFirst({
     }
     await prisma.campaignEvent.delete({ where: { id } });
 
-    return { message: 'Campaign event deleted successfully' };
+    return { message: "Campaign event deleted successfully" };
   }
 
   // ==================== REPORTS & ANALYTICS ====================
@@ -718,8 +926,7 @@ const budget = await prisma.publicityBudget.findFirst({
   /**
    * Get comprehensive P&A summary report
    */
-  async getPublicitySummary(projectId,user) {
-
+  async getPublicitySummary(projectId, user) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -739,20 +946,19 @@ const budget = await prisma.publicityBudget.findFirst({
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
 
-
     const [budgets, events] = await Promise.all([
       prisma.publicityBudget.findMany({
         where: { projectId },
         include: {
           expenses: true,
           _count: {
-            select: { expenses: true, campaignEvents: true }
-          }
-        }
+            select: { expenses: true, campaignEvents: true },
+          },
+        },
       }),
       prisma.campaignEvent.findMany({
-        where: { projectId }
-      })
+        where: { projectId },
+      }),
     ]);
 
     // Group by category
@@ -763,12 +969,12 @@ const budget = await prisma.publicityBudget.findFirst({
           budgeted: 0,
           actual: 0,
           variance: 0,
-          count: 0
+          count: 0,
         };
       }
       acc[budget.category].budgeted += budget.budgetAmount;
       acc[budget.category].actual += budget.actualAmount;
-      acc[budget.category].variance += (budget.budgetAmount - budget.actualAmount);
+      acc[budget.category].variance += budget.budgetAmount - budget.actualAmount;
       acc[budget.category].count += 1;
       return acc;
     }, {});
@@ -780,7 +986,7 @@ const budget = await prisma.publicityBudget.findFirst({
           status: budget.status,
           budgeted: 0,
           actual: 0,
-          count: 0
+          count: 0,
         };
       }
       acc[budget.status].budgeted += budget.budgetAmount;
@@ -794,9 +1000,9 @@ const budget = await prisma.publicityBudget.findFirst({
     const totalVariance = totalBudget - totalActual;
 
     // Campaign stats
-    const upcomingEvents = events.filter(e => e.status === 'UPCOMING' && new Date(e.startDate) >= new Date()).length;
-    const completedEvents = events.filter(e => e.status === 'COMPLETED').length;
-    const inProgressEvents = events.filter(e => e.status === 'IN_PROGRESS').length;
+    const upcomingEvents = events.filter((e) => e.status === "UPCOMING" && new Date(e.startDate) > new Date()).length;
+    const completedEvents = events.filter((e) => e.status === "COMPLETED").length;
+    const inProgressEvents = events.filter((e) => e.status === "IN_PROGRESS").length;
 
     return {
       summary: {
@@ -808,30 +1014,29 @@ const budget = await prisma.publicityBudget.findFirst({
         upcomingEvents,
         completedEvents,
         inProgressEvents,
-        totalEvents: events.length
+        totalEvents: events.length,
       },
       byCategory: Object.values(byCategory),
       byStatus: Object.values(byStatus),
       recentExpenses: await prisma.publicityExpense.findMany({
         where: {
-          publicityBudget: { projectId }
+          publicityBudget: { projectId },
         },
         include: {
           publicityBudget: {
-            select: { name: true, category: true }
-          }
+            select: { name: true, category: true },
+          },
         },
-        orderBy: { expenseDate: 'desc' },
-        take: 10
-      })
+        orderBy: { expenseDate: "desc" },
+        take: 10,
+      }),
     };
   }
 
   /**
    * Update ROI forecast including P&A costs
    */
-  async updateROIWithPublicity(projectId,user) {
-
+  async updateROIWithPublicity(projectId, user) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -851,36 +1056,35 @@ const budget = await prisma.publicityBudget.findFirst({
       throw new ApiError(StatusCodes.FORBIDDEN, "You do not have permission");
     }
 
-
     // Get latest quotation/baseline budget
     const quotation = await prisma.budgetVersion.findFirst({
       where: {
         projectId,
-        type: { in: ['QUOTE', 'BASELINE'] }
+        type: { in: ["QUOTE", "BASELINE"] },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
     if (!quotation) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'No quotation or baseline budget found');
+      throw new ApiError(StatusCodes.NOT_FOUND, "No quotation or baseline budget found");
     }
 
     // Get P&A actual spend
-    const publicityData = await this.getPublicitySummary(projectId);
+    const publicityData = await this.getPublicitySummary(projectId, user);
     const paActual = publicityData.summary.totalActual;
     const paBudgeted = publicityData.summary.totalBudget;
 
     // Get existing metrics or create new
     const originalMetrics = quotation.metrics || {};
     const baseTotalCost = originalMetrics.totalCost || quotation.grandTotal || 0;
-    
+
     // Calculate updated total cost
     const updatedTotalCost = baseTotalCost + paActual;
 
     // Revenue projections (from original or default multiplier)
     const projectedRevenue = originalMetrics.projectedRevenue || updatedTotalCost * 1.5;
     const distributionFeePercent = originalMetrics.distributionFeePercent || 20;
-    const distributionFees = projectedRevenue * (distributionFeePercent / 100);
+    const distributionFees = (projectedRevenue * distributionFeePercent) / 100;
     const netRevenue = projectedRevenue - distributionFees - updatedTotalCost;
     const profit = netRevenue;
     const roi = updatedTotalCost > 0 ? (profit / updatedTotalCost) * 100 : 0;
@@ -888,9 +1092,9 @@ const budget = await prisma.publicityBudget.findFirst({
     // Simple IRR approximation (3-year payback)
     const years = 3;
     const annualCashflow = netRevenue / years;
-    
+
     // NPV calculation
-    const discountRate = 0.10;
+    const discountRate = 0.1;
     let npv = -updatedTotalCost;
     for (let i = 1; i <= years; i++) {
       npv += annualCashflow / Math.pow(1 + discountRate, i);
@@ -914,13 +1118,13 @@ const budget = await prisma.publicityBudget.findFirst({
       npv: parseFloat(npv.toFixed(2)),
       breakEvenRevenue: parseFloat(breakEvenRevenue.toFixed(2)),
       updatedAt: new Date().toISOString(),
-      includesPA: true
+      includesPA: true,
     };
 
     // Update the quotation with new metrics
     await prisma.budgetVersion.update({
       where: { id: quotation.id },
-      data: { metrics: updatedMetrics }
+      data: { metrics: updatedMetrics },
     });
 
     return updatedMetrics;
