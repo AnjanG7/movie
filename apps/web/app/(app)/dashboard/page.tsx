@@ -15,6 +15,21 @@ type ProjectSummaryItem = {
   currentPhase: "DEVELOPMENT" | "PRODUCTION" | "POST" | "PUBLICITY";
 };
 
+type BudgetProject = {
+  projectId: string;
+  projectTitle: string;
+  allocated: number;
+  spent: number;
+};
+
+type BudgetOverviewResponse = {
+  summary: {
+    totalAllocated: number;
+    totalSpent: number;
+  };
+  projects: BudgetProject[];
+};
+
 export default function DashboardPage() {
   const {
     projects,
@@ -26,6 +41,9 @@ export default function DashboardPage() {
     fetchPhases,
   } = useStore();
   const { user } = useStore();
+  const [budgetOverview, setBudgetOverview] =
+    useState<BudgetOverviewResponse | null>(null);
+
   const isAdmin = user?.role?.toLowerCase() === "admin";
   const [projectChange, setProjectChange] = useState(0);
   const [userChange, setUserChange] = useState(0);
@@ -87,13 +105,38 @@ export default function DashboardPage() {
     fetchSummary();
   }, []);
 
+  useEffect(() => {
+    const fetchBudgetOverview = async () => {
+      try {
+        const res = await fetch(
+          "https://film-finance-app.onrender.com/api/dashboard/overview",
+          {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+          }
+        );
+
+        if (!res.ok) throw new Error("Failed to fetch budget overview");
+
+        const result = await res.json();
+        setBudgetOverview(result.data);
+      } catch (err) {
+        console.error(err);
+        setBudgetOverview(null);
+      }
+    };
+
+    fetchBudgetOverview();
+  }, []);
+
   // Prepare chart data
-  const budgetData = projects.slice(0, 5).map((p) => ({
-    name: p.title.substring(0, 15),
-    budget: p.financingSources?.reduce((sum, f) => sum + f.amount, 0) || 0,
-    spent:
-      (p.financingSources?.reduce((sum, f) => sum + f.amount, 0) || 0) * 0.6, // Mock spent
-  }));
+  const budgetData =
+    budgetOverview?.projects.map((p) => ({
+      name: p.projectTitle.substring(0, 15),
+      budget: p.allocated,
+      spent: p.spent,
+    })) || [];
 
   const phaseSummaryData = projectSummary.map((item) => ({
     name: item.currentPhase,
@@ -232,8 +275,11 @@ export default function DashboardPage() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-2">
-          <BudgetChart data={budgetData} />
+          {budgetData.length > 0 && (
+            <BudgetChart data={budgetData} budgetOverview={budgetOverview} />
+          )}
         </div>
+
         <div>
           <DonutChart data={phaseSummaryData} title="Projects by Phase" />
         </div>
