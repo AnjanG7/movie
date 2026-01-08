@@ -229,7 +229,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
         <StatsCard
           title="Total Projects"
           value={stats?.totalProjects || 0}
@@ -261,15 +261,15 @@ export default function DashboardPage() {
           iconColor="text-green-600"
           iconBg="bg-green-100"
         />
-        <StatsCard
+        {/* <StatsCard
           title="Total Budget"
-          value={`${((stats?.totalBudget || 0) / 1000000).toFixed(1)}M`}
+          value={Math.round(budgetOverview ? budgetOverview.summary.totalAllocated : 0)}
           change={15}
           showChange={isAdmin}
           icon={DollarSign}
           iconColor="text-purple-600"
           iconBg="bg-purple-100"
-        />
+        /> */}
       </div>
 
       {/* Charts Row */}
