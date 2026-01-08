@@ -239,6 +239,55 @@ export class ProjectService {
 
     return data;
   }
+  async getAllActiveProjects(query, user) {
+    let { page = 1, limit = 10, baseCurrency, search } = query;
+
+    const isAdmin = user.roles?.includes("Admin");
+    const where = {
+      status: "active",
+    };
+
+    if (!isAdmin) {
+      where.OR = [
+        { ownerId: user.id },
+        { users: { some: { userId: user.id } } },
+      ];
+    }
+
+    if (baseCurrency) where.baseCurrency = baseCurrency;
+
+    if (search) {
+      where.AND = [
+        {
+          OR: [
+            { title: { contains: search, mode: "insensitive" } },
+            { baseCurrency: { contains: search, mode: "insensitive" } },
+          ],
+        },
+      ];
+    }
+
+    const fetchAll = limit === -1 || !limit;
+    const skip = fetchAll ? undefined : (Number(page) - 1) * Number(limit);
+    const take = fetchAll ? undefined : Number(limit);
+
+    const [projects, total] = await Promise.all([
+      prisma.project.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.project.count({ where }),
+    ]);
+
+    return {
+      total,
+      page: Number(page),
+      totalPages: fetchAll ? 1 : Math.ceil(total / limit),
+      projects,
+    };
+  }
 
   async getAllProjects(query, user) {
     let { page = 1, limit = 10, status, baseCurrency, search } = query;

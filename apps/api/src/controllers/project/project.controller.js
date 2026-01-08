@@ -116,3 +116,21 @@ export const getAllProjects = asyncHandler(async (req, res) => {
     );
 });
 
+
+// Get All Active Projects
+export const getAllActiveProjects = asyncHandler(async (req, res) => {
+  const data = await projectService.getAllActiveProjects(
+    req.query,
+    req.user
+  );
+
+  res
+    .status(StatusCodes.OK)
+    .json(
+      new ApiResponse(
+        StatusCodes.OK,
+        data,
+        "Active projects fetched successfully"
+      )
+    );
+});

@@ -8,6 +8,7 @@ import {
   updateProject,
   changeProjectPhase,
   getProjectsByPhaseSummary,
+  getAllActiveProjects,
 } from "../controllers/project/project.controller.js";
 import { authMiddleware } from "../middlewares/authmiddleware.js";
 import { authorizeRoles } from "../middlewares/rolemiddleware.js";
@@ -35,6 +36,13 @@ router.put(
 );
 
 router.get("/", authMiddleware, getAllProjects);
+router.get(
+  "/active",
+  authMiddleware,
+    authorizeRoles("Admin", "Producer"),
+  getAllActiveProjects
+);
+
 router.get("/summary", authMiddleware, getProjectsByPhaseSummary);
 router.get(
   "/:projectId",
