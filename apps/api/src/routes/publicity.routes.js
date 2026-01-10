@@ -128,6 +128,38 @@ router.delete(
 
 // ==================== CAMPAIGN CALENDAR ROUTES ====================
 
+// ==================== EXPENSE ROUTES ====================
+
+router.post(
+  '/budgets/:budgetId/expenses',
+  authMiddleware,
+  authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
+  addPublicityExpense
+);
+
+router.get(
+  '/budgets/:budgetId/expenses',
+  authMiddleware,
+  authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
+  getPublicityExpenses
+);
+
+router.put(
+  '/expenses/:id',
+  authMiddleware,
+  authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
+  updatePublicityExpense
+);
+
+router.delete(
+  '/expenses/:id',
+  authMiddleware,
+  authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
+  deletePublicityExpense
+);
+
+// ==================== CAMPAIGN CALENDAR ROUTES ====================
+
 router.post(
   '/campaign',
   authMiddleware,
@@ -162,6 +194,7 @@ router.delete(
   authorizeProjectRoles("Producer", "LineProducer", "Accountant"),
   deleteCampaignEvent
 );
+
 
 // ==================== REPORTS & ANALYTICS ====================
 
