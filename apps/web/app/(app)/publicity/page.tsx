@@ -173,7 +173,12 @@ export default function PublicityPage() {
       setLoading(false);
     }
   };
-
+const formatPercentage = (value: number | null | undefined): string => {
+  if (value === null || value === undefined || isNaN(value)) {
+    return "0.0";
+  }
+  return value.toFixed(1);
+};
   const formatCurrency = (amount: number) => {
     const currency = selectedProject?.baseCurrency || "USD";
     return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount);
@@ -243,7 +248,7 @@ export default function PublicityPage() {
       doc.text(`Total Budget: ${formatCurrency(summary.totalBudget)}`, 16, 59);
       doc.text(`Total Spent: ${formatCurrency(summary.totalSpent)}`, 16, 66);
       doc.text(`Remaining: ${formatCurrency(summary.remaining)}`, 16, 73);
-      doc.text(`Completion: ${summary.completionPercentage.toFixed(1)}%`, 120, 59);
+      doc.text(`Completion: ${formatPercentage(summary.completionPercentage)}%`, 120, 59);
     }
 
     // Budgets Table
@@ -425,7 +430,7 @@ export default function PublicityPage() {
                   <p className="text-sm text-gray-600">Completion</p>
                 </div>
                 <p className="text-2xl font-bold text-green-600">
-                  {summary.completionPercentage.toFixed(1)}%
+                  {formatPercentage(summary.completionPercentage)}%
                 </p>
               </div>
             </div>
