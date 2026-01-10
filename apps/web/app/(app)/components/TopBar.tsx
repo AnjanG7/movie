@@ -68,21 +68,21 @@ export default function TopBar() {
       .toUpperCase() || "";
 
   return (
-    <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
+    <div className="h-14 sm:h-16 bg-white border-b border-gray-200 flex items-center justify-between px-3 sm:px-4 md:px-6">
       {/* Left side - Search */}
-      <div className="flex items-center flex-1 max-w-xl">
+      <div className="flex items-center flex-1 ms-12 max-w-xs sm:max-w-md lg:max-w-xl">
         <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search projects, investors..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Search..."
+            className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
       </div>
 
       {/* Right side - Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2">
         {/* Settings */}
         <div className="relative" ref={settingsRef}>
           <button
@@ -91,9 +91,9 @@ export default function TopBar() {
               setShowNotifications(false);
               setShowUserMenu(false);
             }}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <Settings className="w-5 h-5 text-gray-600" />
+            <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
           </button>
 
           {showSettings && <SettingsPanel />}
@@ -107,9 +107,10 @@ export default function TopBar() {
               setShowNotifications(false);
               setShowSettings(false);
             }}
-            className="flex items-center gap-3 pl-4 ml-2 border-l border-gray-200 hover:bg-gray-50 rounded-r-lg transition-colors py-1 pr-2"
+            className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-4 ml-1 sm:ml-2 border-l border-gray-200 hover:bg-gray-50 rounded-r-lg transition-colors py-1 pr-1 sm:pr-2"
           >
-            <div className="text-right">
+            {/* User info - hidden on very small screens */}
+            <div className="text-right hidden md:block">
               <p className="text-sm font-medium text-gray-900">
                 {user?.name || "User"}
               </p>
@@ -117,35 +118,40 @@ export default function TopBar() {
                 {user?.role || "Role Not Found "}
               </p>
             </div>
-            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
+            {/* Avatar */}
+            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm">
               {user ? getInitials(user.name) : "U"}
             </div>
           </button>
 
           {/* User Dropdown Menu */}
           {showUserMenu && (
-            <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
+            <div className="absolute right-0 mt-2 w-56 sm:w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
               {/* User Info */}
-              <div className="px-4 py-3 border-b border-gray-100">
-                <p className="font-semibold text-gray-900">{user?.name}</p>
-                <p className="text-sm text-gray-500">{user?.email}</p>
+              <div className="px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-100">
+                <p className="font-semibold text-sm sm:text-base text-gray-900 truncate">
+                  {user?.name}
+                </p>
+                <p className="text-xs sm:text-sm text-gray-500 truncate">
+                  {user?.email}
+                </p>
               </div>
 
               {/* Menu Items */}
               <div className="py-2">
                 <button
                   onClick={() => router.push("/profile")}
-                  className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-3 sm:px-4 py-2 hover:bg-gray-50 transition-colors text-left"
                 >
-                  <User className="w-4 h-4 text-gray-600" />
+                  <User className="w-4 h-4 text-gray-600 flex-shrink-0" />
                   <span className="text-sm text-gray-700">My Profile</span>
                 </button>
 
                 <button
                   onClick={() => router.push("/settings")}
-                  className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-3 sm:px-4 py-2 hover:bg-gray-50 transition-colors text-left"
                 >
-                  <Settings className="w-4 h-4 text-gray-600" />
+                  <Settings className="w-4 h-4 text-gray-600 flex-shrink-0" />
                   <span className="text-sm text-gray-700">
                     Account Settings
                   </span>
@@ -153,9 +159,9 @@ export default function TopBar() {
 
                 <button
                   onClick={() => router.push("/help")}
-                  className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-3 sm:px-4 py-2 hover:bg-gray-50 transition-colors text-left"
                 >
-                  <HelpCircle className="w-4 h-4 text-gray-600" />
+                  <HelpCircle className="w-4 h-4 text-gray-600 flex-shrink-0" />
                   <span className="text-sm text-gray-700">Help & Support</span>
                 </button>
               </div>
@@ -164,9 +170,9 @@ export default function TopBar() {
               <div className="border-t border-gray-100 pt-2">
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-2 hover:bg-red-50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-3 sm:px-4 py-2 hover:bg-red-50 transition-colors text-left"
                 >
-                  <LogOut className="w-4 h-4 text-red-600" />
+                  <LogOut className="w-4 h-4 text-red-600 flex-shrink-0" />
                   <span className="text-sm text-red-600 font-medium">
                     Sign Out
                   </span>
