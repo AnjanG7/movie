@@ -38,6 +38,7 @@ export class PublicityService {
         category,
         description: description || null,
         budgetAmount: parseFloat(budgetAmount),
+        actualAmount: data.actualAmount ? parseFloat(data.actualAmount) : 0,
         vendor: vendor || null,
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
@@ -190,6 +191,7 @@ export class PublicityService {
     if (data.category !== undefined) updateData.category = data.category;
     if (data.description !== undefined) updateData.description = data.description;
     if (data.budgetAmount !== undefined) updateData.budgetAmount = parseFloat(data.budgetAmount);
+    if (data.actualAmount !== undefined) updateData.actualAmount = parseFloat(data.actualAmount);
     if (data.vendor !== undefined) updateData.vendor = data.vendor;
     if (data.startDate !== undefined) updateData.startDate = data.startDate ? new Date(data.startDate) : null;
     if (data.endDate !== undefined) updateData.endDate = data.endDate ? new Date(data.endDate) : null;

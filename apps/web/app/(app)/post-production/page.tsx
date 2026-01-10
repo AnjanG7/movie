@@ -297,14 +297,14 @@ export default function PostProductionPage() {
       setSubmitting(true);
       const response = await updateROIWithPostProduction(selectedProject.id);
       if (response.success) {
-        alert("ROI updated successfully!");
+        alert("Spent updated successfully!");
         console.log("Updated metrics:", response.data);
       } else {
-        throw new Error(response.message || "Failed to update ROI");
+        throw new Error(response.message || "Failed to update Spent");
       }
     } catch (err: any) {
-      console.error("Error updating ROI:", err);
-      alert(err.message || "Failed to update ROI");
+      console.error("Error updating Spent:", err);
+      alert(err.message || "Failed to update Spent");
     } finally {
       setSubmitting(false);
     }
@@ -538,7 +538,7 @@ export default function PostProductionPage() {
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               <TrendingUp className="w-5 h-5" />
-              {submitting ? "Updating..." : "Update ROI"}
+              {submitting ? "Updating..." : "Update Spent"}
             </button>
           </div>
 
@@ -586,7 +586,7 @@ export default function PostProductionPage() {
                   <div className="p-2 bg-purple-100 rounded-lg">
                     <TrendingUp className="w-5 h-5 text-purple-600" />
                   </div>
-                  <p className="text-sm text-gray-600">Completion</p>
+                  <p className="text-sm text-gray-600">Spent</p>
                 </div>
                 <p className="text-2xl font-bold text-green-600">
                   {forecast.summary.completionPercentage.toFixed(1)}%
