@@ -2,11 +2,17 @@ import dayjs from "dayjs";
 import prisma from "../../utils/prismaClient.js";
 
 // ---------- helper functions ----------
-function percentChange(current, previous) {
-  if (previous === 0) return 0;
-  return Math.round(((current - previous) / previous) * 100);
-}
+function gradualGrowth(current, previous) {
+  const diff = current - previous;
 
+
+  let growth = diff * 5;
+
+  
+  growth = Math.max(-100, Math.min(100, growth));
+
+  return growth;
+}
 // ---------- controller project stats ----------
 export async function getDashboardProjectStats(req, res) {
   try {
@@ -35,7 +41,7 @@ export async function getDashboardProjectStats(req, res) {
     res.json({
       totalProjects: {
         value: totalThisMonth,
-        change: percentChange(totalThisMonth, totalLastMonth),
+        change: gradualGrowth(totalThisMonth, totalLastMonth),
       },
     });
   } catch (error) {
