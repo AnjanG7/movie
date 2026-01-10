@@ -48,6 +48,9 @@ export default function DashboardPage() {
   const [projectChange, setProjectChange] = useState(0);
   const [userChange, setUserChange] = useState(0);
   const [userCount, setUserCount] = useState(0);
+  const [activeProjects, setActiveProjects] = useState(0);
+  const [activeProjectsChange, setActiveProjectsChange] = useState(0);
+
   const [projectSummary, setProjectSummary] = useState<ProjectSummaryItem[]>(
     []
   );
@@ -73,6 +76,28 @@ export default function DashboardPage() {
       }
     };
     fetchUserCount();
+  }, []);
+
+  useEffect(() => {
+    const fetchActiveProjects = async () => {
+      try {
+        const res = await fetch(
+          `https://film-finance-app.onrender.com/api/projects/active`,
+          {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+          }
+        );
+        if (!res.ok) throw new Error("Failed to fetch active project count");
+        const result = await res.json();
+        setActiveProjects(result?.data?.total || 0);
+      } catch (err) {
+        console.error(err);
+        setActiveProjects(0);
+      }
+    };
+    fetchActiveProjects();
   }, []);
 
   // Fetch projects, investors, phases
@@ -193,6 +218,28 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchActiveProjectStats = async () => {
+    try {
+      const response = await fetch(
+        `https://film-finance-app.onrender.com/api/dashboard/activeProjectStats`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+
+      const result = await response.json();
+
+      return result;
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+      return 0;
+    }
+  };
+
   useEffect(() => {
     const loadProjectStats = async () => {
       const data = await fetchProjectStats();
@@ -213,6 +260,16 @@ export default function DashboardPage() {
     loadUserStats();
   }, []);
 
+  useEffect(() => {
+    const loadActiveProjectStats = async () => {
+      const data = await fetchActiveProjectStats();
+
+      setActiveProjectsChange(data?.totalActiveProjects?.change ?? 0);
+    };
+
+    loadActiveProjectStats();
+  }, []);
+
   if (loading && projects.length === 0) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -222,14 +279,16 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+          Dashboard
+        </h1>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mb-4 md:mb-8">
         <StatsCard
           title="Total Projects"
           value={stats?.totalProjects || 0}
@@ -254,8 +313,8 @@ export default function DashboardPage() {
         )}
         <StatsCard
           title="Active Projects"
-          value={stats?.activeProjects || 0}
-          change={8}
+          value={activeProjects}
+          change={activeProjectsChange}
           showChange={isAdmin}
           icon={TrendingUp}
           iconColor="text-green-600"
@@ -273,7 +332,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <div className="lg:col-span-2">
           {budgetData.length > 0 && (
             <BudgetChart data={budgetData} budgetOverview={budgetOverview} />
@@ -286,32 +345,37 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Projects */}
-      <div className="bg-white rounded-xl p-6 border border-gray-200">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-bold text-gray-900">Recent Projects</h3>
+      <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h3 className="text-base sm:text-lg font-bold text-gray-900">
+            Recent Projects
+          </h3>
           <Link
             href="/projects"
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
+            className="flex items-center gap-1 sm:gap-2 text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium transition-colors"
           >
-            View All
-            <ArrowRight className="w-4 h-4" />
+            <span className="hidden xs:inline">View All</span>
+            <span className="inline xs:hidden">All</span>
+            <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
           </Link>
         </div>
 
         {projects.length === 0 ? (
-          <div className="text-center py-12">
-            <Film className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-600 mb-4">No projects yet</p>
+          <div className="text-center py-8 sm:py-12">
+            <Film className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-3 sm:mb-4" />
+            <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">
+              No projects yet
+            </p>
             <Link
               href="/projects"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white text-sm sm:text-base rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Film className="w-4 h-4" />
               Create First Project
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {projects.slice(0, 6).map((project) => (
               <ProjectCard key={project.id} project={project} />
             ))}
