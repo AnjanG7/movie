@@ -451,7 +451,7 @@ export default function TeamManagementPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
                 Team Management
               </h1>
               <p className="text-gray-600">
@@ -460,7 +460,7 @@ export default function TeamManagementPage() {
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl"
+              className="flex items-center gap-2 px-6 py-3 text-xs md:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl"
             >
               <UserPlus className="w-5 h-5" />
               Create New User
@@ -612,7 +612,8 @@ export default function TeamManagementPage() {
         {/* Users List */}
         <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            {/* Desktop Table View */}
+            <table className="w-full hidden md:table">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -811,6 +812,183 @@ export default function TeamManagementPage() {
                 })}
               </tbody>
             </table>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-gray-200">
+              {filteredUsers.map((user) => {
+                const userProjects = getUserProjects(user.id);
+
+                return (
+                  <div
+                    key={user.id}
+                    className="p-4 hover:bg-gray-50 transition-colors"
+                  >
+                    {/* User Info */}
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
+                        {user.name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-base font-semibold text-gray-900 mb-1 break-words">
+                          {user.name}
+                        </div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          <span className="text-sm text-gray-600 break-all">
+                            {user.email}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                            {getRoleName(user.role)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Assigned Projects */}
+                    <div className="mb-4">
+                      <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
+                        Assigned Projects
+                      </div>
+                      {userProjects.length > 0 ? (
+                        <div className="flex flex-col gap-2">
+                          {userProjects.map((project) => {
+                            const projectRole = getUserProjectRole(
+                              user.id,
+                              project.id
+                            );
+                            const isEditing =
+                              editingUserProject?.userId === user.id &&
+                              editingUserProject?.projectId === project.id;
+
+                            return (
+                              <div
+                                key={project.id}
+                                className="bg-gray-50 p-3 rounded border border-gray-200"
+                              >
+                                <div className="flex items-start gap-2 mb-2">
+                                  <Briefcase className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                                  <span className="text-sm font-medium text-gray-900 flex-1 break-words">
+                                    {project.title}
+                                  </span>
+                                </div>
+
+                                {isEditing ? (
+                                  <div className="flex flex-col gap-2 mt-2">
+                                    <select
+                                      value={editingRole}
+                                      onChange={(e) =>
+                                        setEditingRole(e.target.value)
+                                      }
+                                      className="w-full px-2 py-1 border border-blue-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {AVAILABLE_ROLES.map((role) => (
+                                        <option key={role} value={role}>
+                                          {role}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() =>
+                                          handleUpdateProjectRole(
+                                            user.id,
+                                            project.id
+                                          )
+                                        }
+                                        className="flex-1 px-3 py-2 bg-green-600 text-white rounded text-xs hover:bg-green-700 flex items-center justify-center gap-1"
+                                      >
+                                        <Save className="w-3 h-3" />
+                                        Save
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setEditingUserProject(null);
+                                          setEditingRole("");
+                                        }}
+                                        className="flex-1 px-3 py-2 bg-gray-300 text-gray-700 rounded text-xs hover:bg-gray-400"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-between gap-2">
+                                    <button
+                                      onClick={() => {
+                                        setEditingUserProject({
+                                          userId: user.id,
+                                          projectId: project.id,
+                                        });
+                                        setEditingRole(projectRole || "Admin");
+                                      }}
+                                      className="text-xs font-medium text-green-700 bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200 transition-colors"
+                                      title="Click to change role"
+                                    >
+                                      {projectRole || "No Role"}
+                                    </button>
+
+                                    {projectRole && (
+                                      <div className="flex items-center gap-1">
+                                        <button
+                                          onClick={() => {
+                                            setEditingUserProject({
+                                              userId: user.id,
+                                              projectId: project.id,
+                                            });
+                                            setEditingRole(projectRole);
+                                          }}
+                                          className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                          title="Edit role"
+                                        >
+                                          <Edit2 className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            handleRemoveFromProject(
+                                              user.id,
+                                              project.id
+                                            )
+                                          }
+                                          className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                          title="Remove from project"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400 italic">
+                          Not assigned
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Action Button */}
+                    <button
+                      onClick={() => {
+                        setSelectedUserId(user.id);
+                        setShowAssignModal(true);
+                      }}
+                      className="w-full px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      {userProjects.length > 0
+                        ? "Add to Project"
+                        : "Assign to Project"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
 
             {filteredUsers.length === 0 && (
               <div className="text-center py-16">
