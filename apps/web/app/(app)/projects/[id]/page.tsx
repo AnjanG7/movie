@@ -927,14 +927,14 @@ export default function ProjectProfilePage() {
       </div>
 
       {/* Project Header Card */}
-      <div className="bg-white rounded-xl border border-gray-200 p-8 mb-6">
-        <div className="flex items-start justify-between mb-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-8 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 gap-4">
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-blue-100 rounded-lg">
+            <div className="p-3 bg-blue-100 rounded-lg flex-shrink-0">
               <Film className="w-8 h-8 text-blue-600" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 break-words">
                 {project.title}
               </h1>
               <div className="flex items-center gap-3">
@@ -947,74 +947,77 @@ export default function ProjectProfilePage() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <button
               onClick={downloadProjectPDF}
               disabled={downloadingPDF}
-              className="flex items-center gap-2 px-4 py-2 text-green-600 bg-green-50 hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 text-green-600 bg-green-50 hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors text-sm sm:text-base whitespace-nowrap"
             >
               <Download className="w-4 h-4" />
-              {downloadingPDF ? "Generating..." : "Download PDF"}
+              <span className="hidden sm:inline">
+                {downloadingPDF ? "Generating..." : "Download PDF"}
+              </span>
+              <span className="sm:hidden">PDF</span>
             </button>
             <button
               onClick={() => setShowEditModal(true)}
-              className="flex items-center gap-2 px-4 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-sm sm:text-base whitespace-nowrap"
             >
               <Edit className="w-4 h-4" />
-              Edit
+              <span className="hidden sm:inline">Edit</span>
             </button>
             <button
               onClick={() => setShowDeleteModal(true)}
-              className="flex items-center gap-2 px-4 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors text-sm sm:text-base whitespace-nowrap"
             >
               <Trash2 className="w-4 h-4" />
-              Delete
+              <span className="hidden sm:inline">Delete</span>
             </button>
           </div>
         </div>
 
         {/* Key Information Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
+            <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
               <DollarSign className="w-5 h-5 text-green-600" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-gray-600 mb-1">Current Phase</p>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-base sm:text-lg font-semibold text-gray-900 break-words">
                 {project.currentPhase}
               </p>
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
+            <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
               <DollarSign className="w-5 h-5 text-green-600" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-gray-600 mb-1">Base Currency</p>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-base sm:text-lg font-semibold text-gray-900 break-words">
                 {project.baseCurrency}
               </p>
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-purple-100 rounded-lg">
+            <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
               <Clock className="w-5 h-5 text-purple-600" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-gray-600 mb-1">Timezone</p>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-base sm:text-lg font-semibold text-gray-900 break-words">
                 {project.timezone}
               </p>
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
+            <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
               <Calendar className="w-5 h-5 text-blue-600" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-gray-600 mb-1">Created</p>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-base sm:text-lg font-semibold text-gray-900 break-words">
                 {formatDate(project.createdAt)}
               </p>
             </div>

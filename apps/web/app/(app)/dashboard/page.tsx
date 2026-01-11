@@ -333,7 +333,7 @@ export default function DashboardPage() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-        <div className="lg:col-span-2">
+        <div className="hidden lg:col-span-2">
           {budgetData.length > 0 && (
             <BudgetChart data={budgetData} budgetOverview={budgetOverview} />
           )}
