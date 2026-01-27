@@ -323,7 +323,13 @@ function PurchaseOrdersContent() {
     if (!selectedProjectId) {
       alert("Please select a project first");
       return;
+
+    
+  if (!formData.budgetLineId) {
+    alert("Please select a budget line");
+    return;
     }
+    
 
     try {
       const res = await fetch(
@@ -969,7 +975,7 @@ function PurchaseOrdersContent() {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Budget Line
+                    Budget Line <span className="text-red-500">*</span>
                   </label>
                   <select
                     name="budgetLineId"
