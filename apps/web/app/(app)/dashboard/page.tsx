@@ -60,7 +60,7 @@ export default function DashboardPage() {
     const fetchUserCount = async () => {
       try {
         const res = await fetch(
-          `https://film-finance-app.onrender.com/api/auth/allUsers`,
+          `http://localhost:4000/api/auth/allUsers`,
           {
             method: "GET",
             headers: { "Content-Type": "application/json" },
@@ -82,7 +82,7 @@ export default function DashboardPage() {
     const fetchActiveProjects = async () => {
       try {
         const res = await fetch(
-          `https://film-finance-app.onrender.com/api/projects/active`,
+          `http://localhost:4000/api/projects/active`,
           {
             method: "GET",
             headers: { "Content-Type": "application/json" },
@@ -112,7 +112,7 @@ export default function DashboardPage() {
     const fetchSummary = async () => {
       try {
         const res = await fetch(
-          "https://film-finance-app.onrender.com/api/projects/summary",
+          "http://localhost:4000/api/projects/summary",
           {
             method: "GET",
             headers: { "Content-Type": "application/json" },
@@ -134,7 +134,7 @@ export default function DashboardPage() {
     const fetchBudgetOverview = async () => {
       try {
         const res = await fetch(
-          "https://film-finance-app.onrender.com/api/dashboard/overview",
+          "http://localhost:4000/api/dashboard/overview",
           {
             method: "GET",
             headers: { "Content-Type": "application/json" },
@@ -178,7 +178,7 @@ export default function DashboardPage() {
   const fetchProjectStats = async () => {
     try {
       const response = await fetch(
-        `https://film-finance-app.onrender.com/api/dashboard/projectStats`,
+        `http://localhost:4000/api/dashboard/projectStats`,
         {
           method: "GET",
           headers: { "Content-Type": "application/json" },
@@ -199,7 +199,7 @@ export default function DashboardPage() {
   const fetchUserStats = async () => {
     try {
       const response = await fetch(
-        `https://film-finance-app.onrender.com/api/dashboard/userStats`,
+        `http://localhost:4000/api/dashboard/userStats`,
         {
           method: "GET",
           headers: { "Content-Type": "application/json" },
@@ -221,7 +221,7 @@ export default function DashboardPage() {
   const fetchActiveProjectStats = async () => {
     try {
       const response = await fetch(
-        `https://film-finance-app.onrender.com/api/dashboard/activeProjectStats`,
+        `http://localhost:4000/api/dashboard/activeProjectStats`,
         {
           method: "GET",
           headers: { "Content-Type": "application/json" },

@@ -6,7 +6,7 @@ import { Film, Plus, Search, Filter, X } from "lucide-react";
 import { Project } from "../lib/types";
 import { useStore } from "../lib/store";
 
-const API_BASE_URL = "https://film-finance-app.onrender.com/api";
+const API_BASE_URL = "http://localhost:4000/api";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);

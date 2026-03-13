@@ -1,3 +1,5 @@
+
+
 "use client";
 
 import React, {
@@ -6,6 +8,7 @@ import React, {
   FormEvent,
   ChangeEvent,
   Suspense,
+  JSX,
 } from "react";
 import { useSearchParams } from "next/navigation";
 import jsPDF from "jspdf";
@@ -25,7 +28,7 @@ import {
 } from "lucide-react";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://film-finance-app.onrender.com/api";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 /* ===================== TYPES ===================== */
 
@@ -84,7 +87,7 @@ interface POFormData {
 
 /* ===================== COMPONENT ===================== */
 
-function PurchaseOrdersContent() {
+function PurchaseOrdersContent(){
   const searchParams = useSearchParams();
   const projectIdParam = searchParams.get("projectId");
 
@@ -1050,14 +1053,12 @@ function PurchaseOrdersContent() {
       </div>
     </div>
   );
-}
-
+  }}
 /* ===================== PAGE ===================== */
 
 export default function PurchaseOrdersPage() {
   return (
-    <Suspense fallback={<p>Loading…</p>}>
+    <Suspense fallback={<p>Loading...</p>}>
       <PurchaseOrdersContent />
     </Suspense>
-  );
-}
+  );}

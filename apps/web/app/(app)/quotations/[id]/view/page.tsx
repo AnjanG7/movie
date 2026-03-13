@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 
-const API_BASE_URL = "https://film-finance-app.onrender.com/api";
+const API_BASE_URL = "http://localhost:4000/api";
 
 interface Quotation {
   id: string;

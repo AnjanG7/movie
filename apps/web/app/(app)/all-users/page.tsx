@@ -54,7 +54,7 @@ export default function AdminUsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`https://film-finance-app.onrender.com/api/auth/allUsers`, {
+      const response = await fetch(`http://localhost:4000/api/auth/allUsers`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -76,7 +76,7 @@ export default function AdminUsersPage() {
   const handleDeleteUser = async (userId: string) => {
     try {
       const response = await fetch(
-        `https://film-finance-app.onrender.com/api/auth/delete/${userId}`,
+        `http://localhost:4000/api/auth/delete/${userId}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -113,7 +113,7 @@ export default function AdminUsersPage() {
     setCreateLoading(true);
 
     try {
-      const response = await fetch("https://film-finance-app.onrender.com/api/auth/add-user", {
+      const response = await fetch("http://localhost:4000/api/auth/add-user", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

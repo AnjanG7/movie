@@ -6,7 +6,7 @@ import { Plus, Pencil, Trash2, Building2, X, Save } from "lucide-react";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://film-finance-app.onrender.com/api";
+  "http://localhost:4000/api";
 
 interface Project {
   id: string;

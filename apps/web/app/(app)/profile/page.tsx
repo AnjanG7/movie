@@ -42,7 +42,7 @@ export default function ProfilePage() {
     try {
       // API call to update profile
       const response = await fetch(
-        "https://film-finance-app.onrender.com/api/auth/profile",
+        "http://localhost:4000/api/auth/profile",
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

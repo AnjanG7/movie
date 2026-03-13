@@ -1,4 +1,4 @@
-const BASE_URL = "https://film-finance-app.onrender.com/api/auth";
+const BASE_URL = "http://localhost:4000/api/auth";
 
 export async function fetchUsersApi() {
   const res = await fetch(`${BASE_URL}/allUsers`, {
