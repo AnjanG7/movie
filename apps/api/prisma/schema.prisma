@@ -162,6 +162,7 @@ model Project {
   campaignEvents       CampaignEvent[]
   vendors              Vendor[]
   invoices             Invoice[]
+  expenses             Expense[]
 }
 
 model ProjectUser {
@@ -226,6 +227,7 @@ model BudgetLineItem {
   name            String
   qty             Int       @default(1)
   rate            Float
+  days            String?
   taxPercent      Float?    @default(0)
   vendor          String?
   notes           String?
@@ -626,4 +628,26 @@ model CampaignEvent {
   @@index([projectId])
   @@index([startDate])
   @@index([status])
+}
+
+model Expense {
+  id Int @id @default(autoincrement())
+
+  projectId String
+
+  category String
+  itemName String
+
+  preProduction  Float @default(0)
+  production     Float @default(0)
+  postProduction Float @default(0)
+
+  totalAmount Float
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
