@@ -631,7 +631,7 @@ model CampaignEvent {
 }
 
 model Expense {
-  id Int @id @default(autoincrement())
+  id String @id @default(uuid())
 
   projectId String
 

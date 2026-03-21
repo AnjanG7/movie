@@ -41,87 +41,10 @@ async function main() {
     console.log('   📧 Email: admin@filmfinance.com');
     console.log('   🔑 Password: Admin123!');
 
-    // ================== 3. CREATE SAMPLE PROJECT ==================
-    console.log('\n🎬 Creating sample project...');
-    const sampleProject = await prisma.project.create({
-      data: {
-        title: 'Himalayan Dreams',
-        baseCurrency: 'NPR',
-        timezone: 'Asia/Kathmandu',
-        status: 'planning',
-        ownerId: adminUser.id,
-      },
-    });
-    console.log(`   ✅ Project created: ${sampleProject.title}`);
+   
 
-    // ================== 4. CREATE PHASES ==================
-    console.log('\n📅 Creating project phases...');
-    const phases = [
-      { name: 'DEVELOPMENT', orderNo: 1 },
-      { name: 'PRODUCTION', orderNo: 2 },
-      { name: 'POST', orderNo: 3 },
-      { name: 'PUBLICITY', orderNo: 4 },
-    ];
 
-    for (const phase of phases) {
-      await prisma.phaseEntity.create({
-        data: {
-          ...phase,
-          projectId: sampleProject.id,
-        },
-      });
-      console.log(`   ✅ ${phase.name}`);
-    }
-
-    // ================== 5. CREATE SAMPLE BUDGET ==================
-    console.log('\n💰 Creating sample budget...');
-    const budgetVersion = await prisma.budgetVersion.create({
-      data: {
-        projectId: sampleProject.id,
-        version: 'v1.0',
-        type: 'QUOTE',
-        createdBy: adminUser.id,
-        grandTotal: 50000,
-        lines: {
-          create: [
-            {
-              phase: 'DEVELOPMENT',
-              department: 'Script',
-              name: 'Script Writer Fee',
-              qty: 1,
-              rate: 5000,
-              taxPercent: 10,
-            },
-            {
-              phase: 'PRODUCTION',
-              department: 'Camera',
-              name: 'Camera Equipment Rental',
-              qty: 30,
-              rate: 150,
-              taxPercent: 13,
-            },
-            {
-              phase: 'POST',
-              department: 'Editing',
-              name: 'Editor Fee',
-              qty: 1,
-              rate: 3000,
-              taxPercent: 0,
-            },
-            {
-              phase: 'PUBLICITY',
-              department: 'Marketing',
-              name: 'Trailer Production',
-              qty: 1,
-              rate: 8000,
-              taxPercent: 13,
-            },
-          ],
-        },
-      },
-    });
-    console.log(`   ✅ Budget version created: ${budgetVersion.version}`);
-
+   
 
 
 
