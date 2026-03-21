@@ -17,6 +17,8 @@ import {
   Video,
   Megaphone,
   UserCog,
+  CreditCard
+
 } from "lucide-react";
 
 const menuItems = [
@@ -39,8 +41,9 @@ const menuItems = [
   { icon: Wallet, label: "Payments", href: "/payments" },
   { icon: Receipt, label: "Scheduled Payments", href: "/scheduled-payments" },
   { icon: TrendingUp, label: "Budget Variance", href: "/budget-variance" },
+    { icon: CreditCard, label: "Expenses", href: "/expenses" },
   { section: "Production" },
-  { icon: Video, label: "Post Production", href: "/post-production" }, // ✅ Added
+  { icon: Video, label: "Post Production", href: "/post-production" }, 
   { icon: Megaphone, label: "Publicity & P&A", href: "/publicity" },
 ];
 
