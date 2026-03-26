@@ -227,7 +227,7 @@ model BudgetLineItem {
   name            String
   qty             Int       @default(1)
   rate            Float
-  days            String?
+  days            Float?
   taxPercent      Float?    @default(0)
   vendor          String?
   notes           String?
