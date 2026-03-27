@@ -22,6 +22,8 @@ export interface BudgetLine {
   department: string | null;
   name: string;
   qty: number;
+    days: string | null;
+
   rate: number;
   taxPercent: number;
   createdAt: string;
@@ -45,6 +47,8 @@ export interface LineFormData {
   name: string;
   qty: number;
   rate: number;
+    days: string | null;
+
   taxPercent: number;
   vendor: string;
   notes: string;
@@ -67,6 +71,7 @@ export function useBudgetService() {
     name: "",
     qty: 1,
     rate: 0,
+       days: "",
     taxPercent: 0,
     vendor: "",
     notes: "",
@@ -199,6 +204,7 @@ export function useBudgetService() {
       name: line.name,
       qty: line.qty,
       rate: line.rate,
+       days: line.days || "",
       taxPercent: line.taxPercent,
       vendor: "",
       notes: "",
@@ -213,6 +219,7 @@ export function useBudgetService() {
       name: "",
       qty: 1,
       rate: 0,
+           days: "",
       taxPercent: 0,
       vendor: "",
       notes: "",
@@ -446,6 +453,7 @@ export function useBudgetService() {
       line.department || "-",
       line.name,
       line.qty.toString(),
+        line.days || "—",
       formatCurrency(line.rate),
       `${line.taxPercent || 0}%`,
       formatCurrency(calculateLineTotal(line)),
@@ -461,6 +469,7 @@ export function useBudgetService() {
           "Dept",
           "Line Item",
           "Qty",
+           "Days",
           "Rate",
           "Tax",
           "Total",
@@ -479,11 +488,13 @@ export function useBudgetService() {
       bodyStyles: { fontSize: 7 },
       columnStyles: {
         3: { halign: "center" },
-        4: { halign: "right" },
-        5: { halign: "center" },
-        6: { halign: "right" },
-        7: { halign: "center" },
+        4: { halign: "center" },
+        5: { halign: "right" },
+        6: { halign: "center" },
+        7: { halign: "right" },
         8: { halign: "center" },
+        9: { halign: "center" },
+       
       },
       margin: { left: 10, right: 10 },
     });
@@ -540,5 +551,6 @@ export function useBudgetService() {
     calculateGrandTotal,
     exportToPDF,
     selectedProject,
+     resetLineForm,
   };
 }

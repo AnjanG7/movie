@@ -24,6 +24,7 @@ interface BudgetLine {
   name: string;
   qty: number;
   rate: number;
+    days: string | null;
   taxPercent: number;
   createdAt: string;
   updatedAt: string;
@@ -46,6 +47,7 @@ interface LineFormData {
   name: string;
   qty: number;
   rate: number;
+    days: string;
   taxPercent: number;
   vendor: string;
   notes: string;
@@ -69,6 +71,7 @@ export default function BudgetPage() {
     name: "",
     qty: 1,
     rate: 0,
+     days: "",
     taxPercent: 0,
     vendor: "",
     notes: "",
@@ -176,6 +179,7 @@ export default function BudgetPage() {
       name: line.name,
       qty: line.qty,
       rate: line.rate,
+         days: line.days || "",
       taxPercent: line.taxPercent,
       vendor: "",
       notes: "",
@@ -216,6 +220,7 @@ export default function BudgetPage() {
       name: "",
       qty: 1,
       rate: 0,
+          days: "",
       taxPercent: 0,
       vendor: "",
       notes: "",
@@ -449,6 +454,7 @@ export default function BudgetPage() {
       line.department || "-",
       line.name,
       line.qty.toString(),
+      line.days || "—",
       formatCurrency(line.rate),
       `${line.taxPercent || 0}%`,
       formatCurrency(calculateLineTotal(line)),
@@ -464,7 +470,8 @@ export default function BudgetPage() {
           "Dept",
           "Line Item",
           "Qty",
-          "Rate",
+          "Rate", 
+             "Days",
           "Tax",
           "Total",
           "Created",
@@ -482,11 +489,12 @@ export default function BudgetPage() {
       bodyStyles: { fontSize: 7 },
       columnStyles: {
         3: { halign: "center" },
-        4: { halign: "right" },
-        5: { halign: "center" },
-        6: { halign: "right" },
-        7: { halign: "center" },
+     4: { halign: "center" },
+        5: { halign: "right" },
+        6: { halign: "center" },
+        7: { halign: "right" },
         8: { halign: "center" },
+        9: { halign: "center" },
       },
       margin: { left: 10, right: 10 },
     });

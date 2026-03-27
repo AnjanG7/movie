@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import React, {
@@ -87,7 +85,7 @@ interface POFormData {
 
 /* ===================== COMPONENT ===================== */
 
-function PurchaseOrdersContent(){
+function PurchaseOrdersContent() {
   const searchParams = useSearchParams();
   const projectIdParam = searchParams.get("projectId");
 
@@ -323,16 +321,16 @@ function PurchaseOrdersContent(){
 
   const handleCreatePO = async (e: FormEvent, retryCount = 0) => {
     e.preventDefault();
+
     if (!selectedProjectId) {
       alert("Please select a project first");
       return;
-
-    
-  if (!formData.budgetLineId) {
-    alert("Please select a budget line");
-    return;
     }
-    
+
+    if (!formData.budgetLineId) {
+      alert("Please select a budget line");
+      return;
+    }
 
     try {
       const res = await fetch(
@@ -712,7 +710,7 @@ function PurchaseOrdersContent(){
                                 Amount
                               </div>
                               <div className="font-bold text-slate-900 text-base">
-                                {po.vendor?.currency} {' '}
+                                {po.vendor?.currency}{" "}
                                 {po.amount.toLocaleString()}
                               </div>
                             </div>
@@ -843,7 +841,7 @@ function PurchaseOrdersContent(){
                                       Order Amount:
                                     </span>
                                     <span className="font-bold text-lg text-slate-900">
-                                       {po.vendor?.currency} {' '}
+                                      {po.vendor?.currency}{" "}
                                       {po.amount.toLocaleString()}
                                     </span>
                                   </div>
@@ -1053,7 +1051,8 @@ function PurchaseOrdersContent(){
       </div>
     </div>
   );
-  }}
+}
+
 /* ===================== PAGE ===================== */
 
 export default function PurchaseOrdersPage() {
@@ -1061,4 +1060,5 @@ export default function PurchaseOrdersPage() {
     <Suspense fallback={<p>Loading...</p>}>
       <PurchaseOrdersContent />
     </Suspense>
-  );}
+  );
+}
