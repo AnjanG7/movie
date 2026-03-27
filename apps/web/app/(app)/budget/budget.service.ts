@@ -7,7 +7,8 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://movie-finance.onrender.com/api";
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://movie-finance.onrender.com/api";
 
 export interface Project {
   id: string;
@@ -21,9 +22,8 @@ export interface BudgetLine {
   department: string | null;
   name: string;
   qty: number;
-  days: number;
-
   rate: number;
+  days: number | null;
   taxPercent: number;
   createdAt: string;
   updatedAt: string;
@@ -46,19 +46,19 @@ export interface LineFormData {
   name: string;
   qty: number;
   rate: number;
-  days: number;
-
+  days: number | null;
   taxPercent: number;
   vendor: string;
   notes: string;
 }
+
 export function useBudgetService() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [budgetVersions, setBudgetVersions] = useState<BudgetVersion[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<BudgetVersion | null>(
-    null,
+    null
   );
   const [loading, setLoading] = useState(false);
   const [showAddLineModal, setShowAddLineModal] = useState(false);
@@ -70,7 +70,7 @@ export function useBudgetService() {
     name: "",
     qty: 1,
     rate: 0,
-    days: 1,
+    days: null,
     taxPercent: 0,
     vendor: "",
     notes: "",
@@ -96,7 +96,7 @@ export function useBudgetService() {
         {
           method: "DELETE",
           credentials: "include",
-        },
+        }
       );
 
       const result = await response.json();
@@ -111,6 +111,7 @@ export function useBudgetService() {
       alert("Failed to delete line");
     }
   };
+
   const fetchProjects = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/projects?limit=1000`, {
@@ -137,14 +138,14 @@ export function useBudgetService() {
     try {
       const response = await fetch(
         `${API_BASE_URL}/projects/${selectedProjectId}/budget`,
-        { credentials: "include" },
+        { credentials: "include" }
       );
       const result = await response.json();
       if (result.success) {
         const versions: BudgetVersion[] = result.data.versions || [];
         setBudgetVersions(versions);
         const workingBudget = versions.find(
-          (v: BudgetVersion) => v.type === "WORKING",
+          (v: BudgetVersion) => v.type === "WORKING"
         );
         setSelectedVersion(workingBudget || versions[0] || null);
       }
@@ -180,7 +181,7 @@ export function useBudgetService() {
       const result = await response.json();
       if (result.success) {
         alert(
-          editingLine ? "Line updated successfully" : "Line added successfully",
+          editingLine ? "Line updated successfully" : "Line added successfully"
         );
         setShowAddLineModal(false);
         setEditingLine(null);
@@ -203,7 +204,7 @@ export function useBudgetService() {
       name: line.name,
       qty: line.qty,
       rate: line.rate,
-      days: line.days || 0,
+      days: line.days ?? null,
       taxPercent: line.taxPercent,
       vendor: "",
       notes: "",
@@ -218,7 +219,7 @@ export function useBudgetService() {
       name: "",
       qty: 1,
       rate: 0,
-      days: 1,
+      days: null,
       taxPercent: 0,
       vendor: "",
       notes: "",
@@ -248,7 +249,8 @@ export function useBudgetService() {
   };
 
   const calculateLineTotal = (line: BudgetLine) => {
-    return line.qty * line.rate * (1 + line.taxPercent / 100);
+    const days = line.days ?? 1;
+    return line.qty * line.rate * days * (1 + line.taxPercent / 100);
   };
 
   const calculateTotalsByPhase = () => {
@@ -269,7 +271,7 @@ export function useBudgetService() {
     if (!selectedVersion) return 0;
     return selectedVersion.lines.reduce(
       (sum, line) => sum + calculateLineTotal(line),
-      0,
+      0
     );
   };
 
@@ -283,13 +285,18 @@ export function useBudgetService() {
   };
 
   const handleLineFieldChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     if (name === "qty" || name === "rate" || name === "taxPercent") {
       setLineFormData((prev) => ({
         ...prev,
         [name]: Number(value),
+      }));
+    } else if (name === "days") {
+      setLineFormData((prev) => ({
+        ...prev,
+        days: value === "" ? null : parseFloat(value),
       }));
     } else {
       setLineFormData((prev) => ({
@@ -340,7 +347,7 @@ export function useBudgetService() {
       `Generated: ${new Date().toLocaleDateString()}`,
       pageWidth - 15,
       22,
-      { align: "right" },
+      { align: "right" }
     );
 
     doc.setTextColor(...colors.text);
@@ -374,7 +381,7 @@ export function useBudgetService() {
     doc.text(
       `${selectedVersion.version} (${selectedVersion.type})`,
       50,
-      yPos + 16,
+      yPos + 16
     );
 
     doc.setFont("helvetica", "normal");
@@ -405,7 +412,7 @@ export function useBudgetService() {
         phase,
         formatCurrency(total),
         `${((total / calculateGrandTotal()) * 100).toFixed(1)}%`,
-      ],
+      ]
     );
 
     autoTable(doc, {
@@ -434,7 +441,6 @@ export function useBudgetService() {
     yPos = (doc as any).lastAutoTable.finalY + 15;
 
     // ===== BUDGET LINES (Detailed) =====
-    // Check if we need a new page
     if (yPos > pageHeight - 100) {
       doc.addPage();
       yPos = 20;
@@ -452,7 +458,7 @@ export function useBudgetService() {
       line.department || "-",
       line.name,
       line.qty.toString(),
-      line.days || "—",
+      line.days != null ? line.days.toString() : "—",
       formatCurrency(line.rate),
       `${line.taxPercent || 0}%`,
       formatCurrency(calculateLineTotal(line)),
@@ -514,7 +520,7 @@ export function useBudgetService() {
         `${project?.title || "Budget"} - ${selectedVersion.version}`,
         pageWidth / 2,
         pageHeight - 8,
-        { align: "center" },
+        { align: "center" }
       );
       doc.text(`Page ${i} of ${pageCount}`, pageWidth - 10, pageHeight - 8, {
         align: "right",

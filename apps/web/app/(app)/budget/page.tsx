@@ -8,8 +8,7 @@ import autoTable from "jspdf-autotable";
 import { Download } from "lucide-react";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://movie-finance.onrender.com/api";
+  process.env.NEXT_PUBLIC_API_URL || "https://movie-finance.onrender.com/api";
 
 interface Project {
   id: string;
@@ -24,7 +23,7 @@ interface BudgetLine {
   name: string;
   qty: number;
   rate: number;
-    days: number;
+  days: number | null;
   taxPercent: number;
   createdAt: string;
   updatedAt: string;
@@ -47,20 +46,49 @@ interface LineFormData {
   name: string;
   qty: number;
   rate: number;
-    days: number;
+  days: number | null;
   taxPercent: number;
   vendor: string;
   notes: string;
 }
+
+const PHASES = ["DEVELOPMENT", "PRODUCTION", "POST", "PUBLICITY"] as const;
+type Phase = (typeof PHASES)[number];
+
+const PHASE_LABELS: Record<Phase, string> = {
+  DEVELOPMENT: "Development",
+  PRODUCTION: "Production",
+  POST: "Post-Production",
+  PUBLICITY: "Publicity",
+};
+
+const PHASE_HEADER_COLORS: Record<Phase, string> = {
+  DEVELOPMENT: "bg-indigo-50 text-indigo-800 border-indigo-200",
+  PRODUCTION: "bg-emerald-50 text-emerald-800 border-emerald-200",
+  POST: "bg-amber-50 text-amber-800 border-amber-200",
+  PUBLICITY: "bg-rose-50 text-rose-800 border-rose-200",
+};
+
+const PHASE_BADGE_COLORS: Record<Phase, string> = {
+  DEVELOPMENT: "bg-indigo-100 text-indigo-700",
+  PRODUCTION: "bg-emerald-100 text-emerald-700",
+  POST: "bg-amber-100 text-amber-700",
+  PUBLICITY: "bg-rose-100 text-rose-700",
+};
+
+const PHASE_PDF_COLORS: Record<Phase, [number, number, number]> = {
+  DEVELOPMENT: [99, 102, 241],
+  PRODUCTION: [16, 185, 129],
+  POST: [245, 158, 11],
+  PUBLICITY: [244, 63, 94],
+};
 
 export default function BudgetPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [budgetVersions, setBudgetVersions] = useState<BudgetVersion[]>([]);
-  const [selectedVersion, setSelectedVersion] = useState<BudgetVersion | null>(
-    null
-  );
+  const [selectedVersion, setSelectedVersion] = useState<BudgetVersion | null>(null);
   const [loading, setLoading] = useState(false);
   const [showAddLineModal, setShowAddLineModal] = useState(false);
   const [editingLine, setEditingLine] = useState<BudgetLine | null>(null);
@@ -71,7 +99,7 @@ export default function BudgetPage() {
     name: "",
     qty: 1,
     rate: 0,
-     days: 1,
+    days: null,
     taxPercent: 0,
     vendor: "",
     notes: "",
@@ -95,7 +123,6 @@ export default function BudgetPage() {
       const result = await response.json();
       if (result.success) {
         setProjects(result.data.projects || []);
-
         const params = new URLSearchParams(window.location.search);
         const projectId = params.get("projectId");
         if (projectId) {
@@ -119,9 +146,7 @@ export default function BudgetPage() {
       if (result.success) {
         const versions: BudgetVersion[] = result.data.versions || [];
         setBudgetVersions(versions);
-        const workingBudget = versions.find(
-          (v: BudgetVersion) => v.type === "WORKING"
-        );
+        const workingBudget = versions.find((v: BudgetVersion) => v.type === "WORKING");
         setSelectedVersion(workingBudget || versions[0] || null);
       }
     } catch (error) {
@@ -133,31 +158,24 @@ export default function BudgetPage() {
 
   const handleAddLine = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     if (!selectedVersion) {
       alert("Please select a budget version first");
       return;
     }
-
     try {
       const endpoint = editingLine
         ? `${API_BASE_URL}/projects/${selectedProjectId}/budget/lines/${editingLine.id}`
         : `${API_BASE_URL}/projects/${selectedProjectId}/budget/${selectedVersion.id}/lines`;
-
       const method = editingLine ? "PUT" : "POST";
-
       const response = await fetch(endpoint, {
         method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(lineFormData),
       });
-
       const result = await response.json();
       if (result.success) {
-        alert(
-          editingLine ? "Line updated successfully" : "Line added successfully"
-        );
+        alert(editingLine ? "Line updated successfully" : "Line added successfully");
         setShowAddLineModal(false);
         setEditingLine(null);
         resetLineForm();
@@ -179,7 +197,7 @@ export default function BudgetPage() {
       name: line.name,
       qty: line.qty,
       rate: line.rate,
-         days: line.days || 0,
+      days: line.days ?? null,
       taxPercent: line.taxPercent,
       vendor: "",
       notes: "",
@@ -190,16 +208,11 @@ export default function BudgetPage() {
   const handleDeleteLine = async (lineId: string) => {
     if (!confirm("Delete this budget line?")) return;
     if (!selectedVersion) return;
-
     try {
       const response = await fetch(
         `${API_BASE_URL}/projects/${selectedProjectId}/budget/lines/${lineId}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        }
+        { method: "DELETE", credentials: "include" }
       );
-
       const result = await response.json();
       if (result.success) {
         alert("Line deleted successfully");
@@ -220,7 +233,7 @@ export default function BudgetPage() {
       name: "",
       qty: 1,
       rate: 0,
-          days: 1,
+      days: null,
       taxPercent: 0,
       vendor: "",
       notes: "",
@@ -250,7 +263,8 @@ export default function BudgetPage() {
   };
 
   const calculateLineTotal = (line: BudgetLine) => {
-    return line.qty * line.rate * (1 + line.taxPercent / 100);
+    const days = line.days ?? 1;
+    return line.qty * line.rate * days * (1 + line.taxPercent / 100);
   };
 
   const calculateTotalsByPhase = () => {
@@ -258,21 +272,14 @@ export default function BudgetPage() {
     const totals: Record<string, number> = {};
     selectedVersion.lines.forEach((line) => {
       const lineTotal = calculateLineTotal(line);
-      const phase = line.phase;
-      if (totals[phase] === undefined) {
-        totals[phase] = 0;
-      }
-      totals[phase] += lineTotal;
+      totals[line.phase] = (totals[line.phase] || 0) + lineTotal;
     });
     return totals;
   };
 
   const calculateGrandTotal = () => {
     if (!selectedVersion) return 0;
-    return selectedVersion.lines.reduce(
-      (sum, line) => sum + calculateLineTotal(line),
-      0
-    );
+    return selectedVersion.lines.reduce((sum, line) => sum + calculateLineTotal(line), 0);
   };
 
   const handleProjectChange = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -289,20 +296,20 @@ export default function BudgetPage() {
   ) => {
     const { name, value } = e.target;
     if (name === "qty" || name === "rate" || name === "taxPercent") {
+      setLineFormData((prev) => ({ ...prev, [name]: Number(value) }));
+    } else if (name === "days") {
       setLineFormData((prev) => ({
         ...prev,
-        [name]: Number(value),
+        days: value === "" ? null : parseFloat(value),
       }));
     } else {
-      setLineFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      setLineFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
+  // ─── PDF EXPORT ──────────────────────────────────────────────────────────────
   const exportToPDF = () => {
     if (!selectedVersion) {
       alert("No budget version selected");
@@ -324,36 +331,26 @@ export default function BudgetPage() {
 
     let yPos = 20;
 
-    // ===== HEADER =====
+    // ── HEADER ──
     doc.setFillColor(...colors.primary);
     doc.rect(0, 0, pageWidth, 50, "F");
-
     doc.setFontSize(24);
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.text("BUDGET REPORT", 15, 22);
-
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text("Film Finance Management System", 15, 32);
-
     doc.setFontSize(9);
-    doc.text(
-      `Generated: ${new Date().toLocaleDateString()}`,
-      pageWidth - 15,
-      22,
-      { align: "right" }
-    );
-
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - 15, 22, { align: "right" });
     doc.setTextColor(...colors.text);
     yPos = 60;
 
-    // ===== PROJECT & VERSION INFO =====
+    // ── PROJECT & VERSION INFO ──
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...colors.primary);
     doc.text("PROJECT & VERSION INFORMATION", 15, yPos);
-
     yPos += 8;
 
     doc.setFillColor(...colors.lightBg);
@@ -373,11 +370,7 @@ export default function BudgetPage() {
     doc.text("Version:", 20, yPos + 16);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...colors.text);
-    doc.text(
-      `${selectedVersion.version} (${selectedVersion.type})`,
-      50,
-      yPos + 16
-    );
+    doc.text(`${selectedVersion.version} (${selectedVersion.type})`, 50, yPos + 16);
 
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...colors.lightText);
@@ -389,26 +382,22 @@ export default function BudgetPage() {
     if (selectedVersion.lockedAt) {
       doc.setFont("helvetica", "bold");
       doc.setTextColor(220, 38, 38);
-      doc.text("🔒 LOCKED", pageWidth - 30, yPos + 24, { align: "right" });
+      doc.text("LOCKED", pageWidth - 30, yPos + 24, { align: "right" });
     }
-
     yPos += 40;
 
-    // ===== SUMMARY BY PHASE =====
+    // ── SUMMARY BY PHASE ──
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...colors.primary);
     doc.text("SUMMARY BY PHASE", 15, yPos);
-
     yPos += 5;
 
-    const phaseData = Object.entries(calculateTotalsByPhase()).map(
-      ([phase, total]) => [
-        phase,
-        formatCurrency(total),
-        `${((total / calculateGrandTotal()) * 100).toFixed(1)}%`,
-      ]
-    );
+    const phaseData = Object.entries(calculateTotalsByPhase()).map(([phase, total]) => [
+      PHASE_LABELS[phase as Phase] ?? phase,
+      formatCurrency(total),
+      `${((total / calculateGrandTotal()) * 100).toFixed(1)}%`,
+    ]);
 
     autoTable(doc, {
       startY: yPos,
@@ -416,28 +405,16 @@ export default function BudgetPage() {
       body: phaseData,
       foot: [["TOTAL", formatCurrency(calculateGrandTotal()), "100%"]],
       theme: "striped",
-      headStyles: {
-        fillColor: colors.primary,
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-      },
-      footStyles: {
-        fillColor: [241, 245, 249],
-        textColor: colors.text,
-        fontStyle: "bold",
-      },
+      headStyles: { fillColor: colors.primary, textColor: [255, 255, 255], fontStyle: "bold" },
+      footStyles: { fillColor: [241, 245, 249], textColor: colors.text, fontStyle: "bold" },
       styles: { fontSize: 9 },
-      columnStyles: {
-        1: { halign: "right" },
-        2: { halign: "right" },
-      },
+      columnStyles: { 1: { halign: "right" }, 2: { halign: "right" } },
     });
 
     yPos = (doc as any).lastAutoTable.finalY + 15;
 
-    // ===== BUDGET LINES (Detailed) =====
-    // Check if we need a new page
-    if (yPos > pageHeight - 100) {
+    // ── DETAILED BUDGET LINES — one section per phase ──
+    if (yPos > pageHeight - 80) {
       doc.addPage();
       yPos = 20;
     }
@@ -445,91 +422,137 @@ export default function BudgetPage() {
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...colors.primary);
-    doc.text("DETAILED BUDGET LINES", 15, yPos);
+    doc.text("DETAILED BUDGET LINES BY PHASE", 15, yPos);
+    yPos += 8;
 
-    yPos += 5;
+    for (const phase of PHASES) {
+      const phaseLines = selectedVersion.lines.filter((l) => l.phase === phase);
+      if (phaseLines.length === 0) continue;
 
-    const lineData = selectedVersion.lines.map((line) => [
-      line.phase,
-      line.department || "-",
-      line.name,
-      line.qty.toString(),
-      line.days || "—",
-      formatCurrency(line.rate),
-      `${line.taxPercent || 0}%`,
-      formatCurrency(calculateLineTotal(line)),
-      formatDate(line.createdAt),
-      formatDate(line.updatedAt),
-    ]);
+      if (yPos > pageHeight - 80) {
+        doc.addPage();
+        yPos = 20;
+      }
 
-    autoTable(doc, {
-      startY: yPos,
-      head: [
-        [
-          "Phase",
-          "Dept",
-          "Line Item",
-          "Qty",
-          "Rate", 
-             "Days",
-          "Tax",
-          "Total",
-          "Created",
-          "Updated",
+      const phaseColor = PHASE_PDF_COLORS[phase];
+      const phaseSubtotal = phaseLines.reduce((s, l) => s + calculateLineTotal(l), 0);
+
+      // Phase section heading bar
+      doc.setFillColor(...phaseColor);
+      doc.roundedRect(10, yPos, pageWidth - 20, 10, 2, 2, "F");
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      doc.text(PHASE_LABELS[phase].toUpperCase(), 15, yPos + 7);
+      doc.text(
+        `${phaseLines.length} line${phaseLines.length > 1 ? "s" : ""}`,
+        pageWidth / 2,
+        yPos + 7,
+        { align: "center" }
+      );
+      doc.text(formatCurrency(phaseSubtotal), pageWidth - 15, yPos + 7, { align: "right" });
+      yPos += 12;
+
+      const lineData = phaseLines.map((line) => [
+        line.department || "-",
+        line.name,
+        line.qty.toString(),
+        line.days || "—",
+        formatCurrency(line.rate),
+        `${line.taxPercent || 0}%`,
+        formatCurrency(calculateLineTotal(line)),
+        formatDate(line.createdAt),
+        formatDate(line.updatedAt),
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [["Dept", "Line Item", "Qty", "Days", "Rate", "Tax", "Total", "Created", "Updated"]],
+        body: lineData,
+        foot: [
+          [
+            {
+              content: `Subtotal — ${PHASE_LABELS[phase]}`,
+              colSpan: 6,
+              styles: { halign: "right", fontStyle: "bold" },
+            },
+            formatCurrency(phaseSubtotal),
+            "",
+            "",
+          ],
         ],
-      ],
-      body: lineData,
-      theme: "striped",
-      headStyles: {
-        fillColor: colors.primary,
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-        fontSize: 8,
-      },
-      bodyStyles: { fontSize: 7 },
-      columnStyles: {
-        3: { halign: "center" },
-     4: { halign: "center" },
-        5: { halign: "right" },
-        6: { halign: "center" },
-        7: { halign: "right" },
-        8: { halign: "center" },
-        9: { halign: "center" },
-      },
-      margin: { left: 10, right: 10 },
-    });
+        theme: "striped",
+        headStyles: {
+          fillColor: phaseColor,
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          fontSize: 8,
+        },
+        footStyles: {
+          fillColor: [241, 245, 249],
+          textColor: colors.text,
+          fontStyle: "bold",
+          fontSize: 8,
+        },
+        bodyStyles: { fontSize: 7 },
+        columnStyles: {
+          2: { halign: "center" },
+          3: { halign: "center" },
+          4: { halign: "right" },
+          5: { halign: "center" },
+          6: { halign: "right" },
+          7: { halign: "center" },
+          8: { halign: "center" },
+        },
+        margin: { left: 10, right: 10 },
+      });
 
-    yPos = (doc as any).lastAutoTable.finalY + 10;
+      yPos = (doc as any).lastAutoTable.finalY + 14;
+    }
 
-    // ===== FOOTER ON ALL PAGES =====
+    // Grand total line at the end
+    if (yPos > pageHeight - 30) {
+      doc.addPage();
+      yPos = 20;
+    }
+    doc.setFillColor(...colors.primary);
+    doc.roundedRect(10, yPos, pageWidth - 20, 12, 2, 2, "F");
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.text("GRAND TOTAL", 15, yPos + 8.5);
+    doc.text(formatCurrency(calculateGrandTotal()), pageWidth - 15, yPos + 8.5, { align: "right" });
+
+    // ── FOOTER ON ALL PAGES ──
     const pageCount = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setDrawColor(...colors.border);
       doc.setLineWidth(0.5);
       doc.line(10, pageHeight - 15, pageWidth - 10, pageHeight - 15);
-
       doc.setFontSize(7);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(...colors.lightText);
       doc.text(
-        `${project?.title || "Budget"} - ${selectedVersion.version}`,
+        `${project?.title || "Budget"} — ${selectedVersion.version}`,
         pageWidth / 2,
         pageHeight - 8,
         { align: "center" }
       );
-      doc.text(`Page ${i} of ${pageCount}`, pageWidth - 10, pageHeight - 8, {
-        align: "right",
-      });
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth - 10, pageHeight - 8, { align: "right" });
     }
 
-    const filename = `Budget_${project?.title}_${selectedVersion.version}_${new Date().toISOString().split("T")[0]}.pdf`;
+    const filename = `Budget_${project?.title}_${selectedVersion.version}_${
+      new Date().toISOString().split("T")[0]
+    }.pdf`;
     doc.save(filename);
   };
 
+  // ─── RENDER ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-8">
           <div className="flex items-center gap-3">
@@ -537,9 +560,7 @@ export default function BudgetPage() {
               <Film className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl lg:text-4xl font-bold text-slate-900">
-                Budget Management
-              </h1>
+              <h1 className="text-3xl lg:text-4xl font-bold text-slate-900">Budget Management</h1>
               <p className="text-slate-600 text-lg">
                 Track production, post, and publicity costs by phase.
               </p>
@@ -562,9 +583,7 @@ export default function BudgetPage() {
         {/* Selectors */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200 shadow-md p-5 mb-8 flex flex-wrap gap-4 items-center">
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-slate-700">
-              Select Project
-            </label>
+            <label className="text-sm font-semibold text-slate-700">Select Project</label>
             <select
               value={selectedProjectId}
               onChange={handleProjectChange}
@@ -581,9 +600,7 @@ export default function BudgetPage() {
 
           {selectedProjectId && budgetVersions.length > 0 && (
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-semibold text-slate-700">
-                Budget Version
-              </label>
+              <label className="text-sm font-semibold text-slate-700">Budget Version</label>
               <select
                 value={selectedVersion?.id || ""}
                 onChange={handleVersionChange}
@@ -627,7 +644,7 @@ export default function BudgetPage() {
           </div>
         </div>
 
-        {/* Modal */}
+        {/* Add / Edit Line Modal */}
         {showAddLineModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
@@ -635,10 +652,9 @@ export default function BudgetPage() {
                 {editingLine ? "Edit Budget Line" : "Add Budget Line"}
               </h2>
               <form onSubmit={handleAddLine} className="space-y-4">
+                {/* Phase */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">
-                    Phase
-                  </label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Phase</label>
                   <select
                     name="phase"
                     value={lineFormData.phase}
@@ -653,6 +669,7 @@ export default function BudgetPage() {
                   </select>
                 </div>
 
+                {/* Department */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">
                     Department (Optional)
@@ -667,6 +684,7 @@ export default function BudgetPage() {
                   />
                 </div>
 
+                {/* Line Item Name */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">
                     Line Item Name
@@ -682,11 +700,10 @@ export default function BudgetPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* Qty / Days / Rate / Tax */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1">
-                      Qty
-                    </label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Qty</label>
                     <input
                       name="qty"
                       type="number"
@@ -699,8 +716,21 @@ export default function BudgetPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1">
-                      Rate
+                      Days (Optional)
                     </label>
+                    <input
+                      name="days"
+                      type="number"
+                      value={lineFormData.days ?? ""}
+                      onChange={handleLineFieldChange}
+                      placeholder="e.g. 5 or 5.5"
+                      min={0}
+                      step="0.5"
+                      className="w-full h-10 border border-slate-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Rate</label>
                     <input
                       name="rate"
                       type="number"
@@ -713,9 +743,7 @@ export default function BudgetPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1">
-                      Tax %
-                    </label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Tax %</label>
                     <input
                       name="taxPercent"
                       type="number"
@@ -728,6 +756,7 @@ export default function BudgetPage() {
                   </div>
                 </div>
 
+                {/* Vendor */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">
                     Vendor (Optional)
@@ -742,6 +771,7 @@ export default function BudgetPage() {
                   />
                 </div>
 
+                {/* Notes */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">
                     Notes (Optional)
@@ -756,12 +786,11 @@ export default function BudgetPage() {
                   />
                 </div>
 
+                {/* Live total preview */}
                 <p className="text-sm text-slate-600">
                   <span className="font-semibold">Line Total:</span>{" "}
                   {formatCurrency(
-                    lineFormData.qty *
-                      lineFormData.rate *
-                      (1 + lineFormData.taxPercent / 100)
+                    lineFormData.qty * lineFormData.rate * (lineFormData.days ?? 1) * (1 + lineFormData.taxPercent / 100)
                   )}
                 </p>
 
@@ -800,14 +829,11 @@ export default function BudgetPage() {
                   No budget version found for this project.
                 </p>
                 <p className="text-sm text-slate-500">
-                  Create a quotation first, then convert it to a baseline
-                  budget.
+                  Create a quotation first, then convert it to a baseline budget.
                 </p>
                 <button
                   type="button"
-                  onClick={() =>
-                    router.push(`/quotations?projectId=${selectedProjectId}`)
-                  }
+                  onClick={() => router.push(`/quotations?projectId=${selectedProjectId}`)}
                   className="mt-4 px-5 h-10 rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
                 >
                   Go to Quotations
@@ -815,7 +841,7 @@ export default function BudgetPage() {
               </div>
             ) : (
               <>
-                {/* Header info */}
+                {/* Version header info */}
                 <div className="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-100">
                   <h2 className="text-lg font-semibold text-slate-900 mb-2">
                     {selectedVersion.version} ({selectedVersion.type})
@@ -850,9 +876,7 @@ export default function BudgetPage() {
 
                 {/* Summary by Phase */}
                 <div className="mb-8">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-3">
-                    Summary by Phase
-                  </h3>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-3">Summary by Phase</h3>
                   <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                     <table className="min-w-full text-sm">
                       <thead className="bg-blue-700 text-white">
@@ -863,28 +887,17 @@ export default function BudgetPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {Object.entries(calculateTotalsByPhase()).map(
-                          ([phase, total]) => (
-                            <tr
-                              key={phase}
-                              className="border-t hover:bg-slate-50"
-                            >
-                              <td className="px-4 py-2 font-semibold">
-                                {phase}
-                              </td>
-                              <td className="px-4 py-2 text-right">
-                                {formatCurrency(total)}
-                              </td>
-                              <td className="px-4 py-2 text-right">
-                                {(
-                                  (total / calculateGrandTotal()) *
-                                  100
-                                ).toFixed(1)}
-                                %
-                              </td>
-                            </tr>
-                          )
-                        )}
+                        {Object.entries(calculateTotalsByPhase()).map(([phase, total]) => (
+                          <tr key={phase} className="border-t hover:bg-slate-50">
+                            <td className="px-4 py-2 font-semibold">
+                              {PHASE_LABELS[phase as Phase] ?? phase}
+                            </td>
+                            <td className="px-4 py-2 text-right">{formatCurrency(total)}</td>
+                            <td className="px-4 py-2 text-right">
+                              {((total / calculateGrandTotal()) * 100).toFixed(1)}%
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                       <tfoot className="bg-slate-50 font-semibold border-t-2">
                         <tr>
@@ -899,87 +912,167 @@ export default function BudgetPage() {
                   </div>
                 </div>
 
-                {/* Detailed lines */}
+                {/* ── BUDGET LINES — grouped by phase ── */}
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900 mb-3">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-4">
                     Budget Lines ({selectedVersion.lines.length})
                   </h3>
+
                   {selectedVersion.lines.length === 0 ? (
                     <p className="text-sm text-slate-600">
                       No budget lines yet. Add your first line item above.
                     </p>
                   ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-                      <table className="min-w-full text-sm">
-                        <thead className="bg-slate-50">
-                          <tr>
-                            <th className="px-4 py-2 text-left">Phase</th>
-                            <th className="px-4 py-2 text-left">Department</th>
-                            <th className="px-4 py-2 text-left">Line Item</th>
-                            <th className="px-4 py-2 text-right">Qty</th>
-                            <th className="px-4 py-2 text-right">Rate</th>
-                            <th className="px-4 py-2 text-right">Tax %</th>
-                            <th className="px-4 py-2 text-right">Total</th>
-                            <th className="px-4 py-2 text-center">Created</th>
-                            <th className="px-4 py-2 text-center">Updated</th>
-                            {!selectedVersion.lockedAt && (
-                              <th className="px-4 py-2 text-left">Actions</th>
-                            )}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selectedVersion.lines.map((line) => (
-                            <tr
-                              key={line.id}
-                              className="border-t hover:bg-slate-50"
+                    <div className="space-y-6">
+                      {PHASES.map((phase) => {
+                        const phaseLines = selectedVersion!.lines.filter(
+                          (l) => l.phase === phase
+                        );
+                        if (phaseLines.length === 0) return null;
+
+                        const subtotal = phaseLines.reduce(
+                          (s, l) => s + calculateLineTotal(l),
+                          0
+                        );
+
+                        return (
+                          <div
+                            key={phase}
+                            className="rounded-xl border border-slate-200 overflow-hidden shadow-sm"
+                          >
+                            {/* Phase header */}
+                            <div
+                              className={`flex items-center justify-between px-4 py-3 border-b ${PHASE_HEADER_COLORS[phase]}`}
                             >
-                              <td className="px-4 py-2">{line.phase}</td>
-                              <td className="px-4 py-2">
-                                {line.department || "-"}
-                              </td>
-                              <td className="px-4 py-2">{line.name}</td>
-                              <td className="px-4 py-2 text-right">
-                                {line.qty}
-                              </td>
-                              <td className="px-4 py-2 text-right">
-                                {line.rate.toLocaleString()}
-                              </td>
-                              <td className="px-4 py-2 text-right">
-                                {line.taxPercent}%
-                              </td>
-                              <td className="px-4 py-2 text-right font-semibold">
-                                {formatCurrency(calculateLineTotal(line))}
-                              </td>
-                              <td className="px-4 py-2 text-center text-xs text-slate-600">
-                                {formatDate(line.createdAt)}
-                              </td>
-                              <td className="px-4 py-2 text-center text-xs text-slate-600">
-                                {formatDate(line.updatedAt)}
-                              </td>
-                              {!selectedVersion.lockedAt && (
-                                <td className="px-4 py-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleEditLine(line)}
-                                    className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-slate-300 mr-2 hover:bg-slate-50"
-                                  >
-                                    <Edit2 className="w-3 h-3" />
-                                    Edit
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteLine(line.id)}
-                                    className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-red-300 text-red-600 hover:bg-red-50"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                    Delete
-                                  </button>
-                                </td>
-                              )}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold">
+                                  {PHASE_LABELS[phase]}
+                                </span>
+                                <span
+                                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${PHASE_BADGE_COLORS[phase]}`}
+                                >
+                                  {phaseLines.length} line
+                                  {phaseLines.length > 1 ? "s" : ""}
+                                </span>
+                              </div>
+                              <span className="text-sm font-semibold">
+                                {formatCurrency(subtotal)}
+                              </span>
+                            </div>
+
+                            {/* Lines table */}
+                            <div className="overflow-x-auto bg-white">
+                              <table className="min-w-full text-sm">
+                                <thead className="bg-slate-50 text-xs">
+                                  <tr>
+                                    <th className="px-4 py-2 text-left text-slate-600 font-medium">
+                                      Department
+                                    </th>
+                                    <th className="px-4 py-2 text-left text-slate-600 font-medium">
+                                      Line Item
+                                    </th>
+                                    <th className="px-4 py-2 text-right text-slate-600 font-medium">
+                                      Qty
+                                    </th>
+                                    <th className="px-4 py-2 text-right text-slate-600 font-medium">
+                                      Days
+                                    </th>
+                                    <th className="px-4 py-2 text-right text-slate-600 font-medium">
+                                      Rate
+                                    </th>
+                                    <th className="px-4 py-2 text-right text-slate-600 font-medium">
+                                      Tax %
+                                    </th>
+                                    <th className="px-4 py-2 text-right text-slate-600 font-medium">
+                                      Total
+                                    </th>
+                                    <th className="px-4 py-2 text-center text-slate-600 font-medium">
+                                      Created
+                                    </th>
+                                    <th className="px-4 py-2 text-center text-slate-600 font-medium">
+                                      Updated
+                                    </th>
+                                    {!selectedVersion!.lockedAt && (
+                                      <th className="px-4 py-2 text-left text-slate-600 font-medium">
+                                        Actions
+                                      </th>
+                                    )}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {phaseLines.map((line) => (
+                                    <tr key={line.id} className="border-t hover:bg-slate-50">
+                                      <td className="px-4 py-2">{line.department || "-"}</td>
+                                      <td className="px-4 py-2">{line.name}</td>
+                                      <td className="px-4 py-2 text-right">{line.qty}</td>
+                                      <td className="px-4 py-2 text-right">
+                                        {line.days ?? "—"}
+                                      </td>
+                                      <td className="px-4 py-2 text-right">
+                                        {line.rate.toLocaleString()}
+                                      </td>
+                                      <td className="px-4 py-2 text-right">
+                                        {line.taxPercent}%
+                                      </td>
+                                      <td className="px-4 py-2 text-right font-semibold">
+                                        {formatCurrency(calculateLineTotal(line))}
+                                      </td>
+                                      <td className="px-4 py-2 text-center text-xs text-slate-600">
+                                        {formatDate(line.createdAt)}
+                                      </td>
+                                      <td className="px-4 py-2 text-center text-xs text-slate-600">
+                                        {formatDate(line.updatedAt)}
+                                      </td>
+                                      {!selectedVersion!.lockedAt && (
+                                        <td className="px-4 py-2">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleEditLine(line)}
+                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-slate-300 mr-2 hover:bg-slate-50"
+                                          >
+                                            <Edit2 className="w-3 h-3" />
+                                            Edit
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDeleteLine(line.id)}
+                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-red-300 text-red-600 hover:bg-red-50"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                            Delete
+                                          </button>
+                                        </td>
+                                      )}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                                <tfoot>
+                                  <tr className="border-t-2 bg-slate-50">
+                                    <td
+                                      colSpan={selectedVersion!.lockedAt ? 6 : 6}
+                                      className="px-4 py-2 text-right text-xs font-semibold text-slate-600"
+                                    >
+                                      Subtotal — {PHASE_LABELS[phase]}
+                                    </td>
+                                    <td className="px-4 py-2 text-right font-semibold text-slate-800">
+                                      {formatCurrency(subtotal)}
+                                    </td>
+                                    <td colSpan={selectedVersion!.lockedAt ? 2 : 3} />
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Grand total footer */}
+                      <div className="flex items-center justify-between px-5 py-4 rounded-xl bg-blue-700 text-white shadow-md">
+                        <span className="font-semibold text-sm">Grand Total</span>
+                        <span className="text-lg font-bold">
+                          {formatCurrency(calculateGrandTotal())}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
