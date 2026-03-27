@@ -13,7 +13,7 @@ import autoTable from "jspdf-autotable";
 
 const APIBASEURL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000/api";
+  "https://movie-finance.onrender.com/api";
 
 interface FinancingSource {
   id: string;

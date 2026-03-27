@@ -27,7 +27,7 @@ export default function LoginPage() {
     try {
       // Call your backend login endpoint
       const response = await fetch(
-        "http://localhost:4000/api/auth/login",
+        "https://movie-finance.onrender.com/api/auth/login",
         {
           method: "POST",
           headers: {

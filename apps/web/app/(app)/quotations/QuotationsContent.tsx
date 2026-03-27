@@ -25,7 +25,7 @@ import { Download } from "lucide-react";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ??
-  "http://localhost:4000/api";
+  "https://movie-finance.onrender.com/api";
 
 type TemplateType = "FEATURE" | "SERIES" | "SHORT";
 

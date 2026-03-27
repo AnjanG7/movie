@@ -55,7 +55,7 @@ interface ProjectUserAssignment {
 }
 
 const AVAILABLE_ROLES = ["Investor", "LineProducer", "Accountant"] as const;
-const API_BASE_URL = "http://localhost:4000/api";
+const API_BASE_URL = "https://movie-finance.onrender.com/api";
 
 // Helper function to get role name from string or object
 const getRoleName = (role: string | Role | null): string => {

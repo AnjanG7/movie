@@ -26139,7 +26139,7 @@ export default function DashboardPage() {
     const fetchUserCount = async () => {
       try {
         const res = await fetch(
-          `http://localhost:4000/api/auth/allUsers`,
+          `https://movie-finance.onrender.com/api/auth/allUsers`,
           {
             method: "GET",
             headers: { "Content-Type": "application/json" },
@@ -26161,7 +26161,7 @@ export default function DashboardPage() {
     const fetchActiveProjects = async () => {
       try {
         const res = await fetch(
-          `http://localhost:4000/api/projects/active`,
+          `https://movie-finance.onrender.com/api/projects/active`,
           {
             method: "GET",
             headers: { "Content-Type": "application/json" },
@@ -26191,7 +26191,7 @@ export default function DashboardPage() {
     const fetchSummary = async () => {
       try {
         const res = await fetch(
-          "http://localhost:4000/api/projects/summary",
+          "https://movie-finance.onrender.com/api/projects/summary",
           {
             method: "GET",
             headers: { "Content-Type": "application/json" },
@@ -26213,7 +26213,7 @@ export default function DashboardPage() {
     const fetchBudgetOverview = async () => {
       try {
         const res = await fetch(
-          "http://localhost:4000/api/dashboard/overview",
+          "https://movie-finance.onrender.com/api/dashboard/overview",
           {
             method: "GET",
             headers: { "Content-Type": "application/json" },
@@ -26257,7 +26257,7 @@ export default function DashboardPage() {
   const fetchProjectStats = async () => {
     try {
       const response = await fetch(
-        `http://localhost:4000/api/dashboard/projectStats`,
+        `https://movie-finance.onrender.com/api/dashboard/projectStats`,
         {
           method: "GET",
           headers: { "Content-Type": "application/json" },
@@ -26278,7 +26278,7 @@ export default function DashboardPage() {
   const fetchUserStats = async () => {
     try {
       const response = await fetch(
-        `http://localhost:4000/api/dashboard/userStats`,
+        `https://movie-finance.onrender.com/api/dashboard/userStats`,
         {
           method: "GET",
           headers: { "Content-Type": "application/json" },
@@ -26300,7 +26300,7 @@ export default function DashboardPage() {
   const fetchActiveProjectStats = async () => {
     try {
       const response = await fetch(
-        `http://localhost:4000/api/dashboard/activeProjectStats`,
+        `https://movie-finance.onrender.com/api/dashboard/activeProjectStats`,
         {
           method: "GET",
           headers: { "Content-Type": "application/json" },
@@ -26478,8 +26478,8 @@ import React, { useState, useEffect, FormEvent, ChangeEvent } from "react";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000/api";
-  // "http://localhost:4000/api";
+  "https://movie-finance.onrender.com/api";
+  // "https://movie-finance.onrender.com/api";
 
 interface Payment {
   id: string;
@@ -27100,7 +27100,7 @@ import {
 } from "lucide-react";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+  process.env.NEXT_PUBLIC_API_URL || "https://movie-finance.onrender.com/api";
 
 interface Project {
   id: string;
@@ -28594,7 +28594,7 @@ import autoTable from "jspdf-autotable";
 
 const APIBASEURL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000/api";
+  "https://movie-finance.onrender.com/api";
 
 interface FinancingSource {
   id: string;
@@ -29726,7 +29726,7 @@ import {
 } from "lucide-react";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+  process.env.NEXT_PUBLIC_API_URL || "https://movie-finance.onrender.com/api";
 
 /* ===================== TYPES ===================== */
 
@@ -30775,7 +30775,7 @@ import { Film, Plus, Search, Filter, X } from "lucide-react";
 import { Project } from "../lib/types";
 import { useStore } from "../lib/store";
 
-const API_BASE_URL = "http://localhost:4000/api";
+const API_BASE_URL = "https://movie-finance.onrender.com/api";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -31220,7 +31220,7 @@ import {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-const API_BASE_URL = "http://localhost:4000/api";
+const API_BASE_URL = "https://movie-finance.onrender.com/api";
 
 // Types matching Prisma schema exactly
 interface PhaseEntity {
@@ -33538,7 +33538,7 @@ import { Plus, Pencil, Trash2, Building2, X, Save } from "lucide-react";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000/api";
+  "https://movie-finance.onrender.com/api";
 
 interface Project {
   id: string;
@@ -34308,7 +34308,7 @@ export default function SettingsPage() {
   const handleChangePassword = async () => {
     try {
       const res = await fetch(
-        "http://localhost:4000/api/auth/change-password",
+        "https://movie-finance.onrender.com/api/auth/change-password",
         {
           method: "POST",
           headers: {
@@ -34661,7 +34661,7 @@ import React, { useState, useEffect, ChangeEvent } from "react";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000/api";
+  "https://movie-finance.onrender.com/api";
 
 interface Project {
   id: string;
@@ -35125,7 +35125,7 @@ import {
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000/api";
+  "https://movie-finance.onrender.com/api";
 
 // Types
 interface CashflowForecast {
@@ -36078,7 +36078,7 @@ import { Download } from "lucide-react";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ??
-  "http://localhost:4000/api";
+  "https://movie-finance.onrender.com/api";
 
 type TemplateType = "FEATURE" | "SERIES" | "SHORT";
 
@@ -36820,7 +36820,7 @@ FILE: apps/web/app/(app)/quotations/[id]/page.tsx
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 
-const API_BASE_URL = "http://localhost:4000/api";
+const API_BASE_URL = "https://movie-finance.onrender.com/api";
 
 interface Quotation {
   id: string;
@@ -37430,7 +37430,7 @@ FILE: apps/web/app/(app)/quotations/[id]/view/page.tsx
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 
-const API_BASE_URL = "http://localhost:4000/api";
+const API_BASE_URL = "https://movie-finance.onrender.com/api";
 
 interface Quotation {
   id: string;
@@ -38160,7 +38160,7 @@ import autoTable from "jspdf-autotable";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000/api";
+  "https://movie-finance.onrender.com/api";
 
 interface Invoice {
   id: string;
@@ -39213,7 +39213,7 @@ import autoTable from "jspdf-autotable";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000/api";
+  "https://movie-finance.onrender.com/api";
 
 export interface Project {
   id: string;
@@ -39766,7 +39766,7 @@ import { Download } from "lucide-react";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000/api";
+  "https://movie-finance.onrender.com/api";
 
 interface Project {
   id: string;
@@ -41066,7 +41066,7 @@ import { Project, Participant, PhaseEntity } from "./types";
 // import { User } from '../../../../../packages/types';
 
 const api = axios.create({
-  baseURL: "http://localhost:4000/api",
+  baseURL: "https://movie-finance.onrender.com/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -41235,7 +41235,7 @@ FILE: apps/web/app/(app)/lib/api/waterfall.ts
 
 const APIBASEURL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000/api";
+  "https://movie-finance.onrender.com/api";
 
 // Waterfall Types
 export interface WaterfallTier {
@@ -41402,7 +41402,7 @@ FILE: apps/web/app/(app)/lib/api/quotation.ts
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000/api";
+  "https://movie-finance.onrender.com/api";
 
 // ==================== QUOTATION ====================
 
@@ -41570,7 +41570,7 @@ export const deleteBudgetLine = async (projectId: string, lineId: string) => {
 FILE: apps/web/app/(app)/lib/api/postProduction.ts
 ==============================
 
-const API_BASE_URL = "http://localhost:4000/api";
+const API_BASE_URL = "https://movie-finance.onrender.com/api";
 
 // ==================== POST TASKS ====================
 
@@ -41695,7 +41695,7 @@ export const updateROIWithPostProduction = async (projectId: string) => {
 FILE: apps/web/app/(app)/lib/api/publicity.ts
 ==============================
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://movie-finance.onrender.com/api";
 
 // ==================== PUBLICITY BUDGET ====================
 
@@ -42254,7 +42254,7 @@ export default function ProfilePage() {
     try {
       // API call to update profile
       const response = await fetch(
-        "http://localhost:4000/api/auth/profile",
+        "https://movie-finance.onrender.com/api/auth/profile",
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -42496,7 +42496,7 @@ import React, { useState, useEffect, FormEvent, ChangeEvent } from "react";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000/api";
+  "https://movie-finance.onrender.com/api";
 
 interface Installment {
   id: string;
@@ -43730,7 +43730,7 @@ export default function AdminUsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`http://localhost:4000/api/auth/allUsers`, {
+      const response = await fetch(`https://movie-finance.onrender.com/api/auth/allUsers`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -43752,7 +43752,7 @@ export default function AdminUsersPage() {
   const handleDeleteUser = async (userId: string) => {
     try {
       const response = await fetch(
-        `http://localhost:4000/api/auth/delete/${userId}`,
+        `https://movie-finance.onrender.com/api/auth/delete/${userId}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -43789,7 +43789,7 @@ export default function AdminUsersPage() {
     setCreateLoading(true);
 
     try {
-      const response = await fetch("http://localhost:4000/api/auth/add-user", {
+      const response = await fetch("https://movie-finance.onrender.com/api/auth/add-user", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -44331,7 +44331,7 @@ export default function AdminUsersPage() {
 FILE: apps/web/app/(app)/all-users/users.service.ts
 ==============================
 
-const BASE_URL = "http://localhost:4000/api/auth";
+const BASE_URL = "https://movie-finance.onrender.com/api/auth";
 
 export async function fetchUsersApi() {
   const res = await fetch(`${BASE_URL}/allUsers`, {
@@ -44720,7 +44720,7 @@ import {
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000/api";
+  "https://movie-finance.onrender.com/api";
 
 interface Project {
   id: string;
@@ -46030,7 +46030,7 @@ interface ProjectUserAssignment {
 }
 
 const AVAILABLE_ROLES = ["Investor", "LineProducer", "Accountant"] as const;
-const API_BASE_URL = "http://localhost:4000/api";
+const API_BASE_URL = "https://movie-finance.onrender.com/api";
 
 // Helper function to get role name from string or object
 const getRoleName = (role: string | Role | null): string => {
@@ -48131,7 +48131,7 @@ export default function LoginPage() {
     try {
       // Call your backend login endpoint
       const response = await fetch(
-        "http://localhost:4000/api/auth/login",
+        "https://movie-finance.onrender.com/api/auth/login",
         {
           method: "POST",
           headers: {

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
-const API_BASE     = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const API_BASE     = process.env.NEXT_PUBLIC_API_URL || "https://movie-finance.onrender.com/api";
 const EXPENSE_URL  = `${API_BASE}/expense`;
 const PROJECTS_URL = `${API_BASE}/projects`;
 

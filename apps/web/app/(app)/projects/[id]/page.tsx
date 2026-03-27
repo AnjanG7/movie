@@ -26,7 +26,7 @@ import {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-const API_BASE_URL = "http://localhost:4000/api";
+const API_BASE_URL = "https://movie-finance.onrender.com/api";
 
 // Types matching Prisma schema exactly
 interface PhaseEntity {

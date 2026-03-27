@@ -32,7 +32,7 @@ export default function SettingsPage() {
   const handleChangePassword = async () => {
     try {
       const res = await fetch(
-        "http://localhost:4000/api/auth/change-password",
+        "https://movie-finance.onrender.com/api/auth/change-password",
         {
           method: "POST",
           headers: {
