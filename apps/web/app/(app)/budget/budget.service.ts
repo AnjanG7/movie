@@ -7,8 +7,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://movie-finance.onrender.com/api";
+  process.env.NEXT_PUBLIC_API_URL || "https://movie-finance.onrender.com/api";
 
 export interface Project {
   id: string;
@@ -22,7 +21,7 @@ export interface BudgetLine {
   department: string | null;
   name: string;
   qty: number;
-    days: string | null;
+  days: number;
 
   rate: number;
   taxPercent: number;
@@ -47,7 +46,7 @@ export interface LineFormData {
   name: string;
   qty: number;
   rate: number;
-    days: string | null;
+  days: number;
 
   taxPercent: number;
   vendor: string;
@@ -59,7 +58,7 @@ export function useBudgetService() {
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [budgetVersions, setBudgetVersions] = useState<BudgetVersion[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<BudgetVersion | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(false);
   const [showAddLineModal, setShowAddLineModal] = useState(false);
@@ -71,7 +70,7 @@ export function useBudgetService() {
     name: "",
     qty: 1,
     rate: 0,
-       days: "",
+    days: 1,
     taxPercent: 0,
     vendor: "",
     notes: "",
@@ -97,7 +96,7 @@ export function useBudgetService() {
         {
           method: "DELETE",
           credentials: "include",
-        }
+        },
       );
 
       const result = await response.json();
@@ -138,14 +137,14 @@ export function useBudgetService() {
     try {
       const response = await fetch(
         `${API_BASE_URL}/projects/${selectedProjectId}/budget`,
-        { credentials: "include" }
+        { credentials: "include" },
       );
       const result = await response.json();
       if (result.success) {
         const versions: BudgetVersion[] = result.data.versions || [];
         setBudgetVersions(versions);
         const workingBudget = versions.find(
-          (v: BudgetVersion) => v.type === "WORKING"
+          (v: BudgetVersion) => v.type === "WORKING",
         );
         setSelectedVersion(workingBudget || versions[0] || null);
       }
@@ -181,7 +180,7 @@ export function useBudgetService() {
       const result = await response.json();
       if (result.success) {
         alert(
-          editingLine ? "Line updated successfully" : "Line added successfully"
+          editingLine ? "Line updated successfully" : "Line added successfully",
         );
         setShowAddLineModal(false);
         setEditingLine(null);
@@ -204,7 +203,7 @@ export function useBudgetService() {
       name: line.name,
       qty: line.qty,
       rate: line.rate,
-       days: line.days || "",
+      days: line.days || 0,
       taxPercent: line.taxPercent,
       vendor: "",
       notes: "",
@@ -219,7 +218,7 @@ export function useBudgetService() {
       name: "",
       qty: 1,
       rate: 0,
-           days: "",
+      days: 1,
       taxPercent: 0,
       vendor: "",
       notes: "",
@@ -270,7 +269,7 @@ export function useBudgetService() {
     if (!selectedVersion) return 0;
     return selectedVersion.lines.reduce(
       (sum, line) => sum + calculateLineTotal(line),
-      0
+      0,
     );
   };
 
@@ -284,7 +283,7 @@ export function useBudgetService() {
   };
 
   const handleLineFieldChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     if (name === "qty" || name === "rate" || name === "taxPercent") {
@@ -341,7 +340,7 @@ export function useBudgetService() {
       `Generated: ${new Date().toLocaleDateString()}`,
       pageWidth - 15,
       22,
-      { align: "right" }
+      { align: "right" },
     );
 
     doc.setTextColor(...colors.text);
@@ -375,7 +374,7 @@ export function useBudgetService() {
     doc.text(
       `${selectedVersion.version} (${selectedVersion.type})`,
       50,
-      yPos + 16
+      yPos + 16,
     );
 
     doc.setFont("helvetica", "normal");
@@ -406,7 +405,7 @@ export function useBudgetService() {
         phase,
         formatCurrency(total),
         `${((total / calculateGrandTotal()) * 100).toFixed(1)}%`,
-      ]
+      ],
     );
 
     autoTable(doc, {
@@ -453,7 +452,7 @@ export function useBudgetService() {
       line.department || "-",
       line.name,
       line.qty.toString(),
-        line.days || "—",
+      line.days || "—",
       formatCurrency(line.rate),
       `${line.taxPercent || 0}%`,
       formatCurrency(calculateLineTotal(line)),
@@ -469,7 +468,7 @@ export function useBudgetService() {
           "Dept",
           "Line Item",
           "Qty",
-           "Days",
+          "Days",
           "Rate",
           "Tax",
           "Total",
@@ -494,7 +493,6 @@ export function useBudgetService() {
         7: { halign: "right" },
         8: { halign: "center" },
         9: { halign: "center" },
-       
       },
       margin: { left: 10, right: 10 },
     });
@@ -516,7 +514,7 @@ export function useBudgetService() {
         `${project?.title || "Budget"} - ${selectedVersion.version}`,
         pageWidth / 2,
         pageHeight - 8,
-        { align: "center" }
+        { align: "center" },
       );
       doc.text(`Page ${i} of ${pageCount}`, pageWidth - 10, pageHeight - 8, {
         align: "right",
@@ -551,6 +549,6 @@ export function useBudgetService() {
     calculateGrandTotal,
     exportToPDF,
     selectedProject,
-     resetLineForm,
+    resetLineForm,
   };
 }

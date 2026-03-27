@@ -24,7 +24,7 @@ interface BudgetLine {
   name: string;
   qty: number;
   rate: number;
-    days: string | null;
+    days: number;
   taxPercent: number;
   createdAt: string;
   updatedAt: string;
@@ -47,7 +47,7 @@ interface LineFormData {
   name: string;
   qty: number;
   rate: number;
-    days: string;
+    days: number;
   taxPercent: number;
   vendor: string;
   notes: string;
@@ -71,7 +71,7 @@ export default function BudgetPage() {
     name: "",
     qty: 1,
     rate: 0,
-     days: "",
+     days: 1,
     taxPercent: 0,
     vendor: "",
     notes: "",
@@ -179,7 +179,7 @@ export default function BudgetPage() {
       name: line.name,
       qty: line.qty,
       rate: line.rate,
-         days: line.days || "",
+         days: line.days || 0,
       taxPercent: line.taxPercent,
       vendor: "",
       notes: "",
@@ -220,7 +220,7 @@ export default function BudgetPage() {
       name: "",
       qty: 1,
       rate: 0,
-          days: "",
+          days: 1,
       taxPercent: 0,
       vendor: "",
       notes: "",
