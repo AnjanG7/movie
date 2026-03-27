@@ -5,7 +5,7 @@ import {
   Plus, Trash2, Pencil, X, ChevronDown, ChevronRight,
   Download, Film, Layers, DollarSign, AlertCircle,
   Loader2, Check, FolderOpen, Tag, FileText,
-  TrendingUp, BarChart3, Package,
+  TrendingUp, BarChart3, Package, FileDown,
 } from "lucide-react";
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
@@ -75,7 +75,10 @@ const fmtMoney = (n: number, currency = "USD") => {
   }
 };
 
-// ─── PDF EXPORT ───────────────────────────────────────────────────────────────
+const fmtNum = (n: number) =>
+  n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// ─── PDF EXPORT — SINGLE CATEGORY ────────────────────────────────────────────
 function printCategoryPDF(
   category: string,
   items: Expense[],
@@ -150,6 +153,274 @@ function printCategoryPDF(
   win.document.close();
 }
 
+// ─── PDF EXPORT — FULL BUDGET (matches the screenshot format) ────────────────
+function printFullBudgetPDF(
+  expenses: Expense[],
+  project: Project,
+  taxRate: number,
+  contingency: number,
+) {
+  const currency = project.baseCurrency;
+  const f = (n: number) => fmtNum(n);
+
+  // Group by category
+  const grouped: Record<string, Expense[]> = {};
+  expenses.forEach(e => {
+    (grouped[e.category] = grouped[e.category] || []).push(e);
+  });
+
+  // Phase totals (before tax/contingency)
+  const grandPre  = expenses.reduce((s, e) => s + e.preProduction, 0);
+  const grandProd = expenses.reduce((s, e) => s + e.production, 0);
+  const grandPost = expenses.reduce((s, e) => s + e.postProduction, 0);
+  const grandTotal = grandPre + grandProd + grandPost;
+
+  const contAmt   = grandTotal * (contingency / 100);
+  const taxAmt    = grandTotal * (taxRate / 100);
+  const contAndTaxTotal = grandTotal + contAmt + taxAmt;
+
+  // Summary table rows (no tax, with contingency only, with tax only, with both)
+  const summaryRows = `
+    <tr class="sum-row">
+      <td colspan="2">Without Contingency Fund &amp; Tax</td>
+      <td><strong>PRE PROD</strong></td><td><strong>PROD</strong></td><td><strong>POST PROD</strong></td><td><strong>TOTAL</strong></td>
+    </tr>
+    <tr class="sum-data">
+      <td colspan="2" class="r-label">Phase Total</td>
+      <td class="r">${f(grandPre)}</td><td class="r">${f(grandProd)}</td><td class="r">${f(grandPost)}</td><td class="r b">${f(grandTotal)}</td>
+    </tr>
+    <tr class="sum-row">
+      <td colspan="2">With ${contingency}% Contingency Fund Only</td>
+      <td><strong>PRE PROD</strong></td><td><strong>PROD</strong></td><td><strong>POST PROD</strong></td><td><strong>TOTAL</strong></td>
+    </tr>
+    <tr class="sum-data">
+      <td colspan="2" class="r-label">Phase Total</td>
+      <td class="r">${f(grandPre * (1 + contingency/100))}</td>
+      <td class="r">${f(grandProd * (1 + contingency/100))}</td>
+      <td class="r">${f(grandPost * (1 + contingency/100))}</td>
+      <td class="r b">${f(grandTotal + contAmt)}</td>
+    </tr>
+    <tr class="sum-row">
+      <td colspan="2">With ${taxRate}% Tax Only</td>
+      <td><strong>PRE PROD</strong></td><td><strong>PROD</strong></td><td><strong>POST PROD</strong></td><td><strong>TOTAL</strong></td>
+    </tr>
+    <tr class="sum-data">
+      <td colspan="2" class="r-label">Phase Total</td>
+      <td class="r">${f(grandPre * (1 + taxRate/100))}</td>
+      <td class="r">${f(grandProd * (1 + taxRate/100))}</td>
+      <td class="r">${f(grandPost * (1 + taxRate/100))}</td>
+      <td class="r b">${f(grandTotal + taxAmt)}</td>
+    </tr>
+    <tr class="sum-row">
+      <td colspan="2">With ${contingency}% Contingency Fund &amp; ${taxRate}% Tax</td>
+      <td><strong>PRE PROD</strong></td><td><strong>PROD</strong></td><td><strong>POST PROD</strong></td><td><strong>TOTAL</strong></td>
+    </tr>
+    <tr class="sum-data sum-data--final">
+      <td colspan="2" class="r-label">Phase Total</td>
+      <td class="r">${f(grandPre * (1 + (contingency + taxRate)/100))}</td>
+      <td class="r">${f(grandProd * (1 + (contingency + taxRate)/100))}</td>
+      <td class="r">${f(grandPost * (1 + (contingency + taxRate)/100))}</td>
+      <td class="r b">${f(contAndTaxTotal)}</td>
+    </tr>
+  `;
+
+  // Category + items rows
+  let catRows = "";
+  let catIndex = 1;
+  Object.entries(grouped).forEach(([cat, items]) => {
+    const catPre  = items.reduce((s, e) => s + e.preProduction, 0);
+    const catProd = items.reduce((s, e) => s + e.production, 0);
+    const catPost = items.reduce((s, e) => s + e.postProduction, 0);
+    const catTot  = catPre + catProd + catPost;
+
+    catRows += `
+      <tr class="cat-header">
+        <td>${catIndex}</td>
+        <td><strong>${cat}</strong></td>
+        <td class="r"><strong>${f(catPre)}</strong></td>
+        <td class="r"><strong>${f(catProd)}</strong></td>
+        <td class="r"><strong>${f(catPost)}</strong></td>
+        <td class="r"><strong>${f(catTot)}</strong></td>
+      </tr>`;
+
+    let subIndex = 1;
+    items.forEach(exp => {
+      catRows += `
+        <tr class="item-row">
+          <td class="sub-num">${catIndex}.${subIndex}</td>
+          <td class="item-name">${exp.itemName}${exp.notes ? ` <span class="note-inline">(${exp.notes})</span>` : ""}</td>
+          <td class="r">${f(exp.preProduction)}</td>
+          <td class="r">${f(exp.production)}</td>
+          <td class="r">${f(exp.postProduction)}</td>
+          <td class="r">${f(exp.totalAmount)}</td>
+        </tr>`;
+      subIndex++;
+    });
+
+    catRows += `<tr class="spacer-row"><td colspan="6"></td></tr>`;
+    catIndex++;
+  });
+
+  // Contingency & Tax rows
+  catRows += `
+    <tr class="cat-header cat-header--special">
+      <td>${catIndex}</td>
+      <td><strong>CONTINGENCY ${contingency}%</strong></td>
+      <td class="r"><strong>${f(grandPre * contingency / 100)}</strong></td>
+      <td class="r"><strong>${f(grandProd * contingency / 100)}</strong></td>
+      <td class="r"><strong>${f(grandPost * contingency / 100)}</strong></td>
+      <td class="r"><strong>${f(contAmt)}</strong></td>
+    </tr>
+    <tr class="spacer-row"><td colspan="6"></td></tr>
+    <tr class="cat-header cat-header--special">
+      <td>${catIndex + 1}</td>
+      <td><strong>TAX ${taxRate}%</strong></td>
+      <td class="r"><strong>${f(grandPre * taxRate / 100)}</strong></td>
+      <td class="r"><strong>${f(grandProd * taxRate / 100)}</strong></td>
+      <td class="r"><strong>${f(grandPost * taxRate / 100)}</strong></td>
+      <td class="r"><strong>${f(taxAmt)}</strong></td>
+    </tr>
+    <tr class="spacer-row"><td colspan="6"></td></tr>
+    <tr class="grand-total-row">
+      <td colspan="2"><strong>Total</strong></td>
+      <td class="r"><strong>${f(grandPre + grandPre * (contingency + taxRate) / 100)}</strong></td>
+      <td class="r"><strong>${f(grandProd + grandProd * (contingency + taxRate) / 100)}</strong></td>
+      <td class="r"><strong>${f(grandPost + grandPost * (contingency + taxRate) / 100)}</strong></td>
+      <td class="r"><strong>${f(contAndTaxTotal)}</strong></td>
+    </tr>
+  `;
+
+  const dateStr = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+  const win = window.open("", "_blank");
+  if (!win) return;
+  win.document.write(`<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>Full Budget — ${project.title}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;padding:40px;font-size:12px;background:#fff}
+
+  /* ── Header ── */
+  .page-header{border:2px solid #1e293b;margin-bottom:20px}
+  .page-header .top-bar{background:#4472c4;color:#fff;text-align:center;padding:8px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+  .page-header .sub-bar{text-align:center;padding:5px;font-size:10px;color:#475569;border-bottom:1px solid #e2e8f0}
+  .page-header .date-row{text-align:right;padding:4px 12px;font-size:10px;color:#64748b;border-bottom:1px solid #e2e8f0}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+  .info-row{display:flex;border-bottom:1px solid #e2e8f0;padding:5px 12px}
+  .info-row .lbl{font-weight:700;min-width:180px;font-size:11px}
+  .info-row .val{font-size:11px;color:#0f172a}
+  .total-banner{background:#1e293b;color:#fff;display:flex;justify-content:space-between;padding:10px 14px;align-items:center}
+  .total-banner .lbl{font-size:12px;font-weight:700}
+  .total-banner .val{font-size:16px;font-weight:800;font-family:monospace}
+
+  /* ── Summary table ── */
+  .section-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin:18px 0 6px;padding-bottom:4px;border-bottom:2px solid #e2e8f0}
+  table.main-table{width:100%;border-collapse:collapse;margin-bottom:0}
+  table.main-table th{background:#1e293b;color:#e2e8f0;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.07em}
+  table.main-table th.r{text-align:right}
+  .sum-row td{background:#4472c4;color:#fff;padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+  .sum-data td{background:#f0f4ff;padding:5px 10px;border-bottom:1px solid #dde6ff;font-size:11px}
+  .sum-data--final td{background:#e8edff;font-weight:700}
+  .r{text-align:right}
+  .r-label{text-align:right;font-style:italic;color:#64748b;font-size:10px}
+  .b{font-weight:700}
+
+  /* ── Category table ── */
+  table.cat-table{width:100%;border-collapse:collapse}
+  table.cat-table th{background:#1e293b;color:#e2e8f0;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.07em}
+  table.cat-table th.r{text-align:right}
+  .cat-header td{background:#eaf0fb;padding:7px 10px;font-size:11px;border-bottom:1px solid #c9d8f5;border-top:3px solid #4472c4}
+  .cat-header--special td{background:#fef9ec;border-top:3px solid #f59e0b}
+  .item-row td{padding:5px 10px 5px 18px;border-bottom:1px solid #f1f5f9;font-size:11px}
+  .item-row:nth-child(even) td{background:#fafbfc}
+  .sub-num{color:#94a3b8;font-size:10px;width:40px}
+  .item-name{color:#0f172a}
+  .note-inline{color:#94a3b8;font-style:italic;font-size:10px}
+  .spacer-row td{height:6px;background:#f8fafc}
+  .grand-total-row td{background:#1e293b;color:#fff;padding:10px;font-size:13px;font-weight:800}
+  .grand-total-row td.r{text-align:right}
+
+  /* ── Footer ── */
+  .doc-footer{margin-top:24px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:10px;color:#94a3b8}
+
+  @media print{
+    body{padding:12mm}
+    @page{margin:10mm;size:A4}
+    .page-break{page-break-before:always}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ PROJECT HEADER ══ -->
+<div class="page-header">
+  <div class="top-bar">PRODUCTION APPROACH WITH ${currency} BUDGET</div>
+  <div class="sub-bar">Film Finance — Full Budget Report</div>
+  <div class="date-row">As at ${dateStr}</div>
+  <div class="info-grid">
+    <div>
+      <div class="info-row"><span class="lbl">Project Title:</span><span class="val">${project.title}</span></div>
+      <div class="info-row"><span class="lbl">Cinema Format:</span><span class="val">Digital</span></div>
+      <div class="info-row"><span class="lbl">Currency:</span><span class="val">${currency}</span></div>
+    </div>
+    <div>
+      <div class="info-row"><span class="lbl">Total Categories:</span><span class="val">${Object.keys(grouped).length}</span></div>
+      <div class="info-row"><span class="lbl">Total Line Items:</span><span class="val">${expenses.length}</span></div>
+      <div class="info-row"><span class="lbl">Report Generated:</span><span class="val">${dateStr}</span></div>
+    </div>
+  </div>
+  <div class="total-banner">
+    <span class="lbl">Total Budget (${currency}) — with ${contingency}% Contingency &amp; ${taxRate}% Tax:</span>
+    <span class="val">${fmtNum(contAndTaxTotal)}</span>
+  </div>
+</div>
+
+<!-- ══ PHASE SUMMARY TABLE ══ -->
+<div class="section-title">Budget Summary by Phase</div>
+<table class="main-table">
+  <thead>
+    <tr>
+      <th colspan="2">Description</th>
+      <th class="r">Pre-Production</th>
+      <th class="r">Production</th>
+      <th class="r">Post-Production</th>
+      <th class="r">Total (${currency})</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${summaryRows}
+  </tbody>
+</table>
+
+<!-- ══ CATEGORY BREAKDOWN ══ -->
+<div class="section-title page-break" style="margin-top:24px">Category Description &amp; Line Items</div>
+<table class="cat-table">
+  <thead>
+    <tr>
+      <th style="width:40px">#</th>
+      <th>Category / Item Description</th>
+      <th class="r">Pre-Production</th>
+      <th class="r">Production</th>
+      <th class="r">Post-Production</th>
+      <th class="r">Total (${currency})</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${catRows}
+  </tbody>
+</table>
+
+<div class="doc-footer">
+  <span>Film Finance App — Full Budget Report · ${project.title}</span>
+  <span>${expenses.length} line items across ${Object.keys(grouped).length} categories</span>
+</div>
+
+<script>window.onload = () => window.print();</script>
+</body></html>`);
+  win.document.close();
+}
+
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function ExpensePage() {
   // Projects
@@ -175,6 +446,7 @@ export default function ExpensePage() {
   // UI state
   const [expandedCats, setExpandedCats]   = useState<Set<string>>(new Set());
   const [exportingCat, setExportingCat]   = useState<string | null>(null);
+  const [exportingFull, setExportingFull] = useState(false);
   const [deleteId, setDeleteId]           = useState<number | null>(null);
   const [toast, setToast]                 = useState<{msg:string;type:"ok"|"err"}|null>(null);
 
@@ -253,21 +525,19 @@ export default function ExpensePage() {
   const totalProd  = expenses.reduce((s,e)=>s+e.production,0);
   const totalPost  = expenses.reduce((s,e)=>s+e.postProduction,0);
 
-  // ── Create category (local – opens item-add directly) ──
+  // ── Create category ──
   const handleCreateCategory = () => {
     const name = newCatName.trim();
     if(!name){ showToast("Enter a category name","err"); return; }
     if(grouped[name]){ showToast("Category already exists","err"); return; }
-    // Expand it and open add-item for this new category
     setExpandedCats(p=>new Set([...p, name]));
     setShowNewCat(false);
     setNewCatName(""); setCatQuery("");
-    // Open add-item modal immediately
     setItemForm({itemName:"",preProduction:0,production:0,postProduction:0,notes:""});
     setItemModal({category:name, editing:null});
   };
 
-  // ── Delete entire category (deletes all its expenses) ──
+  // ── Delete entire category ──
   const handleDeleteCategory = async(cat:string)=>{
     const items = grouped[cat] ?? [];
     if(!confirm(`Delete all ${items.length} item(s) in "${cat}"? This cannot be undone.`)) return;
@@ -292,7 +562,7 @@ export default function ExpensePage() {
     setItemModal({category:exp.category, editing:exp});
   };
 
-  // ── Submit item (create or update) ──
+  // ── Submit item ──
   const handleItemSubmit = async()=>{
     if(!itemModal) return;
     const {category, editing} = itemModal;
@@ -314,7 +584,6 @@ export default function ExpensePage() {
       if(!r.ok) throw new Error("Save failed");
       showToast(editing ? "Item updated" : "Item added","ok");
       setItemModal(null);
-      // Expand this category so user sees the new item
       setExpandedCats(p=>new Set([...p, category]));
       fetchExpenses();
     } catch(e:any){ showToast(e.message,"err"); }
@@ -338,7 +607,7 @@ export default function ExpensePage() {
     setExpandedCats(p=>{const n=new Set(p); n.has(cat)?n.delete(cat):n.add(cat); return n;});
   };
 
-  // ── PDF export ──
+  // ── Per-category PDF export ──
   const handleExport = (cat:string)=>{
     const items = grouped[cat]??[];
     if(!items.length){ showToast("No items to export","err"); return; }
@@ -347,9 +616,17 @@ export default function ExpensePage() {
     setTimeout(()=>setExportingCat(null),1000);
   };
 
+  // ── Full budget PDF export ──
+  const handleFullExport = () => {
+    if(!expenses.length){ showToast("No expenses to export","err"); return; }
+    if(!selectedProject) return;
+    setExportingFull(true);
+    printFullBudgetPDF(expenses, selectedProject, taxRate, contingency);
+    setTimeout(()=>setExportingFull(false), 1200);
+  };
+
   const itemFormTotal = Number(itemForm.preProduction)+Number(itemForm.production)+Number(itemForm.postProduction);
 
-  // ── Filtered presets for category modal ──
   const filteredPresets = PRESET_CATS.filter(c=>
     c.toLowerCase().includes(catQuery.toLowerCase()) && !grouped[c]
   );
@@ -377,7 +654,6 @@ export default function ExpensePage() {
           </div>
         </div>
 
-        {/* ── PROJECT SELECTOR ── */}
         <div className="ep-header__right">
           <div className="ep-proj-selector">
             <span className="ep-proj-selector__lbl">Project:</span>
@@ -398,9 +674,22 @@ export default function ExpensePage() {
             }
           </div>
           {selectedProjectId && (
-            <button className="ep-btn ep-btn--primary" onClick={()=>setShowNewCat(true)}>
-              <Plus size={15}/> New Category
-            </button>
+            <>
+              <button className="ep-btn ep-btn--primary" onClick={()=>setShowNewCat(true)}>
+                <Plus size={15}/> New Category
+              </button>
+              {expenses.length > 0 && (
+                <button
+                  className="ep-btn ep-btn--full-export"
+                  onClick={handleFullExport}
+                  disabled={exportingFull}
+                  title="Export full budget as PDF (like the screenshot)"
+                >
+                  {exportingFull ? <Loader2 size={14} className="spin"/> : <FileDown size={14}/>}
+                  Full Budget PDF
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -414,7 +703,6 @@ export default function ExpensePage() {
         </div>
       ) : (
         <>
-          {/* ── CURRENCY BADGE ── */}
           {selectedProject && (
             <div className="ep-currency-bar">
               <DollarSign size={13}/>
@@ -432,7 +720,6 @@ export default function ExpensePage() {
             <StatCard label="Post-Production" value={f(totalPost)} icon={<BarChart3 size={16}/>} color="rose"/>
           </div>
 
-          {/* ── LOADING / ERROR ── */}
           {loading && (
             <div className="ep-load-box"><Loader2 size={26} className="spin"/><span>Loading expenses…</span></div>
           )}
@@ -440,7 +727,6 @@ export default function ExpensePage() {
             <div className="ep-err-box"><AlertCircle size={18}/>{error}</div>
           )}
 
-          {/* ── NO EXPENSES YET ── */}
           {!loading && !error && expenses.length===0 && (
             <div className="ep-empty-state ep-empty-state--sm">
               <div className="ep-empty-state__icon"><Layers size={34}/></div>
@@ -464,7 +750,6 @@ export default function ExpensePage() {
 
             return (
               <div key={cat} className="ep-cat-card">
-                {/* Category Header */}
                 <div className="ep-cat-card__header" onClick={()=>toggleCat(cat)}>
                   <div className="ep-cat-card__header-left">
                     <span className="ep-cat-card__chevron">
@@ -474,36 +759,27 @@ export default function ExpensePage() {
                     <span className="ep-cat-card__count">{items.length} item{items.length!==1?"s":""}</span>
                   </div>
                   <div className="ep-cat-card__header-right" onClick={e=>e.stopPropagation()}>
-                    {/* Phase pills */}
                     <span className="ep-phase-pill ep-phase-pill--pre">Pre: {f(catPre)}</span>
                     <span className="ep-phase-pill ep-phase-pill--prod">Prod: {f(catProd)}</span>
                     <span className="ep-phase-pill ep-phase-pill--post">Post: {f(catPost)}</span>
                     <span className="ep-cat-total">{f(catTotal)}</span>
-
-                    {/* Action buttons */}
-                    <button className="ep-btn ep-btn--sm ep-btn--outline" onClick={()=>openAddItem(cat)} title="Add item to this category">
+                    <button className="ep-btn ep-btn--sm ep-btn--outline" onClick={()=>openAddItem(cat)}>
                       <Plus size={13}/> Add Item
                     </button>
                     <button
                       className="ep-btn ep-btn--sm ep-btn--export"
                       onClick={()=>handleExport(cat)}
                       disabled={isExporting}
-                      title="Export this category as PDF"
                     >
                       {isExporting?<Loader2 size={12} className="spin"/>:<Download size={12}/>}
                       Export PDF
                     </button>
-                    <button
-                      className="ep-icon-btn ep-icon-btn--danger"
-                      onClick={()=>handleDeleteCategory(cat)}
-                      title="Delete entire category"
-                    >
+                    <button className="ep-icon-btn ep-icon-btn--danger" onClick={()=>handleDeleteCategory(cat)}>
                       <Trash2 size={14}/>
                     </button>
                   </div>
                 </div>
 
-                {/* Items table (expanded) */}
                 {isOpen && (
                   <div className="ep-cat-card__body">
                     {items.length===0 ? (
@@ -535,10 +811,10 @@ export default function ExpensePage() {
                               <td className="ep-notes">{exp.notes||"—"}</td>
                               <td>
                                 <div className="ep-row-actions">
-                                  <button className="ep-icon-btn ep-icon-btn--edit" onClick={()=>openEditItem(exp)} title="Edit">
+                                  <button className="ep-icon-btn ep-icon-btn--edit" onClick={()=>openEditItem(exp)}>
                                     <Pencil size={13}/>
                                   </button>
-                                  <button className="ep-icon-btn ep-icon-btn--danger" onClick={()=>handleDeleteItem(exp.id)} disabled={deleteId===exp.id} title="Delete">
+                                  <button className="ep-icon-btn ep-icon-btn--danger" onClick={()=>handleDeleteItem(exp.id)} disabled={deleteId===exp.id}>
                                     {deleteId===exp.id?<Loader2 size={13} className="spin"/>:<Trash2 size={13}/>}
                                   </button>
                                 </div>
@@ -575,7 +851,6 @@ export default function ExpensePage() {
 
               {showSummary && (
                 <div className="ep-summary-body">
-                  {/* Controls */}
                   <div className="ep-summary-controls">
                     <div className="ep-rate-ctrl">
                       <label>Tax Rate: <strong>{taxRate}%</strong></label>
@@ -591,6 +866,10 @@ export default function ExpensePage() {
                       {summaryLoading?<Loader2 size={13} className="spin"/>:<TrendingUp size={13}/>}
                       Recalculate
                     </button>
+                    <button className="ep-btn ep-btn--full-export" onClick={handleFullExport} disabled={exportingFull}>
+                      {exportingFull?<Loader2 size={13} className="spin"/>:<FileDown size={13}/>}
+                      Full Budget PDF
+                    </button>
                   </div>
 
                   {summaryLoading && (
@@ -599,7 +878,6 @@ export default function ExpensePage() {
 
                   {summary && !summaryLoading && (
                     <div className="ep-summary-content">
-                      {/* Category breakdown */}
                       <div className="ep-sum-cats">
                         {Object.entries(summary.categorySummary).map(([cat,data])=>(
                           <div className="ep-sum-cat" key={cat}>
@@ -607,11 +885,7 @@ export default function ExpensePage() {
                               <span className="ep-cat-badge">{cat}</span>
                               <div className="ep-sum-cat__head-right">
                                 <span className="ep-sum-cat__total">{f(data.categoryTotalAmount)}</span>
-                                <button
-                                  className="ep-btn ep-btn--xs ep-btn--export"
-                                  onClick={()=>handleExport(cat)}
-                                  disabled={exportingCat===cat}
-                                >
+                                <button className="ep-btn ep-btn--xs ep-btn--export" onClick={()=>handleExport(cat)} disabled={exportingCat===cat}>
                                   {exportingCat===cat?<Loader2 size={10} className="spin"/>:<Download size={10}/>} PDF
                                 </button>
                               </div>
@@ -632,7 +906,6 @@ export default function ExpensePage() {
                         ))}
                       </div>
 
-                      {/* Grand totals */}
                       <div className="ep-grand-totals">
                         <h3>Final Breakdown <span className="ep-cur-tag">{currency}</span></h3>
                         <div className="ep-total-rows">
@@ -652,16 +925,12 @@ export default function ExpensePage() {
         </>
       )}
 
-      {/* ══════════════════════════════════════════════════
-          MODAL: NEW CATEGORY
-      ══════════════════════════════════════════════════ */}
+      {/* ══ MODAL: NEW CATEGORY ══ */}
       {showNewCat && (
         <div className="ep-overlay" onClick={()=>{setShowNewCat(false);setNewCatName("");setCatQuery("");}}>
           <div className="ep-modal" onClick={e=>e.stopPropagation()}>
             <div className="ep-modal__head">
-              <div className="ep-modal__title">
-                <Tag size={16}/> New Category
-              </div>
+              <div className="ep-modal__title"><Tag size={16}/> New Category</div>
               <button className="ep-modal__close" onClick={()=>{setShowNewCat(false);setNewCatName("");setCatQuery("");}}>
                 <X size={17}/>
               </button>
@@ -678,33 +947,17 @@ export default function ExpensePage() {
                   autoFocus
                 />
               </div>
-
-              {/* Quick-pick presets */}
               <div className="ep-field">
                 <label>Or pick a preset</label>
-                <input
-                  className="ep-input ep-input--sm"
-                  placeholder="Filter presets…"
-                  value={catQuery}
-                  onChange={e=>setCatQuery(e.target.value)}
-                />
+                <input className="ep-input ep-input--sm" placeholder="Filter presets…" value={catQuery} onChange={e=>setCatQuery(e.target.value)}/>
                 <div className="ep-preset-chips">
                   {filteredPresets.slice(0,12).map(c=>(
-                    <button
-                      key={c}
-                      className={`ep-preset-chip ${newCatName===c?"ep-preset-chip--active":""}`}
-                      onClick={()=>setNewCatName(c)}
-                    >
-                      {c}
-                    </button>
+                    <button key={c} className={`ep-preset-chip ${newCatName===c?"ep-preset-chip--active":""}`} onClick={()=>setNewCatName(c)}>{c}</button>
                   ))}
                   {filteredPresets.length===0 && <span className="ep-no-presets">No matching presets — use your custom name above</span>}
                 </div>
               </div>
-
-              <p className="ep-modal__hint">
-                After creating the category, you'll be prompted to add the first line item.
-              </p>
+              <p className="ep-modal__hint">After creating the category, you'll be prompted to add the first line item.</p>
             </div>
             <div className="ep-modal__foot">
               <button className="ep-btn ep-btn--ghost" onClick={()=>{setShowNewCat(false);setNewCatName("");setCatQuery("");}}>Cancel</button>
@@ -716,9 +969,7 @@ export default function ExpensePage() {
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════════
-          MODAL: ADD / EDIT ITEM
-      ══════════════════════════════════════════════════ */}
+      {/* ══ MODAL: ADD / EDIT ITEM ══ */}
       {itemModal && (
         <div className="ep-overlay" onClick={()=>setItemModal(null)}>
           <div className="ep-modal ep-modal--wide" onClick={e=>e.stopPropagation()}>
@@ -728,12 +979,9 @@ export default function ExpensePage() {
                 {itemModal.editing?"Edit Item":"Add Item"}&nbsp;
                 <span className="ep-modal__cat-tag">{itemModal.category}</span>
               </div>
-              <button className="ep-modal__close" onClick={()=>setItemModal(null)}>
-                <X size={17}/>
-              </button>
+              <button className="ep-modal__close" onClick={()=>setItemModal(null)}><X size={17}/></button>
             </div>
             <div className="ep-modal__body">
-              {/* Item name */}
               <div className="ep-field">
                 <label>Item Name *</label>
                 <input
@@ -744,8 +992,6 @@ export default function ExpensePage() {
                   autoFocus
                 />
               </div>
-
-              {/* Phase amounts */}
               <div className="ep-field-row-3">
                 {([
                   {key:"preProduction" as const, label:"Pre-Production", cls:"pre"},
@@ -756,35 +1002,20 @@ export default function ExpensePage() {
                     <label className={`ep-phase-label ep-phase-label--${cls}`}>{label}</label>
                     <div className="ep-amount-wrap">
                       <span className="ep-amount-cur">{currency}</span>
-                      <input
-                        type="number" min={0}
-                        className="ep-input ep-input--mono"
-                        value={itemForm[key]}
-                        onChange={e=>setItemForm({...itemForm,[key]:Number(e.target.value)})}
-                      />
+                      <input type="number" min={0} className="ep-input ep-input--mono"
+                        value={itemForm[key]} onChange={e=>setItemForm({...itemForm,[key]:Number(e.target.value)})}/>
                     </div>
                   </div>
                 ))}
               </div>
-
-              {/* Notes */}
               <div className="ep-field">
                 <label>Notes <span className="ep-optional">(optional)</span></label>
-                <textarea
-                  className="ep-input ep-input--ta"
-                  placeholder="Any additional notes…"
-                  rows={2}
-                  value={itemForm.notes}
-                  onChange={e=>setItemForm({...itemForm,notes:e.target.value})}
-                />
+                <textarea className="ep-input ep-input--ta" placeholder="Any additional notes…" rows={2}
+                  value={itemForm.notes} onChange={e=>setItemForm({...itemForm,notes:e.target.value})}/>
               </div>
-
-              {/* Total preview */}
               <div className="ep-total-preview">
                 <span>Calculated Total</span>
-                <div className="ep-total-preview__val">
-                  {fmtMoney(itemFormTotal, currency)}
-                </div>
+                <div className="ep-total-preview__val">{fmtMoney(itemFormTotal, currency)}</div>
               </div>
             </div>
             <div className="ep-modal__foot">
@@ -912,12 +1143,10 @@ const PAGE_CSS = `
   transition: box-shadow .15s;
 }
 .ep-cat-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.07); }
-
 .ep-cat-card__header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 18px; cursor: pointer; gap: 12px;
-  border-bottom: 1px solid transparent; transition: background .12s;
-  flex-wrap: wrap;
+  border-bottom: 1px solid transparent; transition: background .12s; flex-wrap: wrap;
 }
 .ep-cat-card__header:hover { background: #f8fafc; }
 .ep-cat-card__header-left { display: flex; align-items: center; gap: 10px; }
@@ -932,26 +1161,13 @@ const PAGE_CSS = `
 .ep-phase-pill--prod { color: #d97706; background: #fffbeb; border: 1px solid #fde68a; }
 .ep-phase-pill--post { color: #059669; background: #ecfdf5; border: 1px solid #a7f3d0; }
 
-/* ── Category body / table ── */
 .ep-cat-card__body { border-top: 1px solid #f1f5f9; }
-.ep-cat-empty {
-  display: flex; align-items: center; gap: 8px; padding: 18px 24px;
-  font-size: 13px; color: #94a3b8; font-style: italic;
-}
-.ep-inline-btn {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 12px; font-weight: 600; color: #0ea5e9; background: none;
-  border: none; cursor: pointer; padding: 0 4px; font-family: inherit;
-  transition: color .15s;
-}
+.ep-cat-empty { display: flex; align-items: center; gap: 8px; padding: 18px 24px; font-size: 13px; color: #94a3b8; font-style: italic; }
+.ep-inline-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #0ea5e9; background: none; border: none; cursor: pointer; padding: 0 4px; font-family: inherit; transition: color .15s; }
 .ep-inline-btn:hover { color: #0284c7; }
 
 .ep-items-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.ep-items-table thead th {
-  padding: 10px 16px; text-align: left;
-  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
-  color: #94a3b8; background: #f8fafc; border-bottom: 1px solid #e2e8f0;
-}
+.ep-items-table thead th { padding: 10px 16px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #94a3b8; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
 .ep-items-table th.r, .ep-items-table td.r { text-align: right; }
 .ep-items-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: background .1s; }
 .ep-items-table tbody tr:hover { background: #f8fafc; }
@@ -963,27 +1179,17 @@ const PAGE_CSS = `
 .ep-item-total { font-family: 'IBM Plex Mono', monospace; font-weight: 700; color: #0f172a; }
 .ep-notes      { font-size: 12px; color: #94a3b8; font-style: italic; max-width: 200px; }
 .ep-row-actions { display: flex; gap: 4px; justify-content: flex-end; }
-
 .ep-items-table tfoot td { padding: 10px 16px; background: #f8fafc; border-top: 1.5px solid #e2e8f0; }
 .ep-foot-lbl   { font-size: 12px; font-weight: 700; color: #475569; }
 .ep-foot-num   { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; color: #475569; }
 .ep-foot-total { font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 800; color: #059669; }
 
-/* ── Summary section ── */
+/* ── Summary ── */
 .ep-summary-section { margin-top: 20px; background: #fff; border: 1.5px solid #e2e8f0; border-radius: 14px; overflow: hidden; }
-.ep-summary-toggle {
-  width: 100%; display: flex; align-items: center; gap: 8px;
-  padding: 16px 20px; font-size: 14px; font-weight: 700; color: #0f172a;
-  background: none; border: none; cursor: pointer; font-family: inherit;
-  transition: background .12s;
-}
+.ep-summary-toggle { width: 100%; display: flex; align-items: center; gap: 8px; padding: 16px 20px; font-size: 14px; font-weight: 700; color: #0f172a; background: none; border: none; cursor: pointer; font-family: inherit; transition: background .12s; }
 .ep-summary-toggle:hover { background: #f8fafc; }
 .ep-summary-body { border-top: 1px solid #f1f5f9; padding: 20px; }
-.ep-summary-controls {
-  display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap;
-  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
-  padding: 16px 20px; margin-bottom: 20px;
-}
+.ep-summary-controls { display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; }
 .ep-rate-ctrl { flex: 1; min-width: 200px; }
 .ep-rate-ctrl label { font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 8px; }
 .ep-rate-ctrl strong { color: #0ea5e9; }
@@ -1005,7 +1211,6 @@ const PAGE_CSS = `
 .ep-sum-items { display: flex; flex-direction: column; gap: 3px; }
 .ep-sum-item { display: flex; justify-content: space-between; font-size: 12px; color: #64748b; padding: 3px 0; border-bottom: 1px solid #e2e8f0; }
 .ep-sum-item:last-child { border-bottom: none; }
-
 .ep-grand-totals { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 20px; align-self: start; position: sticky; top: 20px; }
 .ep-grand-totals h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #64748b; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
 .ep-cur-tag { font-size: 11px; font-weight: 700; color: #0ea5e9; background: #f0f9ff; border: 1px solid #bae6fd; padding: 2px 8px; border-radius: 20px; font-family: 'IBM Plex Mono', monospace; }
@@ -1025,45 +1230,30 @@ const PAGE_CSS = `
 }
 .ep-btn:disabled { opacity: .5; cursor: not-allowed; }
 .ep-btn--primary { background: linear-gradient(135deg,#0ea5e9,#0284c7); color: #fff; box-shadow: 0 2px 8px rgba(14,165,233,.3); }
-.ep-btn--primary:hover:not(:disabled) { background: linear-gradient(135deg,#0284c7,#0369a1); box-shadow: 0 4px 12px rgba(14,165,233,.4); }
+.ep-btn--primary:hover:not(:disabled) { background: linear-gradient(135deg,#0284c7,#0369a1); }
 .ep-btn--sky     { background: #f0f9ff; color: #0284c7; border: 1.5px solid #bae6fd; }
 .ep-btn--sky:hover:not(:disabled) { background: #e0f2fe; }
 .ep-btn--outline { background: #fff; color: #0ea5e9; border: 1.5px solid #bae6fd; }
 .ep-btn--outline:hover:not(:disabled) { background: #f0f9ff; }
 .ep-btn--export  { background: #fffbeb; color: #d97706; border: 1.5px solid #fde68a; }
 .ep-btn--export:hover:not(:disabled) { background: #fef3c7; }
+.ep-btn--full-export { background: linear-gradient(135deg,#7c3aed,#6d28d9); color: #fff; box-shadow: 0 2px 8px rgba(124,58,237,.3); }
+.ep-btn--full-export:hover:not(:disabled) { background: linear-gradient(135deg,#6d28d9,#5b21b6); box-shadow: 0 4px 12px rgba(124,58,237,.4); }
 .ep-btn--ghost   { background: transparent; color: #64748b; border: 1.5px solid #e2e8f0; }
 .ep-btn--ghost:hover:not(:disabled)  { background: #f8fafc; color: #0f172a; }
 .ep-btn--sm  { padding: 6px 12px; font-size: 12px; border-radius: 7px; }
 .ep-btn--xs  { padding: 4px 9px;  font-size: 11px; border-radius: 6px; }
 .ep-btn--lg  { padding: 11px 20px; font-size: 14px; }
 
-.ep-icon-btn {
-  width: 30px; height: 30px; border-radius: 7px; border: 1.5px solid #e2e8f0;
-  background: #fff; display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: #94a3b8; transition: all .15s;
-}
+.ep-icon-btn { width: 30px; height: 30px; border-radius: 7px; border: 1.5px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #94a3b8; transition: all .15s; }
 .ep-icon-btn--edit:hover   { color: #0ea5e9; border-color: #bae6fd; background: #f0f9ff; }
 .ep-icon-btn--danger:hover { color: #e11d48; border-color: #fecdd3; background: #fff1f2; }
 
 /* ── Modal ── */
-.ep-overlay {
-  position: fixed; inset: 0; background: rgba(15,23,42,.55);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 100; backdrop-filter: blur(4px);
-  animation: epFadeIn .15s ease;
-}
-.ep-modal {
-  background: #fff; border: 1.5px solid #e2e8f0; border-radius: 18px;
-  width: 480px; max-width: calc(100vw - 32px); max-height: 90vh; overflow-y: auto;
-  box-shadow: 0 24px 60px rgba(15,23,42,.15);
-  animation: epSlideUp .18s ease;
-}
+.ep-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(4px); animation: epFadeIn .15s ease; }
+.ep-modal { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 18px; width: 480px; max-width: calc(100vw - 32px); max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(15,23,42,.15); animation: epSlideUp .18s ease; }
 .ep-modal--wide { width: 560px; }
-.ep-modal__head {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 18px 22px; border-bottom: 1px solid #f1f5f9;
-}
+.ep-modal__head { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid #f1f5f9; }
 .ep-modal__title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; color: #0f172a; }
 .ep-modal__cat-tag { font-size: 12px; font-weight: 700; color: #0ea5e9; background: #f0f9ff; border: 1px solid #bae6fd; padding: 2px 10px; border-radius: 20px; }
 .ep-modal__close { background: none; border: none; color: #94a3b8; cursor: pointer; padding: 4px; border-radius: 6px; display: flex; transition: color .15s; }
@@ -1077,13 +1267,7 @@ const PAGE_CSS = `
 .ep-field label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #64748b; }
 .ep-optional { font-size: 10px; color: #94a3b8; text-transform: none; letter-spacing: 0; font-weight: 400; }
 .ep-field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-.ep-input {
-  width: 100%; box-sizing: border-box;
-  background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 9px;
-  color: #0f172a; padding: 10px 12px; font-size: 13px;
-  font-family: 'Plus Jakarta Sans', sans-serif; outline: none;
-  transition: border-color .15s, box-shadow .15s;
-}
+.ep-input { width: 100%; box-sizing: border-box; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 9px; color: #0f172a; padding: 10px 12px; font-size: 13px; font-family: 'Plus Jakarta Sans', sans-serif; outline: none; transition: border-color .15s, box-shadow .15s; }
 .ep-input:focus { border-color: #0ea5e9; background: #fff; box-shadow: 0 0 0 3px rgba(14,165,233,.12); }
 .ep-input--sm   { padding: 8px 11px; font-size: 12px; }
 .ep-input--mono { font-family: 'IBM Plex Mono', monospace; }
@@ -1091,39 +1275,22 @@ const PAGE_CSS = `
 .ep-amount-wrap { position: relative; display: flex; align-items: center; }
 .ep-amount-cur  { position: absolute; left: 10px; font-size: 10px; font-weight: 700; color: #94a3b8; font-family: 'IBM Plex Mono', monospace; pointer-events: none; white-space: nowrap; }
 .ep-amount-wrap .ep-input { padding-left: 40px; }
-
 .ep-phase-label        { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
 .ep-phase-label--pre   { color: #7c3aed; }
 .ep-phase-label--prod  { color: #d97706; }
 .ep-phase-label--post  { color: #059669; }
-
-.ep-total-preview {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 14px 16px; background: #f0fdf4; border: 1.5px solid #a7f3d0;
-  border-radius: 10px; font-size: 13px; font-weight: 600; color: #059669;
-}
+.ep-total-preview { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: #f0fdf4; border: 1.5px solid #a7f3d0; border-radius: 10px; font-size: 13px; font-weight: 600; color: #059669; }
 .ep-total-preview__val { font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 800; color: #059669; }
 
 /* ── Preset chips ── */
 .ep-preset-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-.ep-preset-chip {
-  font-size: 12px; font-weight: 600; color: #475569;
-  background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 20px;
-  padding: 4px 12px; cursor: pointer; font-family: inherit;
-  transition: all .12s;
-}
+.ep-preset-chip { font-size: 12px; font-weight: 600; color: #475569; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 20px; padding: 4px 12px; cursor: pointer; font-family: inherit; transition: all .12s; }
 .ep-preset-chip:hover { border-color: #0ea5e9; color: #0ea5e9; background: #f0f9ff; }
 .ep-preset-chip--active { border-color: #0ea5e9; color: #0284c7; background: #f0f9ff; }
 .ep-no-presets { font-size: 12px; color: #94a3b8; font-style: italic; }
 
 /* ── Toast ── */
-.ep-toast {
-  position: fixed; bottom: 24px; right: 24px; z-index: 200;
-  display: flex; align-items: center; gap: 8px;
-  padding: 11px 18px; border-radius: 10px; font-size: 13px; font-weight: 600;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  animation: epSlideUp .2s ease; box-shadow: 0 8px 24px rgba(0,0,0,.12);
-}
+.ep-toast { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; font-family: 'Plus Jakarta Sans', sans-serif; animation: epSlideUp .2s ease; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
 .ep-toast--ok  { background: #f0fdf4; border: 1.5px solid #a7f3d0; color: #059669; }
 .ep-toast--err { background: #fff1f2; border: 1.5px solid #fecdd3; color: #e11d48; }
 
