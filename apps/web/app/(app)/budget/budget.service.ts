@@ -23,6 +23,7 @@ export interface BudgetLine {
   name: string;
   qty: number;
   rate: number;
+  days: string | null;
   taxPercent: number;
   createdAt: string;
   updatedAt: string;
@@ -45,10 +46,12 @@ export interface LineFormData {
   name: string;
   qty: number;
   rate: number;
+  days: string;
   taxPercent: number;
   vendor: string;
   notes: string;
 }
+
 export function useBudgetService() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -67,6 +70,7 @@ export function useBudgetService() {
     name: "",
     qty: 1,
     rate: 0,
+    days: "",
     taxPercent: 0,
     vendor: "",
     notes: "",
@@ -107,6 +111,7 @@ export function useBudgetService() {
       alert("Failed to delete line");
     }
   };
+
   const fetchProjects = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/projects?limit=1000`, {
@@ -199,6 +204,7 @@ export function useBudgetService() {
       name: line.name,
       qty: line.qty,
       rate: line.rate,
+      days: line.days || "",
       taxPercent: line.taxPercent,
       vendor: "",
       notes: "",
@@ -213,6 +219,7 @@ export function useBudgetService() {
       name: "",
       qty: 1,
       rate: 0,
+      days: "",
       taxPercent: 0,
       vendor: "",
       notes: "",
@@ -428,7 +435,6 @@ export function useBudgetService() {
     yPos = (doc as any).lastAutoTable.finalY + 15;
 
     // ===== BUDGET LINES (Detailed) =====
-    // Check if we need a new page
     if (yPos > pageHeight - 100) {
       doc.addPage();
       yPos = 20;
@@ -446,6 +452,7 @@ export function useBudgetService() {
       line.department || "-",
       line.name,
       line.qty.toString(),
+      line.days || "—",
       formatCurrency(line.rate),
       `${line.taxPercent || 0}%`,
       formatCurrency(calculateLineTotal(line)),
@@ -461,6 +468,7 @@ export function useBudgetService() {
           "Dept",
           "Line Item",
           "Qty",
+          "Days",
           "Rate",
           "Tax",
           "Total",
@@ -479,11 +487,12 @@ export function useBudgetService() {
       bodyStyles: { fontSize: 7 },
       columnStyles: {
         3: { halign: "center" },
-        4: { halign: "right" },
-        5: { halign: "center" },
-        6: { halign: "right" },
-        7: { halign: "center" },
+        4: { halign: "center" },
+        5: { halign: "right" },
+        6: { halign: "center" },
+        7: { halign: "right" },
         8: { halign: "center" },
+        9: { halign: "center" },
       },
       margin: { left: 10, right: 10 },
     });
@@ -540,5 +549,6 @@ export function useBudgetService() {
     calculateGrandTotal,
     exportToPDF,
     selectedProject,
+    resetLineForm,
   };
 }
