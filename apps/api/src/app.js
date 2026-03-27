@@ -13,7 +13,7 @@ const app = express();
 app.use(express.json({ limit: "1mb" }));
 app.use(
   cors({
-    origin: ["https://film-finance-app.vercel.app", "http://localhost:3000"],
+    origin: ["https://movie-finance.vercel.app", "http://localhost:3000"],
     credentials: true,
   })
 );
@@ -37,7 +37,7 @@ import cashflowRouter from "./routes/cashflow.routes.js";
 import financingSourceRouter from "./routes/financingSource.routes.js";
 import drawdownRouter from "./routes/drawdown.routes.js";
 import budgetLineRouter from "./routes/budgetLine.routes.js";
-import expenseRouter from "./routes/expense.routes.js"
+import expenseRouter from "./routes/expense.routes.js";
 // Add this import with your other route imports
 import postProductionRouter from "./routes/postProduction.routes.js";
 // Import the publicity router
@@ -64,7 +64,7 @@ app.use("/api/projects/:projectId/post-production", postProductionRouter);
 
 // Register the route (add this with your other routes)
 app.use("/api/projects/:projectId/publicity", publicityRouter);
-app.use("/api/expense", expenseRouter)
+app.use("/api/expense", expenseRouter);
 // ProjectUser routes (assign, update role, list, remove)
 app.use("/api/projects/:projectId/users", assignRouter);
 import roiRouter from "./routes/roi.routes.js";
